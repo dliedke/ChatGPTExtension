@@ -171,7 +171,7 @@ namespace ChatGPTExtension
             }
 
             string script = $@"var existingText = document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').value;
-                               document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').value = existingText + {JsonConvert.SerializeObject(selectedCode)};
+                               document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').value = existingText + ' ' + {JsonConvert.SerializeObject(selectedCode)};
         
                                var inputEvent = new Event('input', {{
                                    'bubbles': true,
