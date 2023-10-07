@@ -11,6 +11,7 @@ using Microsoft.Win32;
 using Newtonsoft.Json;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.VisualStudio.Shell;
+using System.Linq;
 
 namespace ChatGPTExtension
 {
@@ -209,6 +210,9 @@ namespace ChatGPTExtension
             // This will replace the current selection in VS.NET with the text.
             // If nothing is selected, it'll just insert the text at the current cursor position.
             selection.Insert(text);
+
+            // Set focus back to the active document
+            dte.ActiveDocument.Activate();
         }
 
         #endregion
@@ -242,27 +246,48 @@ namespace ChatGPTExtension
             if (!string.IsNullOrEmpty(textFromBrowser))
             {
                 InsertTextIntoVS(textFromBrowser);
-                FormatTextInVS();
+                FormatCodeInVS();
             }
         }
 
-        private void FormatTextInVS()
+        private void FormatCodeInVS()
         {
             ThreadHelper.ThrowIfNotOnUIThread();
 
-            // Format code in VS.NET if sintax is correct
+            // Format code in VS.NET if syntax is correct
             DTE2 dte = (DTE2)Package.GetGlobalService(typeof(DTE));
             if (dte.ActiveDocument != null)
             {
-                dte.ActiveDocument.Activate();
-                try
+                // List of extensions for code files supported by Visual Studio
+                string[] supportedExtensions =
                 {
-                    dte.ExecuteCommand("Edit.FormatDocument");
-                }
-                catch (Exception ex)
+                    ".cs",    // C#
+                    ".vb",    // Visual Basic
+                    ".cpp",   // C++
+                    ".h",     // C++ header
+                    ".c",     // C
+                    ".fs",    // F#
+                    ".fsx",   // F# script
+                    ".ts",    // TypeScript
+                    ".js",    // JavaScript
+                    ".py",    // Python
+                };
+
+                // Check the file extension of the active document
+                string fileExtension = System.IO.Path.GetExtension(dte.ActiveDocument.FullName).ToLower();
+
+                if (supportedExtensions.Contains(fileExtension))
                 {
-                    // Handle or log the exception
-                    Debug.WriteLine("Error in FormatTextInVS: " + ex.Message);
+                    dte.ActiveDocument.Activate();
+                    try
+                    {
+                        dte.ExecuteCommand("Edit.FormatDocument");
+                    }
+                    catch (Exception ex)
+                    {
+                        // Handle or log the exception
+                        Debug.WriteLine("Error in FormatTextInVS: " + ex.Message);
+                    }
                 }
             }
         }
@@ -271,6 +296,11 @@ namespace ChatGPTExtension
 
         #region Timer to add handler from GPT click events to VS.NET
 
+        private void EnableCopyCodeCheckBox_Click(object sender, RoutedEventArgs e)
+        {
+            _enableCopyCode = EnableCopyCodeCheckBox.IsChecked.Value;
+
+        }
         private async Task AddHandlerCopyCodeAsync()
         {
             try
@@ -338,7 +368,7 @@ namespace ChatGPTExtension
                     // Handle the button click event here
                     string textFromClipboard = Clipboard.GetText();
                     InsertTextIntoVS(textFromClipboard);
-                    FormatTextInVS();
+                    FormatCodeInVS();
                 }
 
                 if (e.TryGetWebMessageAsString() == "EnterPressed")
@@ -397,10 +427,5 @@ namespace ChatGPTExtension
         }
 
         #endregion
-
-        private void EnableCopyCodeCheckBox_Click(object sender, RoutedEventArgs e)
-        {
-            _enableCopyCode = EnableCopyCodeCheckBox.IsChecked.Value;
-        }
     }
 }
