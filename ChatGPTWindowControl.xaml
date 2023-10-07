@@ -10,7 +10,69 @@
              d:DesignHeight="300" d:DesignWidth="300"
              Name="MyToolWindow" >
     <Grid>
+        <!-- Define styles for buttons and checkbox -->
+        <Grid.Resources>
+            <!-- Style for the buttons -->
+            <Style TargetType="Button" x:Key="CustomButtonStyle">
+                <Setter Property="Background" Value="#343541"/>
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#40414F"/>
+                                    <!-- Darkened color for hover -->
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- ToggleSwitch Style for CheckBox -->
+            <Style TargetType="CheckBox" x:Key="CustomCheckBoxStyle">
+                <Setter Property="Margin" Value="0,2,0,2"/>
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type CheckBox}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Toggle switch part -->
+                                <Border Grid.Column="0" Background="#343541" BorderBrush="#343541" BorderThickness="1" CornerRadius="8" Height="18" Width="36" VerticalAlignment="Center">
+                                    <Grid>
+                                        <Rectangle x:Name="BackgroundRect" Fill="#343541" RadiusX="8" RadiusY="8" />
+                                        <Ellipse x:Name="SwitchCircle" Fill="White" Width="16" Height="16" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="1"/>
+                                    </Grid>
+                                </Border>
+
+                                <!-- Text part -->
+                                <TextBlock Grid.Column="1" Text="Enable Copy Code" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="White"/>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="BackgroundRect" Property="Fill" Value="#4CC2FF"/>
+                                    <Setter TargetName="SwitchCircle" Property="HorizontalAlignment" Value="Right"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+        </Grid.Resources>
+
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -23,19 +85,23 @@
         </Grid.ColumnDefinitions>
 
         <!-- The button to trigger the code transfer from VS.NET to GPT -->
-        <Button Grid.Row="0" Grid.Column="0" Content="VS.NET to GPT ➡️" Click="OnSendCodeButtonClick" Tag="" Height="30" FontFamily="Segoe UI Emoji"/>
+        <Button Grid.Row="0" Grid.Column="0" Content="VS.NET to GPT ➡️" Click="OnSendCodeButtonClick" Tag="" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}"/>
 
         <!-- Fix code from VS.NET to GPT -->
-        <Button Grid.Row="0" Grid.Column="1" Content="Fix code in GPT ➡️" Click="OnSendCodeButtonClick" Tag="Fix code below:" Height="30" FontFamily="Segoe UI Emoji"/>
+        <Button Grid.Row="0" Grid.Column="1" Content="Fix code in GPT ➡️" Click="OnSendCodeButtonClick" Tag="Fix code below:" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}"/>
 
         <!-- Improve code from VS.NET to GPT -->
-        <Button Grid.Row="0" Grid.Column="2" Content="Improve code in GPT ➡️" Click="OnSendCodeButtonClick" Tag="Improve code below:" Height="30" FontFamily="Segoe UI Emoji"/>
+        <Button Grid.Row="0" Grid.Column="2" Content="Improve code in GPT ➡️" Click="OnSendCodeButtonClick" Tag="Improve code below:" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}"/>
 
         <!-- The button to trigger the code transfer from GPT to VS.NET -->
-        <Button Grid.Row="1" Grid.ColumnSpan="3" Content="⬅️ GPT to VS.NET" Click="OnReceiveCodeButtonClick" Height="30" FontFamily="Segoe UI Emoji"/>
+        <Button Grid.Row="1" Grid.ColumnSpan="3" Content="⬅️ GPT to VS.NET" Click="OnReceiveCodeButtonClick" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}"/>
+
+        <!-- The checkbox to "Enable Copy Code" -->
+        <CheckBox Grid.Row="2" Grid.ColumnSpan="3" Style="{StaticResource CustomCheckBoxStyle}" HorizontalAlignment="Right" Name="EnableCopyCodeCheckBox" Click="EnableCopyCodeCheckBox_Click" IsChecked="True" />
 
         <!-- The WebView2 control with Chat GPT -->
-        <controls:WebView2 Grid.Row="2" Grid.ColumnSpan="3" Name="webView" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+        <controls:WebView2 Grid.Row="3" Grid.ColumnSpan="3" Name="webView" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+
     </Grid>
 
 

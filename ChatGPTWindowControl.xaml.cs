@@ -27,6 +27,8 @@ namespace ChatGPTExtension
 
         #region Constructor and Initialization
 
+        private bool _enableCopyCode = true;
+
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD110:Observe result of async calls", Justification = "<Pending>")]
         public GptToolWindowControl()
         {
@@ -112,7 +114,7 @@ namespace ChatGPTExtension
             await AddHandlerCopyCodeAsync();
         }
 
-        
+
         #endregion
 
         #region VS.NET to GPT
@@ -155,6 +157,12 @@ namespace ChatGPTExtension
             // Also sends the event to enable the send message button in GPT
             string selectedCode = GetSelectedCodeFromVS();
 
+            // No code to process
+            if (string.IsNullOrEmpty(selectedCode))
+            {
+                return;
+            }
+
             // In case we have extra command
             if (!string.IsNullOrEmpty(extraCommand))
             {
@@ -169,7 +177,7 @@ namespace ChatGPTExtension
                                    'cancelable': true
                                }});
                                document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').dispatchEvent(inputEvent); ";
-        
+
             await webView.CoreWebView2.ExecuteScriptAsync(script);
 
             // In case we have extra command send the prompt automatically
@@ -186,7 +194,7 @@ namespace ChatGPTExtension
             string selectedText = await webView.CoreWebView2.ExecuteScriptAsync(script);
 
             // Convert returned JSON string to a regular string.
-            return JsonConvert.DeserializeObject<string>(selectedText); 
+            return JsonConvert.DeserializeObject<string>(selectedText);
         }
 
         private void InsertTextIntoVS(string text)
@@ -212,11 +220,9 @@ namespace ChatGPTExtension
         {
             try
             {
-
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
                 OnTransferTextFromGPTtoVSAsync();
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-
             }
             catch (Exception ex)
             {
@@ -224,14 +230,20 @@ namespace ChatGPTExtension
             }
         }
 
+
         private async Task OnTransferTextFromGPTtoVSAsync()
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
             // Retrieve selected code in GPT, insert and format in VS.NET
             string textFromBrowser = await GetSelectedTextFromGPTAsync();
-            InsertTextIntoVS(textFromBrowser);
-            FormatTextInVS();
+
+            // If we have text selected in browser send to VS.NET
+            if (!string.IsNullOrEmpty(textFromBrowser))
+            {
+                InsertTextIntoVS(textFromBrowser);
+                FormatTextInVS();
+            }
         }
 
         private void FormatTextInVS()
@@ -276,7 +288,7 @@ namespace ChatGPTExtension
                                 ";
 
                 await webView.ExecuteScriptAsync(script);
-                
+
                 // Copy code button handler for GPT
                 string addEventListenersScript = $@"var buttons = Array.from(document.querySelectorAll('{GPT_SELECTOR_COPY_BUTTON}')).filter(button => button.textContent.includes('{GPT_COPY_CODE_BUTTON_TEXT}'));
                                                    buttons.forEach(function(button) {{
@@ -298,9 +310,16 @@ namespace ChatGPTExtension
 
         private async Task SubmitPromptGPTAsync()
         {
-            // Submit the prompt to Chat GPT
+            // Submit the GPT prompt
             string script = "document.querySelector('[data-testid=\"send-button\"]').click();";
             await webView.ExecuteScriptAsync(script);
+
+            // Wait a bit
+            await Task.Delay(2000);
+
+            // Click in the scroll to bottom button
+            string initialScript = "var button = document.querySelector('.cursor-pointer.absolute.right-6'); if (button) { button.click(); }";
+            await webView.ExecuteScriptAsync(initialScript);
         }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "<Pending>")]
@@ -311,10 +330,10 @@ namespace ChatGPTExtension
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
                 // When GPT Copy code button was clicked, automatically insert the code in VS.NET
-                if (e.TryGetWebMessageAsString() == "CopyCodeButtonClicked")
+                if (e.TryGetWebMessageAsString() == "CopyCodeButtonClicked" && _enableCopyCode)
                 {
                     // Using async delay instead of freezing the thread
-                    await Task.Delay(1000);  
+                    await Task.Delay(1000);
 
                     // Handle the button click event here
                     string textFromClipboard = Clipboard.GetText();
@@ -340,6 +359,8 @@ namespace ChatGPTExtension
             try
             {
                 ThreadHelper.ThrowIfNotOnUIThread();
+
+                StopTimer();
 
                 timer = new System.Timers.Timer(5000);
                 timer.Elapsed += HandleTimerElapsed;
@@ -367,9 +388,19 @@ namespace ChatGPTExtension
 
         public void Dispose()
         {
+            StopTimer();
+        }
+
+        private void StopTimer()
+        {
             timer?.Stop();
         }
 
         #endregion
+
+        private void EnableCopyCodeCheckBox_Click(object sender, RoutedEventArgs e)
+        {
+            _enableCopyCode = EnableCopyCodeCheckBox.IsChecked.Value;
+        }
     }
 }

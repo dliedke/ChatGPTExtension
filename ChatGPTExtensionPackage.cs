@@ -1,7 +1,9 @@
 ﻿using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
 using System;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Windows;
 using Task = System.Threading.Tasks.Task;
 
 namespace ChatGPTExtension
@@ -26,7 +28,8 @@ namespace ChatGPTExtension
     [PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)]
     [Guid(ChatGPTExtensionPackage.PackageGuidString)]
     [ProvideMenuResource("Menus.ctmenu", 1)]
-    [ProvideToolWindow(typeof(ChatGPTToolWindow))]
+    [ProvideToolWindow(typeof(ChatGPTToolWindow), Style = VsDockStyle.Tabbed, Window = ToolWindowGuids80.SolutionExplorer)]
+
     public sealed class ChatGPTExtensionPackage : AsyncPackage
     {
         /// <summary>
