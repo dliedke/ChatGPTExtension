@@ -1,7 +1,9 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Windows;
 using System.Diagnostics;
+using System.Windows.Input;
 using System.Threading.Tasks;
 using System.Windows.Controls;
 
@@ -11,7 +13,7 @@ using Microsoft.Win32;
 using Newtonsoft.Json;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.VisualStudio.Shell;
-using System.Linq;
+
 
 namespace ChatGPTExtension
 {
@@ -301,20 +303,45 @@ namespace ChatGPTExtension
             _enableCopyCode = EnableCopyCodeCheckBox.IsChecked.Value;
 
         }
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "<Pending>")]
+        private async void UserControl_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Home || e.Key == Key.End)
+            {
+                e.Handled = true; // Cancel the default behavior
+
+                string cursorPositionScript = "";
+
+                if (e.Key == Key.Home)
+                {
+                    cursorPositionScript = $"document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').setSelectionRange(0, 0);";
+                }
+                else if (e.Key == Key.End)
+                {
+                    cursorPositionScript = $"var textbox = document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}'); textbox.setSelectionRange(textbox.value.length, textbox.value.length);";
+                }
+
+                await webView.ExecuteScriptAsync(cursorPositionScript);
+            }
+        }
+
         private async Task AddHandlerCopyCodeAsync()
         {
             try
             {
-                // Make sure to capture enter key without shift to send the prompt to GPT later
-                // This is due to issue that only shift-enter is being send in WebView2 even when typing enter
+                // Capture Enter, Home and End keys that should
+                // be handled different in this extension to work
+                // with Chat GPT
                 string script = @"if (!document.body.hasAttribute('data-keydown-listener-added')) {
-                                    document.addEventListener('keydown', function(event) {
-
-                                        if (event.keyCode == 13 && !event.shiftKey)
-                                            window.chrome.webview.postMessage('EnterPressed');
-                                    });
-                                    document.body.setAttribute('data-keydown-listener-added', 'true');
-                                }
+                                        document.addEventListener('keydown', function(event) {
+                                            // Check for Enter without Shift key
+                                            if (event.keyCode == 13 && !event.shiftKey) {
+                                                window.chrome.webview.postMessage('EnterPressed');
+                                            }
+                                        });
+                                        document.body.setAttribute('data-keydown-listener-added', 'true');
+                                    }
                                 ";
 
                 await webView.ExecuteScriptAsync(script);
@@ -345,10 +372,16 @@ namespace ChatGPTExtension
             await webView.ExecuteScriptAsync(script);
 
             // Wait a bit
-            await Task.Delay(2000);
+            await Task.Delay(1000);
 
             // Click in the scroll to bottom button
             string initialScript = "var button = document.querySelector('.cursor-pointer.absolute.right-6'); if (button) { button.click(); }";
+            await webView.ExecuteScriptAsync(initialScript);
+
+            // Wait a bit
+            await Task.Delay(2000);
+
+            // Click in the scroll to bottom button
             await webView.ExecuteScriptAsync(initialScript);
         }
 
@@ -371,10 +404,16 @@ namespace ChatGPTExtension
                     FormatCodeInVS();
                 }
 
-                if (e.TryGetWebMessageAsString() == "EnterPressed")
+                var webMessage = e.TryGetWebMessageAsString();
+
+                switch (webMessage)
                 {
-                    await SubmitPromptGPTAsync();
+                    // Handle enter key to send the prompt to GPT
+                    case "EnterPressed":
+                        await SubmitPromptGPTAsync();
+                        break;
                 }
+
             }
             catch (Exception ex)
             {
@@ -424,6 +463,43 @@ namespace ChatGPTExtension
         private void StopTimer()
         {
             timer?.Stop();
+        }
+
+        #endregion
+
+        #region Other Actions for GPT to process and Reload GPT
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "<Pending>")]
+        private async void OnSendCodeMenuItemClick(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Process other actions for GPT
+                if (sender is MenuItem menuItem && menuItem.Tag is string command)
+                {
+                    await SendSelectedCodeToGPTAsync(command);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Error in OnSendCodeMenuItemClick(): " + ex.Message);
+            }
+        }
+
+        private void OnReloadChatGptItemClick(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Set page as blank
+                webView.Source = new Uri("about:blank");
+
+                // Open Chat GPT again
+                webView.Source = new Uri(CHAT_GPT_URL);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Error in OnReloadChatGptItemClick(): " + ex.Message);
+            }
         }
 
         #endregion

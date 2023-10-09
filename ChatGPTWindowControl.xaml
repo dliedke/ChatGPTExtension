@@ -8,7 +8,23 @@
              Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"
              mc:Ignorable="d"
              d:DesignHeight="300" d:DesignWidth="300"
+             PreviewKeyDown="UserControl_PreviewKeyDown"
              Name="MyToolWindow" >
+    <UserControl.Resources>
+
+    <ContextMenu x:Key="CodeActionsContextMenu">
+        <MenuItem Header="Please comment the following code:" Click="OnSendCodeMenuItemClick" Tag="{Binding RelativeSource={RelativeSource Self}, Path=Header}" />
+        <MenuItem Header="Please create unit tests for the following code:" Click="OnSendCodeMenuItemClick" Tag="{Binding RelativeSource={RelativeSource Self}, Path=Header}" />
+        <MenuItem Header="Please identify and fix security issues in the following code:" Click="OnSendCodeMenuItemClick" Tag="{Binding RelativeSource={RelativeSource Self}, Path=Header}" />
+        <MenuItem Header="Please optimize the following code for performance:" Click="OnSendCodeMenuItemClick" Tag="{Binding RelativeSource={RelativeSource Self}, Path=Header}" />
+        <MenuItem Header="Please add error handling to the following code:" Click="OnSendCodeMenuItemClick" Tag="{Binding RelativeSource={RelativeSource Self}, Path=Header}" />
+        <MenuItem Header="Please make the following code thread-safe:" Click="OnSendCodeMenuItemClick" Tag="{Binding RelativeSource={RelativeSource Self}, Path=Header}" />
+        <MenuItem Header="Please help me understand the following code:" Click="OnSendCodeMenuItemClick" Tag="{Binding RelativeSource={RelativeSource Self}, Path=Header}" />
+        <MenuItem Header="Reload Chat GPT" Click="OnReloadChatGptItemClick" />
+        </ContextMenu>
+
+    </UserControl.Resources>
+
     <Grid>
         <!-- Define styles for buttons and checkbox -->
         <Grid.Resources>
@@ -82,7 +98,23 @@
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="20" />
         </Grid.ColumnDefinitions>
+
+        <Button Grid.Row="0" Grid.Column="3" Content="▼" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}" ContextMenu="{StaticResource CodeActionsContextMenu}">
+            <!-- Open the context menu on left click -->
+            <Button.Triggers>
+                <EventTrigger RoutedEvent="Button.Click">
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <BooleanAnimationUsingKeyFrames Storyboard.TargetProperty="ContextMenu.IsOpen">
+                                <DiscreteBooleanKeyFrame KeyTime="0:0:0" Value="True"/>
+                            </BooleanAnimationUsingKeyFrames>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </EventTrigger>
+            </Button.Triggers>
+        </Button>
 
         <!-- The button to trigger the code transfer from VS.NET to GPT -->
         <Button Grid.Row="0" Grid.Column="0" Content="VS.NET to GPT ➡️" Click="OnSendCodeButtonClick" Tag="" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}"/>
@@ -94,13 +126,13 @@
         <Button Grid.Row="0" Grid.Column="2" Content="Improve code in GPT ➡️" Click="OnSendCodeButtonClick" Tag="Improve code below:" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}"/>
 
         <!-- The button to trigger the code transfer from GPT to VS.NET -->
-        <Button Grid.Row="1" Grid.ColumnSpan="3" Content="⬅️ GPT to VS.NET" Click="OnReceiveCodeButtonClick" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}"/>
+        <Button Grid.Row="1" Grid.ColumnSpan="4" Content="⬅️ GPT to VS.NET" Click="OnReceiveCodeButtonClick" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}"/>
 
         <!-- The checkbox to "Enable Copy Code" -->
-        <CheckBox Grid.Row="2" Grid.ColumnSpan="3" Style="{StaticResource CustomCheckBoxStyle}" HorizontalAlignment="Right" Name="EnableCopyCodeCheckBox" Click="EnableCopyCodeCheckBox_Click" IsChecked="True" />
+        <CheckBox Grid.Row="2" Grid.ColumnSpan="4" Style="{StaticResource CustomCheckBoxStyle}" HorizontalAlignment="Right" Name="EnableCopyCodeCheckBox" Click="EnableCopyCodeCheckBox_Click" IsChecked="True" />
 
         <!-- The WebView2 control with Chat GPT -->
-        <controls:WebView2 Grid.Row="3" Grid.ColumnSpan="3" Name="webView" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+        <controls:WebView2 Grid.Row="3" Grid.ColumnSpan="4" Name="webView" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
 
     </Grid>
 
