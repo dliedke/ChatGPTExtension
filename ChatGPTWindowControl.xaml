@@ -12,16 +12,17 @@
              Name="MyToolWindow" >
     <UserControl.Resources>
 
-    <ContextMenu x:Key="CodeActionsContextMenu">
-        <MenuItem Header="Please comment the following code:" Click="OnSendCodeMenuItemClick" Tag="{Binding RelativeSource={RelativeSource Self}, Path=Header}" />
-        <MenuItem Header="Please create unit tests for the following code:" Click="OnSendCodeMenuItemClick" Tag="{Binding RelativeSource={RelativeSource Self}, Path=Header}" />
-        <MenuItem Header="Please identify and fix security issues in the following code:" Click="OnSendCodeMenuItemClick" Tag="{Binding RelativeSource={RelativeSource Self}, Path=Header}" />
-        <MenuItem Header="Please optimize the following code for performance:" Click="OnSendCodeMenuItemClick" Tag="{Binding RelativeSource={RelativeSource Self}, Path=Header}" />
-        <MenuItem Header="Please add error handling to the following code:" Click="OnSendCodeMenuItemClick" Tag="{Binding RelativeSource={RelativeSource Self}, Path=Header}" />
-        <MenuItem Header="Please make the following code thread-safe:" Click="OnSendCodeMenuItemClick" Tag="{Binding RelativeSource={RelativeSource Self}, Path=Header}" />
-        <MenuItem Header="Please help me understand the following code:" Click="OnSendCodeMenuItemClick" Tag="{Binding RelativeSource={RelativeSource Self}, Path=Header}" />
-        <MenuItem Header="Reload Chat GPT" Click="OnReloadChatGptItemClick" />
-        </ContextMenu>
+<ContextMenu x:Key="CodeActionsContextMenu">
+    <MenuItem Header="Please comment the following code:" Click="OnSendCodeMenuItemClick" Tag="Please comment the following {languageCode} code:" />
+    <MenuItem Header="Please create unit tests for the following code:" Click="OnSendCodeMenuItemClick" Tag="Please create unit tests for the following {languageCode} code:" />
+    <MenuItem Header="Please identify and fix security issues in the following code:" Click="OnSendCodeMenuItemClick" Tag="Please identify and fix security issues in the following {languageCode} code:" />
+    <MenuItem Header="Please optimize the following code for performance:" Click="OnSendCodeMenuItemClick" Tag="Please optimize the following {languageCode} code for performance:" />
+    <MenuItem Header="Please add error handling to the following code:" Click="OnSendCodeMenuItemClick" Tag="Please add error handling to the following {languageCode} code:" />
+    <MenuItem Header="Please make the following code thread-safe:" Click="OnSendCodeMenuItemClick" Tag="Please make the following {languageCode} code thread-safe:" />
+    <MenuItem Header="Please help me understand the following code:" Click="OnSendCodeMenuItemClick" Tag="Please help me understand the following {languageCode} code:" />
+    <MenuItem Header="Reload Chat GPT" Click="OnReloadChatGptItemClick" />
+</ContextMenu>
+
 
     </UserControl.Resources>
 
@@ -120,10 +121,10 @@
         <Button Grid.Row="0" Grid.Column="0" Content="VS.NET to GPT ➡️" Click="OnSendCodeButtonClick" Tag="" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}"/>
 
         <!-- Fix code from VS.NET to GPT -->
-        <Button Grid.Row="0" Grid.Column="1" Content="Fix code in GPT ➡️" Click="OnSendCodeButtonClick" Tag="Fix code below:" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}"/>
+        <Button Grid.Row="0" Grid.Column="1" Content="Fix code in GPT ➡️" Click="OnSendCodeButtonClick" Tag="Fix {languageCode} code below:" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}"/>
 
         <!-- Improve code from VS.NET to GPT -->
-        <Button Grid.Row="0" Grid.Column="2" Content="Improve code in GPT ➡️" Click="OnSendCodeButtonClick" Tag="Improve code below:" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}"/>
+        <Button Grid.Row="0" Grid.Column="2" Content="Improve code in GPT ➡️" Click="OnSendCodeButtonClick" Tag="Improve {languageCode} code below:" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}"/>
 
         <!-- The button to trigger the code transfer from GPT to VS.NET -->
         <Button Grid.Row="1" Grid.ColumnSpan="4" Content="⬅️ GPT to VS.NET" Click="OnReceiveCodeButtonClick" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}"/>

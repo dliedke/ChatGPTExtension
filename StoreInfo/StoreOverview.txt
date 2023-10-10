@@ -46,6 +46,8 @@ Works with FREE and Plus Chat GPT web version. No Open AI tokens are required.
 
 **Whats new**
 
+1.5 - Now sending detected language name when available to GPT for better response accuracy.
+
 1.4 - Fix issues with end and home keys inside GPT prompt textbox. Added other actions to process code in submenu.
 
 1.3 - Initial release.

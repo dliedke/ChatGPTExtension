@@ -13,7 +13,7 @@ using Microsoft.Win32;
 using Newtonsoft.Json;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.VisualStudio.Shell;
-
+using System.Collections.Generic;
 
 namespace ChatGPTExtension
 {
@@ -31,10 +31,13 @@ namespace ChatGPTExtension
         #region Constructor and Initialization
 
         private bool _enableCopyCode = true;
+        private readonly IServiceProvider _serviceProvider;
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD110:Observe result of async calls", Justification = "<Pending>")]
-        public GptToolWindowControl()
+        public GptToolWindowControl(IServiceProvider serviceProvider)
         {
+            _serviceProvider = serviceProvider;
+
             InitializeComponent();
 
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
@@ -166,10 +169,14 @@ namespace ChatGPTExtension
                 return;
             }
 
+           
             // In case we have extra command
             if (!string.IsNullOrEmpty(extraCommand))
             {
-                selectedCode = extraCommand + "\r\n" + selectedCode;
+                // Get language of the file
+                string activeLanguage = GetActiveFileLanguage();
+
+                selectedCode = extraCommand.Replace("{languageCode}", activeLanguage) + "\r\n" + selectedCode;
             }
 
             string script = $@"var existingText = document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').value;
@@ -500,6 +507,46 @@ namespace ChatGPTExtension
             {
                 Debug.WriteLine("Error in OnReloadChatGptItemClick(): " + ex.Message);
             }
+        }
+
+        #endregion
+
+        #region Find out language of the active document
+
+        private string GetActiveFileLanguage()
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            if (_serviceProvider == null)
+                return string.Empty;
+
+            DTE dte = (DTE)_serviceProvider.GetService(typeof(DTE));
+            if (dte != null && dte.ActiveDocument != null)
+            {
+                string fileExtension = System.IO.Path.GetExtension(dte.ActiveDocument.FullName).ToLower();
+
+                // Dictionary mapping file extensions to language descriptions.
+                Dictionary<string, string> extensionToLanguageMap = new Dictionary<string, string>
+                {
+                    {".cs", "C#"},
+                    {".vb", "Visual Basic"},
+                    {".cpp", "C++"},
+                    {".h", "C++ header"},
+                    {".c", "C"},
+                    {".fs", "F#"},
+                    {".fsx", "F# script"},
+                    {".ts", "TypeScript"},
+                    {".js", "JavaScript"},
+                    {".py", "Python"},
+                };
+
+                if (extensionToLanguageMap.TryGetValue(fileExtension, out string language))
+                {
+                    return language;
+                }
+            }
+
+            return string.Empty;  // If no match is found or if there's no active document.
         }
 
         #endregion

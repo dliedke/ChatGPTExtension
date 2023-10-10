@@ -25,10 +25,9 @@ namespace ChatGPTExtension
         {
             this.Caption = "Chat GPT Extension";
 
-            // This is the user control hosted by the tool window; Note that, even if this class implements IDisposable,
-            // we are not calling Dispose on this object. This is because ToolWindowPane calls Dispose on
-            // the object returned by the Content property.
-            this.Content = new GptToolWindowControl();
+            // Pass this package (which is an IServiceProvider) to the user control.
+            this.Content = new GptToolWindowControl(this);
         }
     }
+
 }
