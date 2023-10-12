@@ -9,6 +9,7 @@ Features:
 - When GPT "Copy code" button is clicked code is sent automatically to VS.NET
 - Buttons to automate fixing code and improving code
 - Other code operations like commenting code, adding exception handling, creating unit tests and several others
+- Configurable custom actions to apply in code by GPT
 
 Works with FREE and Plus Chat GPT web version. No Open AI tokens are required.
 

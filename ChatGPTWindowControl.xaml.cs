@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Windows.Input;
 using System.Threading.Tasks;
 using System.Windows.Controls;
+using System.Collections.Generic;
 
 using EnvDTE;
 using EnvDTE80;
@@ -13,7 +14,6 @@ using Microsoft.Win32;
 using Newtonsoft.Json;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.VisualStudio.Shell;
-using System.Collections.Generic;
 
 namespace ChatGPTExtension
 {
@@ -32,6 +32,7 @@ namespace ChatGPTExtension
 
         private bool _enableCopyCode = true;
         private readonly IServiceProvider _serviceProvider;
+        private ConfigurationWindow _configWindow = new ConfigurationWindow();
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD110:Observe result of async calls", Justification = "<Pending>")]
         public GptToolWindowControl(IServiceProvider serviceProvider)
@@ -43,6 +44,8 @@ namespace ChatGPTExtension
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
             InitializeAsync();
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+
+            LoadContextMenuActions();
         }
 
         private async Task InitializeAsync()
@@ -150,7 +153,7 @@ namespace ChatGPTExtension
             // Retrieve code selected from VS.NET
             DTE2 dte = (DTE2)Package.GetGlobalService(typeof(DTE));
             TextDocument activeDoc = (TextDocument)dte.ActiveDocument.Object("TextDocument");
-            TextSelection selection = activeDoc.Selection;
+            EnvDTE.TextSelection selection = activeDoc.Selection;
 
             return selection.Text;
         }
@@ -169,7 +172,7 @@ namespace ChatGPTExtension
                 return;
             }
 
-           
+
             // In case we have extra command
             if (!string.IsNullOrEmpty(extraCommand))
             {
@@ -214,7 +217,7 @@ namespace ChatGPTExtension
             // Get the selected text in VS.NET
             DTE2 dte = (DTE2)Package.GetGlobalService(typeof(DTE));
             TextDocument activeDoc = (TextDocument)dte.ActiveDocument.Object("TextDocument");
-            TextSelection selection = activeDoc.Selection;
+            EnvDTE.TextSelection selection = activeDoc.Selection;
 
             // This will replace the current selection in VS.NET with the text.
             // If nothing is selected, it'll just insert the text at the current cursor position.
@@ -547,6 +550,61 @@ namespace ChatGPTExtension
             }
 
             return string.Empty;  // If no match is found or if there's no active document.
+        }
+
+        #endregion
+
+        #region Configurable Prompts
+
+        private void ConfigureExtensionMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            // Show configure window
+            _configWindow.ShowDialog();
+
+            // Recreate the window and load the actions
+            _configWindow = new ConfigurationWindow();
+            LoadContextMenuActions();
+        }
+
+        private void LoadContextMenuActions()
+        {
+            var actions = _configWindow.ConfigurationList;
+
+            CodeActionsContextMenu.Items.Clear();
+
+            // Add all configured actions/prompts in the context menu
+            foreach (var action in actions)
+            {
+                var name = action.Key;
+                var prompt = action.Value;
+
+                if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(prompt))
+                {
+                    var formattedPrompt = prompt.Replace(" {languageCode}", string.Empty);
+
+                    var menuItem = new MenuItem
+                    {
+                        Header = name,
+                        Tag = formattedPrompt
+                    };
+
+                    menuItem.Click += OnSendCodeMenuItemClick;
+                    CodeActionsContextMenu.Items.Add(menuItem);
+                }
+            }
+
+            // Add a separator line
+            CodeActionsContextMenu.Items.Add(new Separator());
+
+            // Add Reload Chat GPT menu item
+            var reloadMenuItem = new MenuItem { Header = "Reload Chat GPT..." };
+            reloadMenuItem.Click += OnReloadChatGptItemClick;
+            CodeActionsContextMenu.Items.Add(reloadMenuItem);
+
+            // Add Configure extension... menu item
+            var configureMenuItem = new MenuItem { Header = "Configure extension..." };
+            configureMenuItem.Click += ConfigureExtensionMenuItem_Click;
+            CodeActionsContextMenu.Items.Add(configureMenuItem);
         }
 
         #endregion

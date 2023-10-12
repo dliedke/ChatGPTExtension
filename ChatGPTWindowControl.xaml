@@ -10,22 +10,6 @@
              d:DesignHeight="300" d:DesignWidth="300"
              PreviewKeyDown="UserControl_PreviewKeyDown"
              Name="MyToolWindow" >
-    <UserControl.Resources>
-
-<ContextMenu x:Key="CodeActionsContextMenu">
-    <MenuItem Header="Please comment the following code:" Click="OnSendCodeMenuItemClick" Tag="Please comment the following {languageCode} code:" />
-    <MenuItem Header="Please create unit tests for the following code:" Click="OnSendCodeMenuItemClick" Tag="Please create unit tests for the following {languageCode} code:" />
-    <MenuItem Header="Please identify and fix security issues in the following code:" Click="OnSendCodeMenuItemClick" Tag="Please identify and fix security issues in the following {languageCode} code:" />
-    <MenuItem Header="Please optimize the following code for performance:" Click="OnSendCodeMenuItemClick" Tag="Please optimize the following {languageCode} code for performance:" />
-    <MenuItem Header="Please add error handling to the following code:" Click="OnSendCodeMenuItemClick" Tag="Please add error handling to the following {languageCode} code:" />
-    <MenuItem Header="Please make the following code thread-safe:" Click="OnSendCodeMenuItemClick" Tag="Please make the following {languageCode} code thread-safe:" />
-    <MenuItem Header="Please help me understand the following code:" Click="OnSendCodeMenuItemClick" Tag="Please help me understand the following {languageCode} code:" />
-    <MenuItem Header="Reload Chat GPT" Click="OnReloadChatGptItemClick" />
-</ContextMenu>
-
-
-    </UserControl.Resources>
-
     <Grid>
         <!-- Define styles for buttons and checkbox -->
         <Grid.Resources>
@@ -101,8 +85,16 @@
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="20" />
         </Grid.ColumnDefinitions>
+        
+        <Button Grid.Row="0" Grid.Column="3" Content="▼" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}" >
 
-        <Button Grid.Row="0" Grid.Column="3" Content="▼" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}" ContextMenu="{StaticResource CodeActionsContextMenu}">
+            <!-- Embed the context menu directly within the button -->
+            <Button.ContextMenu>
+                <ContextMenu x:Name="CodeActionsContextMenu" FontSize="15">
+                    <!-- Your MenuItems go here -->
+                </ContextMenu>
+            </Button.ContextMenu>
+            
             <!-- Open the context menu on left click -->
             <Button.Triggers>
                 <EventTrigger RoutedEvent="Button.Click">
@@ -136,6 +128,5 @@
         <controls:WebView2 Grid.Row="3" Grid.ColumnSpan="4" Name="webView" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
 
     </Grid>
-
 
 </UserControl>

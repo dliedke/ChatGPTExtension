@@ -11,6 +11,7 @@ Works with FREE and Plus Chat GPT web version. No Open AI tokens are required.
 - When GPT "Copy code" button is clicked code is sent automatically to VS.NET
 - Buttons to automate fixing code and improving code
 - Other code operations like commenting code, adding exception handling, creating unit tests and several others
+- Configurable custom actions to apply in code by GPT
 
 **Demo**
 
@@ -38,13 +39,19 @@ Works with FREE and Plus Chat GPT web version. No Open AI tokens are required.
 
 "Improve code in GPT" button will copy selected code from VS.NET to GPT prompt area asking to improve it.
 
-"Arrow" this will open submenu with other code operations GPT can do for you.
-
 "GPT to VS.NET" button will copy selected text from GPT and send to VS.NET.
 
 "Enable Copy Code" switch when enabled will automatically copy the code to VS.NET when Copy code button in GPT is clicked.
 
+"Arrow" this will open submenu with other code operations GPT can do for you.
+
+"Reload Chat GPT..." submenu will attempt reloading GPT in the internal browser.
+
+"Configure extension..." submenu will open the screen to configure the code operations.
+
 **Whats new**
+
+1.6 - Configurable custom actions to apply in code by GPT
 
 1.5 - Now sending detected language name when available to GPT for better response accuracy.
 

@@ -50,6 +50,9 @@
     <Compile Include="ChatGPTWindowControl.xaml.cs">
       <DependentUpon>ChatGPTWindowControl.xaml</DependentUpon>
     </Compile>
+    <Compile Include="ConfigurationWindow.xaml.cs">
+      <DependentUpon>ConfigurationWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ChatGPTExtensionPackage.cs" />
   </ItemGroup>
@@ -78,9 +81,16 @@
     <PackageReference Include="Microsoft.Web.WebView2">
       <Version>1.0.2045.28</Version>
     </PackageReference>
+    <PackageReference Include="Newtonsoft.Json">
+      <Version>13.0.3</Version>
+    </PackageReference>
   </ItemGroup>
   <ItemGroup>
     <Page Include="ChatGPTWindowControl.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="ConfigurationWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
