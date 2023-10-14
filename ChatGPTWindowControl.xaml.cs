@@ -179,11 +179,11 @@ namespace ChatGPTExtension
                 // Get language of the file
                 string activeLanguage = GetActiveFileLanguage();
 
+                // Replace {languageCode} with correct programming language
                 selectedCode = extraCommand.Replace("{languageCode}", activeLanguage) + "\r\n" + selectedCode;
-            }
 
-            string script = $@"var existingText = document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').value;
-                               document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').value = existingText + ' ' + {JsonConvert.SerializeObject(selectedCode)};
+                // Replace the full prompt in GPT to send a new one
+                string script = $@"document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').value = {JsonConvert.SerializeObject(selectedCode)};
         
                                var inputEvent = new Event('input', {{
                                    'bubbles': true,
@@ -191,7 +191,23 @@ namespace ChatGPTExtension
                                }});
                                document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').dispatchEvent(inputEvent); ";
 
-            await webView.CoreWebView2.ExecuteScriptAsync(script);
+                await webView.CoreWebView2.ExecuteScriptAsync(script);
+            }
+            else
+            {
+                // Keep existing prompt and add code from VS.NET
+                string script = $@"var existingText = document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').value;
+                               document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').value = existingText + '\r\n' + {JsonConvert.SerializeObject(selectedCode)};
+        
+                               var inputEvent = new Event('input', {{
+                                   'bubbles': true,
+                                   'cancelable': true
+                               }});
+                               document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').dispatchEvent(inputEvent); ";
+
+                await webView.CoreWebView2.ExecuteScriptAsync(script);
+            }
+           
 
             // In case we have extra command send the prompt automatically
             if (!string.IsNullOrEmpty(extraCommand))
@@ -283,6 +299,7 @@ namespace ChatGPTExtension
                     ".ts",    // TypeScript
                     ".js",    // JavaScript
                     ".py",    // Python
+                    ".xaml"   // WPF
                 };
 
                 // Check the file extension of the active document
@@ -568,15 +585,15 @@ namespace ChatGPTExtension
 
         private void LoadContextMenuActions()
         {
-            var actions = _configWindow.ConfigurationList;
+            var actions = _configWindow.ActionItems;
 
             CodeActionsContextMenu.Items.Clear();
 
             // Add all configured actions/prompts in the context menu
             foreach (var action in actions)
             {
-                var name = action.Key;
-                var prompt = action.Value;
+                var name = action.Name;
+                var prompt = action.Prompt;
 
                 if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(prompt))
                 {

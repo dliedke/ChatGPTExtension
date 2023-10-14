@@ -11,7 +11,7 @@ Works with FREE and Plus Chat GPT web version. No Open AI tokens are required.
 - When GPT "Copy code" button is clicked code is sent automatically to VS.NET
 - Buttons to automate fixing code and improving code
 - Other code operations like commenting code, adding exception handling, creating unit tests and several others
-- Configurable custom actions to apply in code by GPT
+- Configurable custom actions to apply in code by GPT that can be added, removed, changed or reordered as needed
 
 **Demo**
 
@@ -47,9 +47,11 @@ Works with FREE and Plus Chat GPT web version. No Open AI tokens are required.
 
 "Reload Chat GPT..." submenu will attempt reloading GPT in the internal browser.
 
-"Configure extension..." submenu will open the screen to configure the code operations.
+"Configure extension..." submenu will open the screen to configure the code actions operations.
 
 **Whats new**
+
+1.7 - Custom actions can now be added/removed/edited/reordered in a grid. Now current GPT prompt will be cleared for custom actions to run. Note: due to migration existing customized actions from version 1.6 will be lost. Sorry about that!
 
 1.6 - Configurable custom actions to apply in code by GPT
 
