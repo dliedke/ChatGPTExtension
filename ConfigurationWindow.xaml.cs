@@ -1,13 +1,14 @@
 ﻿using System;
-using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Windows;
-using Newtonsoft.Json;
-using System.IO;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Windows.Media;
+using System.ComponentModel;
 using System.Windows.Controls;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+
+using Newtonsoft.Json;
 
 namespace ChatGPTExtension
 {
@@ -16,9 +17,9 @@ namespace ChatGPTExtension
         #region Class Variables
 
         private const string _configurationFileName = "actions.json";
-        private static readonly string _appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ChatGPTExtension", "Actions");
-        private static readonly string _fullConfigPath = Path.Combine(_appDataPath, _configurationFileName);
-        private bool _dataChanged = false;
+        private static readonly string _appDataPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ChatGPTExtension", "Actions");
+        private static readonly string _fullConfigPath = System.IO.Path.Combine(_appDataPath, _configurationFileName);
+        public static bool _dataChanged = false;
 
         #endregion
 
@@ -38,6 +39,8 @@ namespace ChatGPTExtension
             InitializeComponent();
             DataContext = this;
             LoadConfiguration();
+
+            new ListViewDragDropManager<ActionItem>(this.ActionListView);
         }
 
         #endregion
@@ -67,11 +70,14 @@ namespace ChatGPTExtension
                 {
                     var defaultActions = GetDefaultActions();
                     SaveConfigurationToFile(defaultActions);
+                    _dataChanged = true;
                     return defaultActions;
                 }
 
                 var json = File.ReadAllText(_fullConfigPath);
                 var configuration = JsonConvert.DeserializeObject<List<ActionItem>>(json);
+
+                _dataChanged = false;
                 return configuration;
             }
             catch
@@ -156,7 +162,7 @@ namespace ChatGPTExtension
                 }
             }
 
-            _dataChanged = true;   
+            _dataChanged = true;
         }
 
         private void MoveDownButton_Click(object sender, RoutedEventArgs e)
@@ -202,6 +208,13 @@ namespace ChatGPTExtension
 
         private void AddButton_Click(object sender, RoutedEventArgs e)
         {
+            // Max 20
+            if (ActionItems.Count >= 20)
+            {
+                MessageBox.Show("Maxium of 20 custom actions can be added!", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             // Create a new empty ActionItem
             var newAction = new ActionItem { Name = "New Action", Prompt = "Enter prompt here" };
 
@@ -221,8 +234,6 @@ namespace ChatGPTExtension
         {
             item.PropertyChanged += ActionItem_PropertyChanged;
             ActionItems.Add(item);
-
-            _dataChanged = true;
         }
 
         private void RemoveActionItem(ActionItem item)

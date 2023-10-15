@@ -4,12 +4,15 @@
         xmlns:local="clr-namespace:ChatGPTExtension"
         xmlns:av="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="av" x:Class="ChatGPTExtension.ConfigurationWindow"
         Title="Chat GPT Extension - Configuration"
+        Foreground="White"
         Height="700"
         Width="900"
         WindowStartupLocation="CenterScreen"
         Closing="ConfigurationWindow_Closing">
 
     <Window.Resources>
+
+        <!-- Style for TextBox -->
         <Style TargetType="{x:Type TextBox}">
             <Setter Property="Background" Value="#343541"/>
             <Setter Property="Foreground" Value="White"/>
@@ -22,13 +25,11 @@
             <Setter Property="BorderThickness" Value="0"/>
         </Style>
 
-
         <!-- Style for Button -->
         <Style TargetType="{x:Type Button}">
             <Setter Property="Background" Value="#343541"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="Margin" Value="5"/>
-            <!-- Other potential style properties, such as BorderBrush or Hover effects, can be added here if needed -->
         </Style>
 
         <!-- Style for GridViewColumnHeader -->
@@ -48,15 +49,14 @@
         <!-- Define rows in the grid. The first row takes up the majority of space; the second row is for the buttons. -->
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
-            <!-- This uses up most of the space -->
             <RowDefinition Height="Auto"/>
-            <!-- This uses only as much space as it needs, which is perfect for buttons. -->
         </Grid.RowDefinitions>
 
         <ListView x:Name="ActionListView" 
           ItemsSource="{Binding Path=DataContext.ActionItems, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type Window}}}" 
           Margin="10"  
-          Background="#343541">
+          Background="#343541"
+          Foreground="White">
 
             <ListView.ItemContainerStyle>
                 <Style TargetType="{x:Type ListViewItem}">
@@ -76,19 +76,28 @@
                 </Style>
             </ListView.ItemContainerStyle>
 
-            <ListView.View >
+            <ListView.View>
                 <GridView>
+                    <GridViewColumn Width="50">
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <!-- The TextBlock here acts as a "handle" for dragging. -->
+                                <TextBlock Text="≡" FontSize="32" Cursor="SizeAll"  HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" ToolTip="Reorder"/>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+
                     <GridViewColumn Header="Action Name" Width="150">
                         <GridViewColumn.CellTemplate>
                             <DataTemplate>
                                 <TextBox 
                         Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" 
                         TextChanged="ActionTextBox_TextChanged" 
-                        Width="150"/>
+                        Width="200" />
                             </DataTemplate>
                         </GridViewColumn.CellTemplate>
                     </GridViewColumn>
-                    <GridViewColumn Header="Action Prompt" Width="560">
+                    <GridViewColumn Header="Action Prompt" Width="590">
                         <GridViewColumn.CellTemplate>
                             <DataTemplate>
                                 <TextBox 
@@ -101,21 +110,7 @@
                     <GridViewColumn Width="50">
                         <GridViewColumn.CellTemplate>
                             <DataTemplate>
-                                <Button Content="  ↑  " Click="MoveUpButton_Click" />
-                            </DataTemplate>
-                        </GridViewColumn.CellTemplate>
-                    </GridViewColumn>
-                    <GridViewColumn Width="50">
-                        <GridViewColumn.CellTemplate>
-                            <DataTemplate>
-                                <Button Content="  ↓  " Click="MoveDownButton_Click"/>
-                            </DataTemplate>
-                        </GridViewColumn.CellTemplate>
-                    </GridViewColumn>
-                    <GridViewColumn Width="50">
-                        <GridViewColumn.CellTemplate>
-                            <DataTemplate>
-                                <Button Content="  X  " Click="DeleteButton_Click" Background="#343541"/>
+                                <Button Content="❌" FontSize="14" Click="DeleteButton_Click" Background="#343541" ToolTip="Delete"/>
                             </DataTemplate>
                         </GridViewColumn.CellTemplate>
                     </GridViewColumn>

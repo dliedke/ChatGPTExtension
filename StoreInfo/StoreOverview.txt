@@ -51,6 +51,9 @@ Works with FREE and Plus Chat GPT web version. No Open AI tokens are required.
 
 **Whats new**
 
+2.0 - Drag and drop support for reordering custom actions. Fixes detecting changes to be saved.
+      Maximum of 20 custom actions can be added now.
+
 1.7 - Custom actions can now be added/removed/edited/reordered in a grid. Now current GPT prompt will be cleared for custom actions to run. Note: due to migration existing customized actions from version 1.6 will be lost. Sorry about that!
 
 1.6 - Configurable custom actions to apply in code by GPT
