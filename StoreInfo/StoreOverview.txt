@@ -9,7 +9,7 @@ It works with both FREE and Plus versions of Chat GPT web. No OpenAI tokens are 
 - Send selected code from VS.NET to GPT
 - Send selected code from GPT to VS.NET
 - When the GPT "Copy code" button is clicked, the code is sent automatically to VS.NET
-- Buttons to automate code fixing and improvement
+- Buttons to automate code fixing, improve code and asking GPT to show complete code
 - Other code operations like commenting code, adding exception handling, creating unit tests, and several others
 - Configurable custom actions for GPT to apply to the code; these can be added, removed, changed, or reordered as needed
 
@@ -34,9 +34,10 @@ It works with both FREE and Plus versions of Chat GPT web. No OpenAI tokens are 
 ## Usage
 
 - The "VS.NET to GPT" button copies the selected code from VS.NET to the GPT prompt area, preserving any existing data.
-- The "Fix code in GPT" button copies the selected code from VS.NET to the GPT prompt area and asks GPT to fix it.
-- The "Improve code in GPT" button copies the selected code from VS.NET to the GPT prompt area and asks GPT to improve it.
+- The "Fix Code in GPT" button copies the selected code from VS.NET to the GPT prompt area and asks GPT to fix it.
+- The "Improve Code in GPT" button copies the selected code from VS.NET to the GPT prompt area and asks GPT to improve it.
 - The "GPT to VS.NET" button copies the selected text from GPT and sends it to VS.NET.
+- The "Complete Code" button asks GPT to show full complete code when it is showing partial code only.
 - The "Enable Copy Code" switch, when enabled, automatically sends the code to VS.NET when the "Copy code" button in GPT is clicked.
 - The "Arrow" button opens a submenu with other code operations that GPT can perform.
 - The "Reload Chat GPT..." submenu tries to reload GPT in the internal browser.
@@ -44,7 +45,8 @@ It works with both FREE and Plus versions of Chat GPT web. No OpenAI tokens are 
 
 ## What's New
 
-- 2.1 - Removed "Preview" from the extension
+- 2.2 - Added new button "Complete Code" to ask GPT to show full complete code. Fixed issues with Shift-Home and Shift-End in GPT prompt textbox. Also added tooltips for help.
+- 2.1 - Removed "Preview" from the extension.
 - 2.0 - Added drag and drop support for reordering custom actions. Fixed issues detecting changes that need saving. A maximum of 20 custom actions can now be added.
 - 1.7 - Custom actions can now be added, removed, edited, and reordered in a grid. The current GPT prompt will be cleared for custom actions to run. Note: Due to migration, existing customized actions from version 1.6 will be lost. We apologize for any inconvenience.
 - 1.6 - Introduced configurable custom actions for GPT to apply to the code.

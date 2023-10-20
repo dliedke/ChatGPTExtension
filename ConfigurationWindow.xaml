@@ -82,7 +82,7 @@
                         <GridViewColumn.CellTemplate>
                             <DataTemplate>
                                 <!-- The TextBlock here acts as a "handle" for dragging. -->
-                                <TextBlock Text="≡" FontSize="32" Cursor="SizeAll"  HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" ToolTip="Reorder"/>
+                                <TextBlock Text="≡" FontSize="32" Cursor="SizeAll"  HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" ToolTip="Reorder Action"/>
                             </DataTemplate>
                         </GridViewColumn.CellTemplate>
                     </GridViewColumn>
@@ -110,7 +110,7 @@
                     <GridViewColumn Width="50">
                         <GridViewColumn.CellTemplate>
                             <DataTemplate>
-                                <Button Content="❌" FontSize="14" Click="DeleteButton_Click" Background="#343541" ToolTip="Delete"/>
+                                <Button Content="❌" FontSize="14" Click="DeleteButton_Click" Background="#343541" ToolTip="Delete Action"/>
                             </DataTemplate>
                         </GridViewColumn.CellTemplate>
                     </GridViewColumn>
@@ -120,10 +120,10 @@
 
         <!-- Save and Cancel buttons at the bottom, placed in the second row -->
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,20" Grid.Row="1">
-            <Button Content="Add Action" Click="AddButton_Click" Background="#343541" Width="100" Foreground="White" Padding="10,5" Margin="5,5,25,5"/>
+            <Button Content="Add Action" Click="AddButton_Click" Background="#343541" Width="100" Foreground="White" Padding="10,5" Margin="5,5,25,5" ToolTip="Add new action" />
 
-            <Button x:Name="SaveButton" Content="Save" Click="OnSaveClick" Width="100" Background="#343541" Foreground="White" Padding="10,5" Margin="5"/>
-            <Button x:Name="CancelButton" Content="Cancel" Click="OnCancelClick" Width="100" Background="#343541" Foreground="White" Padding="10,5" Margin="5"/>
+            <Button x:Name="SaveButton" Content="Save" Click="OnSaveClick" Width="100" Background="#343541" Foreground="White" Padding="10,5" Margin="5" ToolTip="Save all actions" />
+            <Button x:Name="CancelButton" Content="Cancel" Click="OnCancelClick" Width="100" Background="#343541" Foreground="White" Padding="10,5" Margin="5" ToolTip="Cancel changes" />
         </StackPanel>
     </Grid>
 </Window>

@@ -110,19 +110,22 @@
         </Button>
 
         <!-- The button to trigger the code transfer from VS.NET to GPT -->
-        <Button Grid.Row="0" Grid.Column="0" Content="VS.NET to GPT ➡️" Click="OnSendCodeButtonClick" Tag="" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}"/>
+        <Button Grid.Row="0" Grid.Column="0" Content="VS.NET to GPT ➡️" Click="OnSendCodeButtonClick" Tag="" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}" ToolTip="Transfer selected code from VS.NET to GPT"/>
 
-        <!-- Fix code from VS.NET to GPT -->
-        <Button Grid.Row="0" Grid.Column="1" Content="Fix code in GPT ➡️" Click="OnSendCodeButtonClick" Tag="Fix {languageCode} code below:" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}"/>
+        <!-- Fix Code from VS.NET to GPT -->
+        <Button Grid.Row="0" Grid.Column="1" Content="Fix Code in GPT ➡️" Click="OnSendCodeButtonClick" Tag="Fix {languageCode} code below:" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}"  ToolTip="Transfer selected code from GPT to VS.NET"/>
 
-        <!-- Improve code from VS.NET to GPT -->
-        <Button Grid.Row="0" Grid.Column="2" Content="Improve code in GPT ➡️" Click="OnSendCodeButtonClick" Tag="Improve {languageCode} code below:" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}"/>
+        <!-- Improve Code from VS.NET to GPT -->
+        <Button Grid.Row="0" Grid.Column="2" Content="Improve Code in GPT ➡️" Click="OnSendCodeButtonClick" Tag="Improve {languageCode} code below:" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}"  ToolTip="Refactor selected code from VS.NET in GPT" />
 
         <!-- The button to trigger the code transfer from GPT to VS.NET -->
-        <Button Grid.Row="1" Grid.ColumnSpan="4" Content="⬅️ GPT to VS.NET" Click="OnReceiveCodeButtonClick" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}"/>
+        <Button Grid.Row="1" Grid.ColumnSpan="2" Content="⬅️ GPT to VS.NET" Click="OnReceiveCodeButtonClick" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}"  ToolTip="Transfer selected code from GPT to VS.NET"/>
 
+        <!-- The button to trigger the complete code action in GPT -->
+        <Button Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2" Content="Complete Code" Click="OnCompleteCodeButtonClick" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}"  ToolTip="Ask GPT to provide full complete code"/>
+        
         <!-- The checkbox to "Enable Copy Code" -->
-        <CheckBox Grid.Row="2" Grid.ColumnSpan="4" Style="{StaticResource CustomCheckBoxStyle}" HorizontalAlignment="Right" Name="EnableCopyCodeCheckBox" Click="EnableCopyCodeCheckBox_Click" IsChecked="True" />
+        <CheckBox Grid.Row="2" Grid.ColumnSpan="4" Style="{StaticResource CustomCheckBoxStyle}" HorizontalAlignment="Right" Name="EnableCopyCodeCheckBox" Click="EnableCopyCodeCheckBox_Click" IsChecked="True"  ToolTip="Enable sending code from GPT to VS.NET when Copy code button is clicked in GPT" />
 
         <!-- The WebView2 control with Chat GPT -->
         <controls:WebView2 Grid.Row="3" Grid.ColumnSpan="4" Name="webView" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />

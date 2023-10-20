@@ -207,7 +207,7 @@ namespace ChatGPTExtension
 
                 await webView.CoreWebView2.ExecuteScriptAsync(script);
             }
-           
+
 
             // In case we have extra command send the prompt automatically
             if (!string.IsNullOrEmpty(extraCommand))
@@ -328,30 +328,54 @@ namespace ChatGPTExtension
         private void EnableCopyCodeCheckBox_Click(object sender, RoutedEventArgs e)
         {
             _enableCopyCode = EnableCopyCodeCheckBox.IsChecked.Value;
-
         }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "<Pending>")]
         private async void UserControl_PreviewKeyDown(object sender, KeyEventArgs e)
         {
+            string cursorPositionScript = "";
+
             if (e.Key == Key.Home || e.Key == Key.End)
             {
                 e.Handled = true; // Cancel the default behavior
 
-                string cursorPositionScript = "";
-
-                if (e.Key == Key.Home)
+                if ((Keyboard.Modifiers & ModifierKeys.Shift) != 0) // Shift is pressed
                 {
-                    cursorPositionScript = $"document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').setSelectionRange(0, 0);";
+                    if (e.Key == Key.Home)
+                    {
+                        cursorPositionScript = @"
+                            var textbox = document.getElementById('" + GPT_PROMPT_TEXT_AREA_ID + @"');
+                            var end = textbox.selectionEnd; 
+                            textbox.setSelectionRange(0, end);";
+                    }
+                    else if (e.Key == Key.End)
+                    {
+                        cursorPositionScript = @"
+                            var textbox = document.getElementById('" + GPT_PROMPT_TEXT_AREA_ID + @"');
+                            var start = textbox.selectionStart;
+                            textbox.setSelectionRange(start, textbox.value.length);";
+                    }
                 }
-                else if (e.Key == Key.End)
+                else // Shift is NOT pressed
                 {
-                    cursorPositionScript = $"var textbox = document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}'); textbox.setSelectionRange(textbox.value.length, textbox.value.length);";
+                    if (e.Key == Key.Home)
+                    {
+                        cursorPositionScript = $"document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').setSelectionRange(0, 0);"; // This moves the cursor to the start of the textarea for HOME without shift
+                    }
+                    else if (e.Key == Key.End)
+                    {
+                        cursorPositionScript = $"var textbox = document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}'); textbox.setSelectionRange(textbox.value.length, textbox.value.length);"; // This moves the cursor to the end of the textarea for END without shift
+                    }
                 }
 
-                await webView.ExecuteScriptAsync(cursorPositionScript);
+                if (!string.IsNullOrEmpty(cursorPositionScript))
+                {
+                    await webView.ExecuteScriptAsync(cursorPositionScript);
+                }
             }
         }
+
+
 
         private async Task AddHandlerCopyCodeAsync()
         {
@@ -495,6 +519,35 @@ namespace ChatGPTExtension
         #endregion
 
         #region Other Actions for GPT to process and Reload GPT
+
+#pragma warning disable VSTHRD100 // Avoid async void methods
+        private async void OnCompleteCodeButtonClick(object sender, RoutedEventArgs e)
+#pragma warning restore VSTHRD100 // Avoid async void methods
+        {
+            try
+            {
+                // Prompt to show full complete code in GPT
+                string promptCompleteCode = "Please show full complete code with complete methods implementation without any placeholders like ... or assuming code segments";
+
+                // Replace the full prompt in GPT to send a new one
+                string script = $@"document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').value = '{promptCompleteCode}';
+        
+                               var inputEvent = new Event('input', {{
+                                   'bubbles': true,
+                                   'cancelable': true
+                               }});
+                               document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').dispatchEvent(inputEvent); ";
+
+                await webView.CoreWebView2.ExecuteScriptAsync(script);
+
+                // Also submit the prompt
+                await SubmitPromptGPTAsync();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Error in OnCompleteCodeButtonClick(): " + ex.Message);
+            }
+        }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "<Pending>")]
         private async void OnSendCodeMenuItemClick(object sender, RoutedEventArgs e)
