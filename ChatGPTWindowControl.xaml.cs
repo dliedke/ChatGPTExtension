@@ -7,13 +7,16 @@ using System.Windows.Input;
 using System.Threading.Tasks;
 using System.Windows.Controls;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 
 using EnvDTE;
 using EnvDTE80;
-using Microsoft.Win32;
 using Newtonsoft.Json;
+using Microsoft.Win32;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.VisualStudio.Shell;
+
+using System.Windows.Interop;
 
 namespace ChatGPTExtension
 {
@@ -33,6 +36,9 @@ namespace ChatGPTExtension
         private bool _enableCopyCode = true;
         private readonly IServiceProvider _serviceProvider;
         private ConfigurationWindow _configWindow = new ConfigurationWindow();
+        private DTE2 _dte;
+        private Events _events;
+        private WindowEvents _windowEvents;
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD110:Observe result of async calls", Justification = "<Pending>")]
         public GptToolWindowControl(IServiceProvider serviceProvider)
@@ -53,6 +59,16 @@ namespace ChatGPTExtension
             try
             {
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+                _dte = Package.GetGlobalService(typeof(DTE)) as DTE2;
+
+                if (_dte != null)
+                {
+                    _events = _dte.Events;
+                    _windowEvents = _events.WindowEvents;
+                    _windowEvents.WindowActivated += OnWindowActivated;
+                }
+
 
                 // Create user path for the Edge WebView2 profile
                 string userDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ChatGPTExtension", "WebView2");
@@ -79,10 +95,62 @@ namespace ChatGPTExtension
 
                 // Timer to inject JS code to detect clicks in "Copy code" button in Chat GPT
                 StartTimer();
+
+                // Remove event handlers when control is unloaded
+                Unloaded += OnControlUnloaded;
             }
             catch (Exception ex)
             {
                 Debug.WriteLine("Error in InitializeAsync(): " + ex.Message);
+            }
+        }
+
+        private void OnControlUnloaded(object sender, RoutedEventArgs e)
+        {
+            if (_windowEvents != null)
+            {
+                // Unsubscribe from events to prevent memory leaks.
+                // Unfortunately, the EnvDTE API doesn't provide direct unsubscription methods.
+                // We'll set our references to null to let the GC do the cleanup.
+                _windowEvents = null;
+                _events = null;
+                _dte = null;
+            }
+        }
+
+        private void OnWindowActivated(EnvDTE.Window GotFocus, EnvDTE.Window LostFocus)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            // Check if the activated window is our tool window
+            if (GotFocus.Caption == "Chat GPT Extension")
+            {
+                webView.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                // If any of the tool windows from the bottom in VS.NET 
+                // are selected, then hide the webview to not conflict
+                if (GotFocus.Caption == "Output" ||
+                    GotFocus.Caption.StartsWith("Error List") ||
+                    GotFocus.Caption.StartsWith("Task List") ||
+                    GotFocus.Caption.StartsWith("PowerShell ") ||
+                    GotFocus.Caption.StartsWith("Developer ") ||
+                    GotFocus.Caption.StartsWith("Find ") ||
+                    GotFocus.Caption == "Exception Settings" ||
+                    GotFocus.Caption == "Package Manager Console" ||
+                    GotFocus.Caption == "CodeLens" ||
+                    GotFocus.Caption == "Bookmarks" ||
+                    GotFocus.Caption == "Call Hierarchy" ||
+                    GotFocus.Caption == "Code Definition Window")
+                {
+                    webView.Visibility = Visibility.Collapsed;
+                }
+                else
+                {
+                    // For code windows and other windows we will display the webview
+                    webView.Visibility = Visibility.Visible;
+                }
             }
         }
 
@@ -678,5 +746,35 @@ namespace ChatGPTExtension
         }
 
         #endregion
+    }
+
+    public class WindowZOrder
+    {
+        private const uint GW_HWNDNEXT = 2;
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr GetWindow(IntPtr hWnd, uint uCmd);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool IsWindowVisible(IntPtr hWnd);
+
+        public static bool IsWindowTopmost(System.Windows.Window window)
+        {
+            IntPtr hWnd = new WindowInteropHelper(window).Handle;
+            IntPtr currentHwnd = hWnd;
+
+            while (true)
+            {
+                currentHwnd = GetWindow(currentHwnd, GW_HWNDNEXT);
+                if (currentHwnd == IntPtr.Zero)
+                    break;
+
+                if (IsWindowVisible(currentHwnd))
+                    return false; // There's another visible window on top
+            }
+
+            return true; // The provided window is the topmost visible window
+        }
     }
 }

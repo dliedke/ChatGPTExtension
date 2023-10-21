@@ -45,6 +45,7 @@ It works with both FREE and Plus versions of Chat GPT web. No OpenAI tokens are 
 
 ## What's New
 
+- 2.3 - Automatically hiding WebView2 with GPT if tool windows from bottom of VS.NET are activated. For example, this will fix issues with GPT over Output window for example when autohide is active.
 - 2.2 - Added new button "Complete Code" to ask GPT to show full complete code. Fixed issues with Shift-Home and Shift-End in GPT prompt textbox. Also added tooltips for help.
 - 2.1 - Removed "Preview" from the extension.
 - 2.0 - Added drag and drop support for reordering custom actions. Fixed issues detecting changes that need saving. A maximum of 20 custom actions can now be added.
