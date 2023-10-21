@@ -1,9 +1,22 @@
-﻿using Microsoft.VisualStudio.Shell;
-using Microsoft.VisualStudio.Shell.Interop;
+﻿/* *******************************************************************************************************************
+ * Application: ChatGPTExtension
+ * 
+ * Autor:  Daniel Liedke
+ * 
+ * Copyright © Daniel Liedke 2023
+ * Usage and reproduction in any manner whatsoever without the written permission of Daniel Liedke is strictly forbidden.
+ *  
+ * Purpose: Main Package class for the VS.NET extension
+ *           
+ * *******************************************************************************************************************/
+
 using System;
-using System.Runtime.InteropServices;
 using System.Threading;
-using System.Windows;
+using System.Runtime.InteropServices;
+
+using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
+
 using Task = System.Threading.Tasks.Task;
 
 namespace ChatGPTExtension

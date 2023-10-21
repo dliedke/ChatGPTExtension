@@ -1,4 +1,16 @@
-﻿using System.ComponentModel;
+﻿/* *******************************************************************************************************************
+ * Application: ChatGPTExtension
+ * 
+ * Autor:  Daniel Liedke
+ * 
+ * Copyright © Daniel Liedke 2023
+ * Usage and reproduction in any manner whatsoever without the written permission of Daniel Liedke is strictly forbidden.
+ *  
+ * Purpose: ActionItem class is used to store custom actions to send to GPT
+ *           
+ * *******************************************************************************************************************/
+
+using System.ComponentModel;
 
 namespace ChatGPTExtension
 {

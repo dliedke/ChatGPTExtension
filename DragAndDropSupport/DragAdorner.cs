@@ -1,22 +1,18 @@
 // Code from https://www.codeproject.com/Articles/17266/Drag-and-Drop-Items-in-a-WPF-ListView
 // Copyright (C) Josh Smith - January 2007
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Windows.Documents;
+
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Shapes;
-using System.Windows.Media.Animation;
-using System.Windows.Controls;
+using System.Windows.Documents;
 
 namespace ChatGPTExtension
 {
-	/// <summary>
-	/// Renders a visual which can follow the mouse cursor, 
-	/// such as during a drag-and-drop operation.
-	/// </summary>
-	public class DragAdorner : Adorner
+    /// <summary>
+    /// Renders a visual which can follow the mouse cursor, 
+    /// such as during a drag-and-drop operation.
+    /// </summary>
+    public class DragAdorner : Adorner
 	{
 		#region Data
 

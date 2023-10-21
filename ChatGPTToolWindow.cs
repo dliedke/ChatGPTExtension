@@ -1,4 +1,16 @@
-﻿using Microsoft.VisualStudio.Shell;
+﻿/* *******************************************************************************************************************
+ * Application: ChatGPTExtension
+ * 
+ * Autor:  Daniel Liedke
+ * 
+ * Copyright © Daniel Liedke 2023
+ * Usage and reproduction in any manner whatsoever without the written permission of Daniel Liedke is strictly forbidden.
+ *  
+ * Purpose: Tool window exposed by this package and hosts a user control
+ *           
+ * *******************************************************************************************************************/
+
+using Microsoft.VisualStudio.Shell;
 using System;
 using System.Runtime.InteropServices;
 
@@ -29,5 +41,4 @@ namespace ChatGPTExtension
             this.Content = new GptToolWindowControl(this);
         }
     }
-
 }

@@ -1,16 +1,16 @@
 ﻿// Code from https://www.codeproject.com/Articles/17266/Drag-and-Drop-Items-in-a-WPF-ListView
 // Copyright (C) Josh Smith - January 2007
-// listView_PreviewMouseLeftButtonDown() changed to allow dragging
+// Method listView_PreviewMouseLeftButtonDown() changed to allow dragging
 // only in the first column
 
 using System;
-using System.Collections.ObjectModel;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
-using System.Windows.Documents;
 using System.Windows.Media;
 using System.Windows.Input;
+using System.Windows.Controls;
+using System.Windows.Documents;
+using System.Windows.Controls.Primitives;
+using System.Collections.ObjectModel;
 
 namespace ChatGPTExtension
 {
@@ -231,6 +231,7 @@ namespace ChatGPTExtension
             var hitListViewItem = GetParentOfType<ListViewItem>(hitTestResult.VisualHit);
 
             // Check if the clicked element is the TextBlock drag handle
+            // Added this so only the hambuger can be dragged
             var isDragHandle = hitTestResult.VisualHit is TextBlock textBlock && textBlock.Text == "≡";
 
             // If a ListViewItem was found and the clicked element is the drag handle, it means we clicked within the correct column

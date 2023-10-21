@@ -1,4 +1,16 @@
-﻿using Microsoft.VisualStudio.Shell;
+﻿/* *******************************************************************************************************************
+ * Application: ChatGPTExtension
+ * 
+ * Autor:  Daniel Liedke
+ * 
+ * Copyright © Daniel Liedke 2023
+ * Usage and reproduction in any manner whatsoever without the written permission of Daniel Liedke is strictly forbidden.
+ *  
+ * Purpose: Creates menu command to display the extension
+ *           
+ * *******************************************************************************************************************/
+
+using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using System;
 using System.ComponentModel.Design;

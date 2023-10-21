@@ -1,4 +1,16 @@
-﻿using System;
+﻿/* *******************************************************************************************************************
+ * Application: ChatGPTExtension
+ * 
+ * Autor:  Daniel Liedke
+ * 
+ * Copyright © Daniel Liedke 2023
+ * Usage and reproduction in any manner whatsoever without the written permission of Daniel Liedke is strictly forbidden.
+ *  
+ * Purpose: Main user control for the Chat GPT extension
+ *           
+ * *******************************************************************************************************************/
+
+using System;
 using System.IO;
 using System.Linq;
 using System.Windows;
@@ -24,6 +36,7 @@ namespace ChatGPTExtension
     {
         #region Web IDs and URLs
 
+        // Ids and selectors might need updates in new GPT versions
         private const string CHAT_GPT_URL = "https://chat.openai.com/";
         private const string GPT_PROMPT_TEXT_AREA_ID = "prompt-textarea";
         private const string GPT_SELECTOR_COPY_BUTTON = @"button.flex.ml-auto.gizmo\\:ml-0.gap-2.items-center:not([data-listener-added])";
@@ -33,12 +46,12 @@ namespace ChatGPTExtension
 
         #region Constructor and Initialization
 
-        private bool _enableCopyCode = true;
-        private readonly IServiceProvider _serviceProvider;
-        private ConfigurationWindow _configWindow = new ConfigurationWindow();
         private DTE2 _dte;
         private Events _events;
         private WindowEvents _windowEvents;
+        private bool _enableCopyCode = true;
+        private readonly IServiceProvider _serviceProvider;
+        private ConfigurationWindow _configWindow = new ConfigurationWindow();
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD110:Observe result of async calls", Justification = "<Pending>")]
         public GptToolWindowControl(IServiceProvider serviceProvider)
@@ -60,15 +73,14 @@ namespace ChatGPTExtension
             {
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
+                // Retrieves DTE and WindowsActivated event
                 _dte = Package.GetGlobalService(typeof(DTE)) as DTE2;
-
                 if (_dte != null)
                 {
                     _events = _dte.Events;
                     _windowEvents = _events.WindowEvents;
                     _windowEvents.WindowActivated += OnWindowActivated;
                 }
-
 
                 // Create user path for the Edge WebView2 profile
                 string userDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ChatGPTExtension", "WebView2");
@@ -191,7 +203,6 @@ namespace ChatGPTExtension
             await AddHandlerCopyCodeAsync();
         }
 
-
         #endregion
 
         #region VS.NET to GPT
@@ -240,8 +251,7 @@ namespace ChatGPTExtension
                 return;
             }
 
-
-            // In case we have extra command
+            // In case we have an extra command
             if (!string.IsNullOrEmpty(extraCommand))
             {
                 // Get language of the file
@@ -275,7 +285,6 @@ namespace ChatGPTExtension
 
                 await webView.CoreWebView2.ExecuteScriptAsync(script);
             }
-
 
             // In case we have extra command send the prompt automatically
             if (!string.IsNullOrEmpty(extraCommand))
@@ -330,7 +339,6 @@ namespace ChatGPTExtension
             }
         }
 
-
         private async Task OnTransferTextFromGPTtoVSAsync()
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
@@ -367,7 +375,7 @@ namespace ChatGPTExtension
                     ".ts",    // TypeScript
                     ".js",    // JavaScript
                     ".py",    // Python
-                    ".xaml"   // WPF
+                    ".xaml"   // WPF UI
                 };
 
                 // Check the file extension of the active document
@@ -378,6 +386,7 @@ namespace ChatGPTExtension
                     dte.ActiveDocument.Activate();
                     try
                     {
+                        // Same as CTRL+K+D
                         dte.ExecuteCommand("Edit.FormatDocument");
                     }
                     catch (Exception ex)
@@ -395,6 +404,7 @@ namespace ChatGPTExtension
 
         private void EnableCopyCodeCheckBox_Click(object sender, RoutedEventArgs e)
         {
+            // Save if enable copy code is checked
             _enableCopyCode = EnableCopyCodeCheckBox.IsChecked.Value;
         }
 
@@ -403,46 +413,72 @@ namespace ChatGPTExtension
         {
             string cursorPositionScript = "";
 
+            // If Home or End is pressed
             if (e.Key == Key.Home || e.Key == Key.End)
             {
                 e.Handled = true; // Cancel the default behavior
 
-                if ((Keyboard.Modifiers & ModifierKeys.Shift) != 0) // Shift is pressed
+                // JavaScript to find the start and end of the current line
+                string findLineBoundsScript = @"
+            var textbox = document.getElementById('" + GPT_PROMPT_TEXT_AREA_ID + @"');
+            var value = textbox.value;
+            var start = textbox.selectionStart;
+            var end = textbox.selectionEnd;
+            
+            while(start > 0 && value[start-1] != '\n') { start--; }
+            while(end < value.length && value[end] != '\n') { end++; }
+            
+            [start, end];";  // This will give the start and end positions of the current line
+
+                var result = await webView.ExecuteScriptAsync(findLineBoundsScript);
+                var bounds = JsonConvert.DeserializeObject<int[]>(result);
+                int startOfLine = bounds[0];
+                int endOfLine = bounds[1];
+
+                // If Shift is pressed
+                if ((Keyboard.Modifiers & ModifierKeys.Shift) != 0)
                 {
+                    // If Home is pressed
                     if (e.Key == Key.Home)
                     {
                         cursorPositionScript = @"
                             var textbox = document.getElementById('" + GPT_PROMPT_TEXT_AREA_ID + @"');
-                            var end = textbox.selectionEnd; 
-                            textbox.setSelectionRange(0, end);";
+                            var currentEnd = textbox.selectionEnd; 
+                            textbox.setSelectionRange(" + startOfLine + @", currentEnd);";
                     }
+                    // If End is pressed
                     else if (e.Key == Key.End)
                     {
                         cursorPositionScript = @"
                             var textbox = document.getElementById('" + GPT_PROMPT_TEXT_AREA_ID + @"');
-                            var start = textbox.selectionStart;
-                            textbox.setSelectionRange(start, textbox.value.length);";
+                            var currentStart = textbox.selectionStart;
+                            textbox.setSelectionRange(currentStart, " + endOfLine + @");";
                     }
                 }
                 else // Shift is NOT pressed
                 {
+                    // If Home or End is pressed
                     if (e.Key == Key.Home)
                     {
-                        cursorPositionScript = $"document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').setSelectionRange(0, 0);"; // This moves the cursor to the start of the textarea for HOME without shift
+                        cursorPositionScript = @"
+                            var textbox = document.getElementById('" + GPT_PROMPT_TEXT_AREA_ID + @"');
+                            textbox.setSelectionRange(" + startOfLine + @", " + startOfLine + @");";
                     }
                     else if (e.Key == Key.End)
                     {
-                        cursorPositionScript = $"var textbox = document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}'); textbox.setSelectionRange(textbox.value.length, textbox.value.length);"; // This moves the cursor to the end of the textarea for END without shift
+                        cursorPositionScript = @"
+                            var textbox = document.getElementById('" + GPT_PROMPT_TEXT_AREA_ID + @"');
+                            textbox.setSelectionRange(" + endOfLine + @", " + endOfLine + @");";
                     }
                 }
 
+                // Execute javascript script code
                 if (!string.IsNullOrEmpty(cursorPositionScript))
                 {
                     await webView.ExecuteScriptAsync(cursorPositionScript);
                 }
             }
         }
-
 
 
         private async Task AddHandlerCopyCodeAsync()
@@ -550,6 +586,7 @@ namespace ChatGPTExtension
 
                 StopTimer();
 
+                // Timer to add handler for GPT copy code click
                 timer = new System.Timers.Timer(5000);
                 timer.Elapsed += HandleTimerElapsed;
                 timer.Start();
@@ -661,9 +698,11 @@ namespace ChatGPTExtension
             if (_serviceProvider == null)
                 return string.Empty;
 
+            // Get the active document
             DTE dte = (DTE)_serviceProvider.GetService(typeof(DTE));
             if (dte != null && dte.ActiveDocument != null)
             {
+                // Get the file extension
                 string fileExtension = System.IO.Path.GetExtension(dte.ActiveDocument.FullName).ToLower();
 
                 // Dictionary mapping file extensions to language descriptions.
@@ -681,6 +720,7 @@ namespace ChatGPTExtension
                     {".py", "Python"},
                 };
 
+                // Check if the file extension is supported and return name
                 if (extensionToLanguageMap.TryGetValue(fileExtension, out string language))
                 {
                     return language;
@@ -746,35 +786,5 @@ namespace ChatGPTExtension
         }
 
         #endregion
-    }
-
-    public class WindowZOrder
-    {
-        private const uint GW_HWNDNEXT = 2;
-
-        [DllImport("user32.dll", SetLastError = true)]
-        private static extern IntPtr GetWindow(IntPtr hWnd, uint uCmd);
-
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool IsWindowVisible(IntPtr hWnd);
-
-        public static bool IsWindowTopmost(System.Windows.Window window)
-        {
-            IntPtr hWnd = new WindowInteropHelper(window).Handle;
-            IntPtr currentHwnd = hWnd;
-
-            while (true)
-            {
-                currentHwnd = GetWindow(currentHwnd, GW_HWNDNEXT);
-                if (currentHwnd == IntPtr.Zero)
-                    break;
-
-                if (IsWindowVisible(currentHwnd))
-                    return false; // There's another visible window on top
-            }
-
-            return true; // The provided window is the topmost visible window
-        }
     }
 }

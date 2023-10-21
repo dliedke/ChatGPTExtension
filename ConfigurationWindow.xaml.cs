@@ -1,4 +1,16 @@
-﻿using System;
+﻿/* *******************************************************************************************************************
+ * Application: ChatGPTExtension
+ * 
+ * Autor:  Daniel Liedke
+ * 
+ * Copyright © Daniel Liedke 2023
+ * Usage and reproduction in any manner whatsoever without the written permission of Daniel Liedke is strictly forbidden.
+ *  
+ * Purpose: User control to configure custom actions for GPT
+ *           
+ * *******************************************************************************************************************/
+
+using System;
 using System.IO;
 using System.Linq;
 using System.Windows;
@@ -232,12 +244,14 @@ namespace ChatGPTExtension
 
         private void AddActionItem(ActionItem item)
         {
+            // Add the item to the ObservableCollection
             item.PropertyChanged += ActionItem_PropertyChanged;
             ActionItems.Add(item);
         }
 
         private void RemoveActionItem(ActionItem item)
         {
+            // Remove the item from the ObservableCollection
             item.PropertyChanged -= ActionItem_PropertyChanged;
             ActionItems.Remove(item);
 
@@ -250,6 +264,7 @@ namespace ChatGPTExtension
 
         private void ActionItem_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
+            // Configuration was updated
             _dataChanged = true;
         }
 
