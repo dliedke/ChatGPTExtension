@@ -530,7 +530,7 @@ namespace ChatGPTExtension
             await Task.Delay(1000);
 
             // Click in the scroll to bottom button
-            string initialScript = "var button = document.querySelector('.cursor-pointer.absolute.right-6'); if (button) { button.click(); }";
+            string initialScript = "var button = document.querySelector('button.cursor-pointer.absolute'); if (button) { button.click(); }";
             await webView.ExecuteScriptAsync(initialScript);
 
             // Wait a bit
