@@ -45,6 +45,7 @@ It works with both FREE and Plus versions of Chat GPT web. No OpenAI tokens are 
 
 ## What's New
 
+- 2.6 - Fix AI prompt to add comments to the code
 - 2.5 - Fix auto scroll to bottom for new GPT trained up to April 2023
 - 2.4 - Fix Home, End, Shift-Home and Shift-End keys in GPT textbox prompt area.
 - 2.3 - Automatically hiding WebView2 with GPT if tool windows from bottom of VS.NET are activated. For example, this will fix issues with GPT over Output window for example when autohide is active.

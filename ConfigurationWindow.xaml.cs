@@ -130,7 +130,7 @@ namespace ChatGPTExtension
             return new List<ActionItem> {
                                   new ActionItem { Name = "Error Handling", Prompt = "Please add error handling to the following {languageCode} code:" },
                                   new ActionItem { Name = "Optimize", Prompt = "Please optimize the following {languageCode} code for performance:" },
-                                  new ActionItem { Name = "Comment", Prompt = "Please comment the following {languageCode} code:" },
+                                  new ActionItem { Name = "Comment", Prompt = "Please add comments to the following {languageCode} code:" },
                                   new ActionItem { Name = "Unit Tests", Prompt = "Please create unit tests for the following {languageCode} code:" },
                                   new ActionItem { Name = "Security Issues", Prompt = "Please identify and fix security issues in the following {languageCode} code:" },
                                   new ActionItem { Name = "Thread-safe", Prompt = "Please make the following {languageCode} code thread-safe:" },
