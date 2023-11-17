@@ -39,7 +39,7 @@ namespace ChatGPTExtension
         // Ids and selectors might need updates in new GPT versions
         private const string CHAT_GPT_URL = "https://chat.openai.com/";
         private const string GPT_PROMPT_TEXT_AREA_ID = "prompt-textarea";
-        private const string GPT_SELECTOR_COPY_BUTTON = @"button.flex.ml-auto.gizmo\\:ml-0.gap-2.items-center:not([data-listener-added])";
+        private const string GPT_SELECTOR_COPY_BUTTON = @"button.flex.ml-auto.gizmo\\:ml-0.gap-1.items-center:not([data-listener-added])";
         private const string GPT_COPY_CODE_BUTTON_TEXT = "Copy code";
 
         #endregion
