@@ -39,7 +39,6 @@ namespace ChatGPTExtension
         // Ids and selectors might need updates in new GPT versions
         private const string CHAT_GPT_URL = "https://chat.openai.com/";
         private const string GPT_PROMPT_TEXT_AREA_ID = "prompt-textarea";
-        private const string GPT_SELECTOR_COPY_BUTTON = @"button.flex.ml-auto.gizmo\\:ml-0.gap-1.items-center:not([data-listener-added])";
         private const string GPT_COPY_CODE_BUTTON_TEXT = "Copy code";
 
         #endregion
@@ -501,19 +500,27 @@ namespace ChatGPTExtension
 
                 await webView.ExecuteScriptAsync(script);
 
-                // Copy code button handler for GPT
-                string addEventListenersScript = $@"var buttons = Array.from(document.querySelectorAll('{GPT_SELECTOR_COPY_BUTTON}')).filter(button => button.textContent.includes('{GPT_COPY_CODE_BUTTON_TEXT}'));
-                                                   buttons.forEach(function(button) {{
-                                                       button.addEventListener('click', function() {{
-                                                           window.chrome.webview.postMessage('CopyCodeButtonClicked');
-                                                       }});
-                                                       // Mark the button as having the listener added
-                                                       button.setAttribute('data-listener-added', 'true');
-                                                   }});
-                                                   ";
+               
 
-                await webView.ExecuteScriptAsync(addEventListenersScript);
-            }
+        // Copy code button handler for GPT
+        string addEventListenersScript = $@"
+    var allButtons = Array.from(document.querySelectorAll('button'));
+    var targetButtons = allButtons.filter(function(button) {{
+        return button.textContent.trim() === '{GPT_COPY_CODE_BUTTON_TEXT}' && !button.hasAttribute('data-listener-added');
+    }});
+
+    targetButtons.forEach(function(button) {{
+        button.addEventListener('click', function() {{
+            window.chrome.webview.postMessage('CopyCodeButtonClicked');
+        }});
+        // Mark the button as having the listener added
+        button.setAttribute('data-listener-added', 'true');
+    }});
+";
+
+
+        await webView.ExecuteScriptAsync(addEventListenersScript);
+    }
             catch (Exception ex)
             {
                 Debug.WriteLine("Error in AddHanlderCopyCode(): " + ex.Message);
@@ -521,121 +528,121 @@ namespace ChatGPTExtension
         }
 
         private async Task SubmitPromptGPTAsync()
-        {
-            // Submit the GPT prompt
-            string script = "document.querySelector('[data-testid=\"send-button\"]').click();";
-            await webView.ExecuteScriptAsync(script);
+{
+    // Submit the GPT prompt
+    string script = "document.querySelector('[data-testid=\"send-button\"]').click();";
+    await webView.ExecuteScriptAsync(script);
 
-            // Wait a bit
+    // Wait a bit
+    await Task.Delay(1000);
+
+    // Click in the scroll to bottom button
+    string initialScript = "var button = document.querySelector('button.cursor-pointer.absolute'); if (button) { button.click(); }";
+    await webView.ExecuteScriptAsync(initialScript);
+
+    // Wait a bit
+    await Task.Delay(2000);
+
+    // Click in the scroll to bottom button
+    await webView.ExecuteScriptAsync(initialScript);
+}
+
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "<Pending>")]
+private async void WebView_WebMessageReceived(object sender, Microsoft.Web.WebView2.Core.CoreWebView2WebMessageReceivedEventArgs e)
+{
+    try
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+        // When GPT Copy code button was clicked, automatically insert the code in VS.NET
+        if (e.TryGetWebMessageAsString() == "CopyCodeButtonClicked" && _enableCopyCode)
+        {
+            // Using async delay instead of freezing the thread
             await Task.Delay(1000);
 
-            // Click in the scroll to bottom button
-            string initialScript = "var button = document.querySelector('button.cursor-pointer.absolute'); if (button) { button.click(); }";
-            await webView.ExecuteScriptAsync(initialScript);
-
-            // Wait a bit
-            await Task.Delay(2000);
-
-            // Click in the scroll to bottom button
-            await webView.ExecuteScriptAsync(initialScript);
+            // Handle the button click event here
+            string textFromClipboard = Clipboard.GetText();
+            InsertTextIntoVS(textFromClipboard);
+            FormatCodeInVS();
         }
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "<Pending>")]
-        private async void WebView_WebMessageReceived(object sender, Microsoft.Web.WebView2.Core.CoreWebView2WebMessageReceivedEventArgs e)
+        var webMessage = e.TryGetWebMessageAsString();
+
+        switch (webMessage)
         {
-            try
-            {
-                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-
-                // When GPT Copy code button was clicked, automatically insert the code in VS.NET
-                if (e.TryGetWebMessageAsString() == "CopyCodeButtonClicked" && _enableCopyCode)
-                {
-                    // Using async delay instead of freezing the thread
-                    await Task.Delay(1000);
-
-                    // Handle the button click event here
-                    string textFromClipboard = Clipboard.GetText();
-                    InsertTextIntoVS(textFromClipboard);
-                    FormatCodeInVS();
-                }
-
-                var webMessage = e.TryGetWebMessageAsString();
-
-                switch (webMessage)
-                {
-                    // Handle enter key to send the prompt to GPT
-                    case "EnterPressed":
-                        await SubmitPromptGPTAsync();
-                        break;
-                }
-
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("Error in WebView_WebMessageReceived(): " + ex.Message);
-            }
+            // Handle enter key to send the prompt to GPT
+            case "EnterPressed":
+                await SubmitPromptGPTAsync();
+                break;
         }
 
-        private System.Timers.Timer timer;
+    }
+    catch (Exception ex)
+    {
+        Debug.WriteLine("Error in WebView_WebMessageReceived(): " + ex.Message);
+    }
+}
 
-        private void StartTimer()
-        {
-            try
-            {
-                ThreadHelper.ThrowIfNotOnUIThread();
+private System.Timers.Timer timer;
 
-                StopTimer();
+private void StartTimer()
+{
+    try
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
 
-                // Timer to add handler for GPT copy code click
-                timer = new System.Timers.Timer(5000);
-                timer.Elapsed += HandleTimerElapsed;
-                timer.Start();
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("Error in StartTimer(): " + ex.Message);
-            }
-        }
+        StopTimer();
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "<Pending>")]
-        private async void HandleTimerElapsed(object sender, System.Timers.ElapsedEventArgs e)
-        {
-            try
-            {
-                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-                await AddHandlerCopyCodeAsync();
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("Error in HandleTimerElapsed(): " + ex.Message);
-            }
-        }
+        // Timer to add handler for GPT copy code click
+        timer = new System.Timers.Timer(5000);
+        timer.Elapsed += HandleTimerElapsed;
+        timer.Start();
+    }
+    catch (Exception ex)
+    {
+        Debug.WriteLine("Error in StartTimer(): " + ex.Message);
+    }
+}
 
-        public void Dispose()
-        {
-            StopTimer();
-        }
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "<Pending>")]
+private async void HandleTimerElapsed(object sender, System.Timers.ElapsedEventArgs e)
+{
+    try
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        await AddHandlerCopyCodeAsync();
+    }
+    catch (Exception ex)
+    {
+        Debug.WriteLine("Error in HandleTimerElapsed(): " + ex.Message);
+    }
+}
 
-        private void StopTimer()
-        {
-            timer?.Stop();
-        }
+public void Dispose()
+{
+    StopTimer();
+}
 
-        #endregion
+private void StopTimer()
+{
+    timer?.Stop();
+}
 
-        #region Other Actions for GPT to process and Reload GPT
+#endregion
+
+#region Other Actions for GPT to process and Reload GPT
 
 #pragma warning disable VSTHRD100 // Avoid async void methods
-        private async void OnCompleteCodeButtonClick(object sender, RoutedEventArgs e)
+private async void OnCompleteCodeButtonClick(object sender, RoutedEventArgs e)
 #pragma warning restore VSTHRD100 // Avoid async void methods
-        {
-            try
-            {
-                // Prompt to show full complete code in GPT
-                string promptCompleteCode = "Please show full complete code with complete methods implementation without any placeholders like ... or assuming code segments";
+{
+    try
+    {
+        // Prompt to show full complete code in GPT
+        string promptCompleteCode = "Please show full complete code with complete methods implementation without any placeholders like ... or assuming code segments";
 
-                // Replace the full prompt in GPT to send a new one
-                string script = $@"document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').value = '{promptCompleteCode}';
+        // Replace the full prompt in GPT to send a new one
+        string script = $@"document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').value = '{promptCompleteCode}';
         
                                var inputEvent = new Event('input', {{
                                    'bubbles': true,
@@ -643,70 +650,70 @@ namespace ChatGPTExtension
                                }});
                                document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').dispatchEvent(inputEvent); ";
 
-                await webView.CoreWebView2.ExecuteScriptAsync(script);
+        await webView.CoreWebView2.ExecuteScriptAsync(script);
 
-                // Also submit the prompt
-                await SubmitPromptGPTAsync();
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("Error in OnCompleteCodeButtonClick(): " + ex.Message);
-            }
-        }
+        // Also submit the prompt
+        await SubmitPromptGPTAsync();
+    }
+    catch (Exception ex)
+    {
+        Debug.WriteLine("Error in OnCompleteCodeButtonClick(): " + ex.Message);
+    }
+}
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "<Pending>")]
-        private async void OnSendCodeMenuItemClick(object sender, RoutedEventArgs e)
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "<Pending>")]
+private async void OnSendCodeMenuItemClick(object sender, RoutedEventArgs e)
+{
+    try
+    {
+        // Process other actions for GPT
+        if (sender is MenuItem menuItem && menuItem.Tag is string command)
         {
-            try
-            {
-                // Process other actions for GPT
-                if (sender is MenuItem menuItem && menuItem.Tag is string command)
-                {
-                    await SendSelectedCodeToGPTAsync(command);
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("Error in OnSendCodeMenuItemClick(): " + ex.Message);
-            }
+            await SendSelectedCodeToGPTAsync(command);
         }
+    }
+    catch (Exception ex)
+    {
+        Debug.WriteLine("Error in OnSendCodeMenuItemClick(): " + ex.Message);
+    }
+}
 
-        private void OnReloadChatGptItemClick(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                // Set page as blank
-                webView.Source = new Uri("about:blank");
+private void OnReloadChatGptItemClick(object sender, RoutedEventArgs e)
+{
+    try
+    {
+        // Set page as blank
+        webView.Source = new Uri("about:blank");
 
-                // Open Chat GPT again
-                webView.Source = new Uri(CHAT_GPT_URL);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("Error in OnReloadChatGptItemClick(): " + ex.Message);
-            }
-        }
+        // Open Chat GPT again
+        webView.Source = new Uri(CHAT_GPT_URL);
+    }
+    catch (Exception ex)
+    {
+        Debug.WriteLine("Error in OnReloadChatGptItemClick(): " + ex.Message);
+    }
+}
 
-        #endregion
+#endregion
 
-        #region Find out language of the active document
+#region Find out language of the active document
 
-        private string GetActiveFileLanguage()
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
+private string GetActiveFileLanguage()
+{
+    ThreadHelper.ThrowIfNotOnUIThread();
 
-            if (_serviceProvider == null)
-                return string.Empty;
+    if (_serviceProvider == null)
+        return string.Empty;
 
-            // Get the active document
-            DTE dte = (DTE)_serviceProvider.GetService(typeof(DTE));
-            if (dte != null && dte.ActiveDocument != null)
-            {
-                // Get the file extension
-                string fileExtension = System.IO.Path.GetExtension(dte.ActiveDocument.FullName).ToLower();
+    // Get the active document
+    DTE dte = (DTE)_serviceProvider.GetService(typeof(DTE));
+    if (dte != null && dte.ActiveDocument != null)
+    {
+        // Get the file extension
+        string fileExtension = System.IO.Path.GetExtension(dte.ActiveDocument.FullName).ToLower();
 
-                // Dictionary mapping file extensions to language descriptions.
-                Dictionary<string, string> extensionToLanguageMap = new Dictionary<string, string>
+        // Dictionary mapping file extensions to language descriptions.
+        Dictionary<string, string> extensionToLanguageMap = new Dictionary<string, string>
                 {
                     {".cs", "C#"},
                     {".vb", "Visual Basic"},
@@ -720,70 +727,70 @@ namespace ChatGPTExtension
                     {".py", "Python"},
                 };
 
-                // Check if the file extension is supported and return name
-                if (extensionToLanguageMap.TryGetValue(fileExtension, out string language))
-                {
-                    return language;
-                }
-            }
-
-            return string.Empty;  // If no match is found or if there's no active document.
-        }
-
-        #endregion
-
-        #region Configurable Prompts
-
-        private void ConfigureExtensionMenuItem_Click(object sender, RoutedEventArgs e)
+        // Check if the file extension is supported and return name
+        if (extensionToLanguageMap.TryGetValue(fileExtension, out string language))
         {
-            // Show configure window
-            _configWindow.ShowDialog();
-
-            // Recreate the window and load the actions
-            _configWindow = new ConfigurationWindow();
-            LoadContextMenuActions();
+            return language;
         }
+    }
 
-        private void LoadContextMenuActions()
+    return string.Empty;  // If no match is found or if there's no active document.
+}
+
+#endregion
+
+#region Configurable Prompts
+
+private void ConfigureExtensionMenuItem_Click(object sender, RoutedEventArgs e)
+{
+    // Show configure window
+    _configWindow.ShowDialog();
+
+    // Recreate the window and load the actions
+    _configWindow = new ConfigurationWindow();
+    LoadContextMenuActions();
+}
+
+private void LoadContextMenuActions()
+{
+    var actions = _configWindow.ActionItems;
+
+    CodeActionsContextMenu.Items.Clear();
+
+    // Add all configured actions/prompts in the context menu
+    foreach (var action in actions)
+    {
+        var name = action.Name;
+        var prompt = action.Prompt;
+
+        if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(prompt))
         {
-            var actions = _configWindow.ActionItems;
+            var formattedPrompt = prompt.Replace(" {languageCode}", string.Empty);
 
-            CodeActionsContextMenu.Items.Clear();
-
-            // Add all configured actions/prompts in the context menu
-            foreach (var action in actions)
+            var menuItem = new MenuItem
             {
-                var name = action.Name;
-                var prompt = action.Prompt;
+                Header = name,
+                Tag = formattedPrompt
+            };
 
-                if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(prompt))
-                {
-                    var formattedPrompt = prompt.Replace(" {languageCode}", string.Empty);
-
-                    var menuItem = new MenuItem
-                    {
-                        Header = name,
-                        Tag = formattedPrompt
-                    };
-
-                    menuItem.Click += OnSendCodeMenuItemClick;
-                    CodeActionsContextMenu.Items.Add(menuItem);
-                }
-            }
-
-            // Add a separator line
-            CodeActionsContextMenu.Items.Add(new Separator());
-
-            // Add Reload Chat GPT menu item
-            var reloadMenuItem = new MenuItem { Header = "Reload Chat GPT..." };
-            reloadMenuItem.Click += OnReloadChatGptItemClick;
-            CodeActionsContextMenu.Items.Add(reloadMenuItem);
-
-            // Add Configure extension... menu item
-            var configureMenuItem = new MenuItem { Header = "Configure extension..." };
-            configureMenuItem.Click += ConfigureExtensionMenuItem_Click;
-            CodeActionsContextMenu.Items.Add(configureMenuItem);
+            menuItem.Click += OnSendCodeMenuItemClick;
+            CodeActionsContextMenu.Items.Add(menuItem);
         }
+    }
+
+    // Add a separator line
+    CodeActionsContextMenu.Items.Add(new Separator());
+
+    // Add Reload Chat GPT menu item
+    var reloadMenuItem = new MenuItem { Header = "Reload Chat GPT..." };
+    reloadMenuItem.Click += OnReloadChatGptItemClick;
+    CodeActionsContextMenu.Items.Add(reloadMenuItem);
+
+    // Add Configure extension... menu item
+    var configureMenuItem = new MenuItem { Header = "Configure extension..." };
+    configureMenuItem.Click += ConfigureExtensionMenuItem_Click;
+    CodeActionsContextMenu.Items.Add(configureMenuItem);
+}
 
         #endregion
     }
