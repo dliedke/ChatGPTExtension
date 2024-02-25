@@ -6,7 +6,7 @@
  * Copyright © Daniel Liedke 2024
  * Usage and reproduction in any manner whatsoever without the written permission of Daniel Liedke is strictly forbidden.
  *  
- * Purpose: Main user control for the Chat GPT/Gemini extension
+ * Purpose: Main user control for the Chat GPT/Gemini extension for VS.NET 2022
  *           
  * *******************************************************************************************************************/
 
@@ -26,21 +26,19 @@ using Newtonsoft.Json;
 using Microsoft.Win32;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.VisualStudio.Shell;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 
 namespace ChatGPTExtension
 {
     public partial class GptToolWindowControl : UserControl
     {
-        #region Web IDs and URLs
+        #region Web IDs and URLs for GPT and Gemini
 
-
-        // Ids and selectors might need updates in new GPT versions
+        // IDs and selectors might need updates in new GPT versions
         private const string CHAT_GPT_URL = "https://chat.openai.com/";
         private const string GPT_PROMPT_TEXT_AREA_ID = "prompt-textarea";
         private const string GPT_COPY_CODE_BUTTON_TEXT = "Copy code";
 
-        // Ids and selectors might need updates in new Gemini versions
+        // Selectors might need updates in new Gemini versions
         private const string GEMINI_URL = "https://gemini.google.com";
         private const string GEMINI_PROMPT_DATA_PLACE_HOLDER = "Enter a prompt here";
         private const string GEMINI_COPY_CODE_BUTTON_ARIA_LABEL = "Copy code";
@@ -56,13 +54,13 @@ namespace ChatGPTExtension
         private readonly IServiceProvider _serviceProvider;
         private ConfigurationWindow _configWindow = new ConfigurationWindow();
         private bool _gptConfigured = true;  // true for GPT, false for Gemini
-        private ChatGPTToolWindow _parent;
+        private ChatGPTToolWindow _parentToolWindow;
 
         
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD110:Observe result of async calls", Justification = "<Pending>")]
         public GptToolWindowControl(IServiceProvider serviceProvider, ChatGPTToolWindow parent)
         {
-            _parent = parent;
+            _parentToolWindow = parent;
             _serviceProvider = serviceProvider;
 
             InitializeComponent();
@@ -73,7 +71,7 @@ namespace ChatGPTExtension
 
             _gptConfigured = LoadConfiguration();
             LoadContextMenuActions();
-            _parent = parent;
+            _parentToolWindow = parent;
         }
 
         private async Task InitializeAsync()
@@ -119,7 +117,7 @@ namespace ChatGPTExtension
                 // WebMessageReceived to receive events from browser in this extension
                 webView.WebMessageReceived += WebView_WebMessageReceived;
 
-                // If the GPT prompt appers, already call AddHandlerCopyCodeAsync()
+                // If the GPT/Gemini prompt appers, already call AddHandlerCopyCodeAsync()
                 if (_gptConfigured)
                 {
                     await WaitForElementByIdAsync(GPT_PROMPT_TEXT_AREA_ID);
@@ -249,7 +247,7 @@ namespace ChatGPTExtension
 
         #endregion
 
-        #region VS.NET to GPT
+        #region VS.NET to GPT/Gemini
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD110:Observe result of async calls", Justification = "<Pending>")]
         private void OnSendCodeButtonClick(object sender, RoutedEventArgs e)
@@ -303,7 +301,7 @@ namespace ChatGPTExtension
                 // Replace {languageCode} with correct programming language
                 selectedCode = extraCommand.Replace("{languageCode}", activeLanguage) + "\r\n" + selectedCode;
 
-                // Replace the full prompt in GPT to send a new one
+                // Replace the full prompt in GPT/Gemini to send a new one
                 string script = _gptConfigured ?
                     $@"var element = document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}');
                    element.value = {JsonConvert.SerializeObject(selectedCode)};
@@ -362,9 +360,9 @@ namespace ChatGPTExtension
         }
 
 
-        private async Task<string> GetSelectedTextFromGPTAsync()
+        private async Task<string> GetSelectedTextFromAIAsync()
         {
-            // Retrieve selected text in GPT
+            // Retrieve selected text in GPT/Gemini
             string script = @"window.getSelection().toString()";
             string selectedText = await webView.CoreWebView2.ExecuteScriptAsync(script);
 
@@ -391,7 +389,7 @@ namespace ChatGPTExtension
 
         #endregion
 
-        #region GPT to VS.NET
+        #region GPT/Gemini to VS.NET
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD110:Observe result of async calls", Justification = "<Pending>")]
         private void OnReceiveCodeButtonClick(object sender, RoutedEventArgs e)
@@ -413,7 +411,7 @@ namespace ChatGPTExtension
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
             // Retrieve selected code in GPT, insert and format in VS.NET
-            string textFromBrowser = await GetSelectedTextFromGPTAsync();
+            string textFromBrowser = await GetSelectedTextFromAIAsync();
 
             // If we have text selected in browser send to VS.NET
             if (!string.IsNullOrEmpty(textFromBrowser))
@@ -469,7 +467,7 @@ namespace ChatGPTExtension
 
         #endregion
 
-        #region Timer to add handler from GPT click events to VS.NET
+        #region Timer to add handler from GPT/Gemini click events to VS.NET
 
         private void EnableCopyCodeCheckBox_Click(object sender, RoutedEventArgs e)
         {
@@ -477,6 +475,12 @@ namespace ChatGPTExtension
             _enableCopyCode = EnableCopyCodeCheckBox.IsChecked.Value;
         }
 
+        /// <summary>
+        /// This method will fix issues with HOME, END and SHIFT+HOME, SHIFT+END keys
+        /// in the AI prompt text area
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "<Pending>")]
         private async void UserControl_PreviewKeyDown(object sender, KeyEventArgs e)
         {
@@ -561,83 +565,83 @@ namespace ChatGPTExtension
 
                     bool shiftPressed = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
                     string cursorPositionScript = $@"
-    (function() {{
-        var editor = document.querySelector('.ql-editor');
-        var selection = window.getSelection();
-        if (selection.rangeCount > 0) {{
-            var range = selection.getRangeAt(0);
-            var node = selection.anchorNode;
-            var offset = selection.anchorOffset;
+                        (function() {{
+                            var editor = document.querySelector('.ql-editor');
+                            var selection = window.getSelection();
+                            if (selection.rangeCount > 0) {{
+                                var range = selection.getRangeAt(0);
+                                var node = selection.anchorNode;
+                                var offset = selection.anchorOffset;
 
-            // Normalize node to ensure we're working with text nodes or directly contenteditable
-            while (node && node.nodeType !== 3 && !['DIV', 'P', 'BR'].includes(node.nodeName)) {{
-                node = node.parentNode;
-            }}
-
-            var textContent = node.nodeType === 3 ? node.data : node.textContent;
-            var position = offset;
-
-            if ('{e.Key}' === 'Home') {{
-                // Move to the start of the line
-                while (position > 0 && textContent[position - 1] != '\\n') {{
-                    position--;
-                }}
-            }} else if ('{e.Key}' === 'End') {{
-                // Move to the end of the line
-                while (position < textContent.length && textContent[position] != '\\n') {{
-                    position++;
-                }}
-                // Adjust to position after the last character if not at the end of content
-                if (position < textContent.length) {{
-                    position++;
-                }}
-            }}
-
-            if (node.nodeType === 3) {{
-                if (!{shiftPressed.ToString().ToLower()}) {{
-                    // If Shift is not pressed, move the cursor without selecting
-                    range.setStart(node, position);
-                    range.setEnd(node, position);
-                }} else {{
-                    // If Shift is pressed, adjust the range for selection
-                    if ('{e.Key}' === 'Home') {{
-                        range.setStart(node, position);
-                    }} else if ('{e.Key}' === 'End') {{
-                        range.setEnd(node, position);
-                    }}
-                }}
-            }} else {{
-                // Handling for non-text nodes
-                var child = node.childNodes[0];
-                var childPosition = 0;
-                for (var i = 0; child && i < position; i++) {{
-                    if (child.nodeType === 3) {{
-                        var len = child.data.length;
-                        if (i + len >= position) {{
-                            if (!{shiftPressed.ToString().ToLower()}) {{
-                                range.setStart(child, position - i);
-                                range.setEnd(child, position - i);
-                            }} else {{
-                                if ('{e.Key}' === 'Home') {{
-                                    range.setStart(child, position - i);
-                                }} else if ('{e.Key}' === 'End') {{
-                                    range.setEnd(child, position - i);
+                                // Normalize node to ensure we're working with text nodes or directly contenteditable
+                                while (node && node.nodeType !== 3 && !['DIV', 'P', 'BR'].includes(node.nodeName)) {{
+                                    node = node.parentNode;
                                 }}
-                            }}
-                            break;
-                        }}
-                        i += len;
-                    }} else {{
-                        i++;
-                    }}
-                    child = child.nextSibling;
-                }}
-            }}
 
-            selection.removeAllRanges();
-            selection.addRange(range);
-        }}
-    }})();";
+                                var textContent = node.nodeType === 3 ? node.data : node.textContent;
+                                var position = offset;
+
+                                if ('{e.Key}' === 'Home') {{
+                                    // Move to the start of the line
+                                    while (position > 0 && textContent[position - 1] != '\\n') {{
+                                        position--;
+                                    }}
+                                }} else if ('{e.Key}' === 'End') {{
+                                    // Move to the end of the line
+                                    while (position < textContent.length && textContent[position] != '\\n') {{
+                                        position++;
+                                    }}
+                                    // Adjust to position after the last character if not at the end of content
+                                    if (position < textContent.length) {{
+                                        position++;
+                                    }}
+                                }}
+
+                                if (node.nodeType === 3) {{
+                                    if (!{shiftPressed.ToString().ToLower()}) {{
+                                        // If Shift is not pressed, move the cursor without selecting
+                                        range.setStart(node, position);
+                                        range.setEnd(node, position);
+                                    }} else {{
+                                        // If Shift is pressed, adjust the range for selection
+                                        if ('{e.Key}' === 'Home') {{
+                                            range.setStart(node, position);
+                                        }} else if ('{e.Key}' === 'End') {{
+                                            range.setEnd(node, position);
+                                        }}
+                                    }}
+                                }} else {{
+                                    // Handling for non-text nodes
+                                    var child = node.childNodes[0];
+                                    var childPosition = 0;
+                                    for (var i = 0; child && i < position; i++) {{
+                                        if (child.nodeType === 3) {{
+                                            var len = child.data.length;
+                                            if (i + len >= position) {{
+                                                if (!{shiftPressed.ToString().ToLower()}) {{
+                                                    range.setStart(child, position - i);
+                                                    range.setEnd(child, position - i);
+                                                }} else {{
+                                                    if ('{e.Key}' === 'Home') {{
+                                                        range.setStart(child, position - i);
+                                                    }} else if ('{e.Key}' === 'End') {{
+                                                        range.setEnd(child, position - i);
+                                                    }}
+                                                }}
+                                                break;
+                                            }}
+                                            i += len;
+                                        }} else {{
+                                            i++;
+                                        }}
+                                        child = child.nextSibling;
+                                    }}
+                                }}
+
+                                selection.removeAllRanges();
+                                selection.addRange(range);
+                            }}
+                        }})();";
 
                     // Execute the JavaScript code
                     if (!string.IsNullOrEmpty(cursorPositionScript))
@@ -646,10 +650,8 @@ namespace ChatGPTExtension
                     }
                 }
 
-
             }
         }
-
 
         private async Task AddHandlerCopyCodeAsync()
         {
@@ -657,7 +659,7 @@ namespace ChatGPTExtension
             {
                 // Capture Enter, Home and End keys that should
                 // be handled different in this extension to work
-                // with Chat GPT
+                // with Chat GPT/Gemini
                 string script = @"if (!document.body.hasAttribute('data-keydown-listener-added')) {
                                         document.addEventListener('keydown', function(event) {
                                             // Check for Enter without Shift key
@@ -672,8 +674,8 @@ namespace ChatGPTExtension
                 await webView.ExecuteScriptAsync(script);
 
 
-
                 string addEventListenersScript = "";
+
                 // Copy code button handler for GPT
                 if (_gptConfigured)
                 {
@@ -692,6 +694,7 @@ namespace ChatGPTExtension
                         }});
                     ";
                 }
+                // Copy code button handler for Gemini
                 else
                 {
                     addEventListenersScript = $@"
@@ -755,7 +758,7 @@ namespace ChatGPTExtension
             {
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-                // When GPT Copy code button was clicked, automatically insert the code in VS.NET
+                // When Copy code button was clicked in AI app, automatically insert the code in VS.NET
                 if (e.TryGetWebMessageAsString() == "CopyCodeButtonClicked" && _enableCopyCode)
                 {
                     // Using async delay instead of freezing the thread
@@ -831,7 +834,7 @@ namespace ChatGPTExtension
 
         #endregion
 
-        #region Other Actions for GPT to process and Reload GPT
+        #region Other Actions for GPT/Gemini to process and Reload GPT/Gemini
 #pragma warning disable VSTHRD100 // Avoid async void methods
         private async void OnCompleteCodeButtonClick(object sender, RoutedEventArgs e)
 #pragma warning restore VSTHRD100 // Avoid async void methods
@@ -839,12 +842,12 @@ namespace ChatGPTExtension
             try
             {
                 // Define the promptCompleteCode prompt
-                string promptCompleteCode = "Please show full complete code with complete methods implementation for the provided code without any placeholders like ... or assuming code segments. Do not create methods you dont know.";
+                string promptCompleteCode = "Please show new full complete code without explanations with complete methods implementation for the provided code without any placeholders like ... or assuming code segments. Do not create methods you dont know.";
 
                 string script;
                 if (!_gptConfigured)
                 {
-                    // If _gptConfigured is false, set the innerText for a specific element
+                    // If _gptConfigured is false, set the innerText to set the AI prompt in Gemini
                     script = $@"
                             var element = document.querySelector('[data-placeholder=""{GEMINI_PROMPT_DATA_PLACE_HOLDER}""]');
                                 element.innerText = '{promptCompleteCode}';
@@ -857,7 +860,7 @@ namespace ChatGPTExtension
                 }
                 else
                 {
-                    // If _gptConfigured is true, keep the original logic
+                    // If _gptConfigured is true, set the AI prompt in GPT
                     script = $@"
                             document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').value = '{promptCompleteCode}';
                 
@@ -1031,7 +1034,7 @@ namespace ChatGPTExtension
                 useGptMenuItem.IsChecked = true;
                 useGeminiMenuItem.IsChecked = false;
                 reloadMenuItem.Header = "Reload Chat GPT...";
-                _parent.Caption = "Chat GPT Extension";
+                _parentToolWindow.Caption = "Chat GPT Extension";
                 UpdateButtonContentAndTooltip();
                 OnReloadAIItemClick(null, null);
                 SaveConfiguration();
@@ -1045,7 +1048,7 @@ namespace ChatGPTExtension
                 useGeminiMenuItem.IsChecked = true;
                 useGptMenuItem.IsChecked = false;
                 reloadMenuItem.Header = "Reload Gemini...";
-                _parent.Caption = "Gemini Extension";
+                _parentToolWindow.Caption = "Gemini Extension";
                 UpdateButtonContentAndTooltip();
                 OnReloadAIItemClick(null, null);
                 SaveConfiguration();
@@ -1056,22 +1059,21 @@ namespace ChatGPTExtension
             useGptMenuItem.IsChecked = _gptConfigured;
             useGeminiMenuItem.IsChecked = !_gptConfigured;
 
+            // Set all the user interface according to the AI model selected
             if (_gptConfigured)
             {
-                useGptMenuItem.IsChecked = true;
-                useGeminiMenuItem.IsChecked = false;
                 reloadMenuItem.Header = "Reload Chat GPT...";
-                _parent.Caption = "Chat GPT Extension";
+                _parentToolWindow.Caption = "Chat GPT Extension";
                 UpdateButtonContentAndTooltip();
             }
             else
             {
-                useGeminiMenuItem.IsChecked = true;
-                useGptMenuItem.IsChecked = false;
                 reloadMenuItem.Header = "Reload Gemini...";
-                _parent.Caption = "Gemini Extension";
+                _parentToolWindow.Caption = "Gemini Extension";
                 UpdateButtonContentAndTooltip();
             }
+
+            StopTimer();
         }
 
         private void UpdateButtonContentAndTooltip()
@@ -1095,7 +1097,7 @@ namespace ChatGPTExtension
 
         #endregion
 
-        #region Load/Save extension configuration
+        #region Load/Save Extension Configuration
 
         private const string _configurationFileName = "configuration.json";
         private static readonly string _appDataPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ChatGPTExtension", "Actions");

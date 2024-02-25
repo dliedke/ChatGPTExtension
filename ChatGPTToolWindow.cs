@@ -10,9 +10,10 @@
  *           
  * *******************************************************************************************************************/
 
-using Microsoft.VisualStudio.Shell;
 using System;
 using System.Runtime.InteropServices;
+
+using Microsoft.VisualStudio.Shell;
 
 namespace ChatGPTExtension
 {
@@ -38,6 +39,7 @@ namespace ChatGPTExtension
             this.Caption = "Chat GPT Extension";
 
             // Pass this package (which is an IServiceProvider) to the user control.
+            // Also the full ToolWindow as second parameter
             this.Content = new GptToolWindowControl(this, this);
         }
     }
