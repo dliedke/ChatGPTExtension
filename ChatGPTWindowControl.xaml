@@ -109,16 +109,16 @@
         </Button>
 
         <!-- The button to trigger the code transfer from VS.NET to GPT -->
-        <Button Grid.Row="0" Grid.Column="0" Content="VS.NET to GPT ➡️" Click="OnSendCodeButtonClick" Tag="" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}" ToolTip="Transfer selected code from VS.NET to GPT"/>
+        <Button Grid.Row="0" Grid.Column="0" Name="btnVSNETToAI" Content="VS.NET to GPT ➡️" Click="OnSendCodeButtonClick" Tag="" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}" ToolTip="Transfer selected code from VS.NET to GPT"/>
 
         <!-- Fix Code from VS.NET to GPT -->
-        <Button Grid.Row="0" Grid.Column="1" Content="Fix Code in GPT ➡️" Click="OnSendCodeButtonClick" Tag="Fix {languageCode} code below:" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}"  ToolTip="Transfer selected code from GPT to VS.NET"/>
+        <Button Grid.Row="0" Grid.Column="1" Name="btnFixCodeInAI" Content="Fix Code in GPT ➡️" Click="OnSendCodeButtonClick" Tag="Fix {languageCode} code below:" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}"  ToolTip="Transfer selected code from GPT to VS.NET"/>
 
         <!-- Improve Code from VS.NET to GPT -->
-        <Button Grid.Row="0" Grid.Column="2" Content="Improve Code in GPT ➡️" Click="OnSendCodeButtonClick" Tag="Improve {languageCode} code below:" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}"  ToolTip="Refactor selected code from VS.NET in GPT" />
+        <Button Grid.Row="0" Grid.Column="2" Name="btnImproveCodeInAI" Content="Improve Code in GPT ➡️" Click="OnSendCodeButtonClick" Tag="Improve {languageCode} code below:" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}"  ToolTip="Refactor selected code from VS.NET in GPT" />
 
         <!-- The button to trigger the code transfer from GPT to VS.NET -->
-        <Button Grid.Row="1" Grid.ColumnSpan="2" Content="⬅️ GPT to VS.NET" Click="OnReceiveCodeButtonClick" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}"  ToolTip="Transfer selected code from GPT to VS.NET"/>
+        <Button Grid.Row="1" Grid.ColumnSpan="2" Name="btnAIToVSNET"  Content="⬅️ GPT to VS.NET" Click="OnReceiveCodeButtonClick" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}"  ToolTip="Transfer selected code from GPT to VS.NET"/>
 
         <!-- The button to trigger the complete code action in GPT -->
         <Button Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2" Content="Complete Code" Click="OnCompleteCodeButtonClick" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}"  ToolTip="Ask GPT to provide full complete code"/>

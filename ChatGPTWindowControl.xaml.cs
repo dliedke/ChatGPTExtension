@@ -3,10 +3,10 @@
  * 
  * Autor:  Daniel Liedke
  * 
- * Copyright © Daniel Liedke 2023
+ * Copyright © Daniel Liedke 2024
  * Usage and reproduction in any manner whatsoever without the written permission of Daniel Liedke is strictly forbidden.
  *  
- * Purpose: Main user control for the Chat GPT extension
+ * Purpose: Main user control for the Chat GPT/Gemini extension
  *           
  * *******************************************************************************************************************/
 
@@ -19,7 +19,6 @@ using System.Windows.Input;
 using System.Threading.Tasks;
 using System.Windows.Controls;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 
 using EnvDTE;
 using EnvDTE80;
@@ -27,8 +26,7 @@ using Newtonsoft.Json;
 using Microsoft.Win32;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.VisualStudio.Shell;
-
-using System.Windows.Interop;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 
 namespace ChatGPTExtension
 {
@@ -36,10 +34,16 @@ namespace ChatGPTExtension
     {
         #region Web IDs and URLs
 
+
         // Ids and selectors might need updates in new GPT versions
         private const string CHAT_GPT_URL = "https://chat.openai.com/";
         private const string GPT_PROMPT_TEXT_AREA_ID = "prompt-textarea";
         private const string GPT_COPY_CODE_BUTTON_TEXT = "Copy code";
+
+        // Ids and selectors might need updates in new Gemini versions
+        private const string GEMINI_URL = "https://gemini.google.com";
+        private const string GEMINI_PROMPT_DATA_PLACE_HOLDER = "Enter a prompt here";
+        private const string GEMINI_COPY_CODE_BUTTON_ARIA_LABEL = "Copy code";
 
         #endregion
 
@@ -51,10 +55,14 @@ namespace ChatGPTExtension
         private bool _enableCopyCode = true;
         private readonly IServiceProvider _serviceProvider;
         private ConfigurationWindow _configWindow = new ConfigurationWindow();
+        private bool _gptConfigured = true;  // true for GPT, false for Gemini
+        private ChatGPTToolWindow _parent;
 
+        
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD110:Observe result of async calls", Justification = "<Pending>")]
-        public GptToolWindowControl(IServiceProvider serviceProvider)
+        public GptToolWindowControl(IServiceProvider serviceProvider, ChatGPTToolWindow parent)
         {
+            _parent = parent;
             _serviceProvider = serviceProvider;
 
             InitializeComponent();
@@ -63,7 +71,9 @@ namespace ChatGPTExtension
             InitializeAsync();
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 
+            _gptConfigured = LoadConfiguration();
             LoadContextMenuActions();
+            _parent = parent;
         }
 
         private async Task InitializeAsync()
@@ -95,14 +105,29 @@ namespace ChatGPTExtension
                 CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(edgeWebView2Path, userDataPath);
                 await webView.EnsureCoreWebView2Async(environment);
 
-                // Open Chat GPT
-                webView.Source = new Uri(CHAT_GPT_URL);
+                if (_gptConfigured)
+                {
+                    // Open Chat GPT
+                    webView.Source = new Uri(CHAT_GPT_URL);
+                }
+                else
+                {
+                    // Open Gemini
+                    webView.Source = new Uri(GEMINI_URL);
+                }
 
                 // WebMessageReceived to receive events from browser in this extension
                 webView.WebMessageReceived += WebView_WebMessageReceived;
 
                 // If the GPT prompt appers, already call AddHandlerCopyCodeAsync()
-                await WaitForElementAsync(GPT_PROMPT_TEXT_AREA_ID);
+                if (_gptConfigured)
+                {
+                    await WaitForElementByIdAsync(GPT_PROMPT_TEXT_AREA_ID);
+                }
+                else
+                {
+                    await WaitForElementByDataPlaceholderAsync(GEMINI_PROMPT_DATA_PLACE_HOLDER);
+                }
 
                 // Timer to inject JS code to detect clicks in "Copy code" button in Chat GPT
                 StartTimer();
@@ -134,7 +159,7 @@ namespace ChatGPTExtension
             ThreadHelper.ThrowIfNotOnUIThread();
 
             // Check if the activated window is our tool window
-            if (GotFocus.Caption == "Chat GPT Extension")
+            if (GotFocus.Caption == "Chat GPT Extension" || GotFocus.Caption == "Gemini Extension")
             {
                 webView.Visibility = Visibility.Visible;
             }
@@ -183,7 +208,7 @@ namespace ChatGPTExtension
             return null;
         }
 
-        private async Task WaitForElementAsync(string elementId)
+        private async Task WaitForElementByIdAsync(string elementId)
         {
             bool elementFound = false;
             while (!elementFound)
@@ -202,6 +227,26 @@ namespace ChatGPTExtension
             await AddHandlerCopyCodeAsync();
         }
 
+        private async Task WaitForElementByDataPlaceholderAsync(string dataPlaceholder)
+        {
+            bool elementFound = false;
+            while (!elementFound)
+            {
+                // Use querySelector with an attribute selector to find the element by its data-placeholder value.
+                string script = $"document.querySelector('[data-placeholder=\"{dataPlaceholder}\"]') ? 'found' : 'notfound';";
+                var result = await webView.ExecuteScriptAsync(script);
+                if (result == "\"found\"") // Note the extra quotes, ExecuteScriptAsync returns JSON serialized strings.
+                {
+                    elementFound = true;
+                }
+                else
+                {
+                    await Task.Delay(500); // Wait for half a second before checking again.
+                }
+            }
+            await AddHandlerCopyCodeAsync(); // Ensure this method is implemented to add the required handler.
+        }
+
         #endregion
 
         #region VS.NET to GPT
@@ -215,7 +260,7 @@ namespace ChatGPTExtension
                 string extraCommand = btn.Tag as string;
 
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-                SendSelectedCodeToGPTAsync(extraCommand);
+                SendSelectedCodeToAIAsync(extraCommand);
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
             }
             catch (Exception ex)
@@ -236,7 +281,7 @@ namespace ChatGPTExtension
             return selection.Text;
         }
 
-        private async Task SendSelectedCodeToGPTAsync(string extraCommand)
+        private async Task SendSelectedCodeToAIAsync(string extraCommand)
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
@@ -250,7 +295,6 @@ namespace ChatGPTExtension
                 return;
             }
 
-            // In case we have an extra command
             if (!string.IsNullOrEmpty(extraCommand))
             {
                 // Get language of the file
@@ -260,27 +304,52 @@ namespace ChatGPTExtension
                 selectedCode = extraCommand.Replace("{languageCode}", activeLanguage) + "\r\n" + selectedCode;
 
                 // Replace the full prompt in GPT to send a new one
-                string script = $@"document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').value = {JsonConvert.SerializeObject(selectedCode)};
-        
-                               var inputEvent = new Event('input', {{
-                                   'bubbles': true,
-                                   'cancelable': true
-                               }});
-                               document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').dispatchEvent(inputEvent); ";
+                string script = _gptConfigured ?
+                    $@"var element = document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}');
+                   element.value = {JsonConvert.SerializeObject(selectedCode)};
+               
+                   var inputEvent = new Event('input', {{
+                       'bubbles': true,
+                       'cancelable': true
+                   }});
+                   element.dispatchEvent(inputEvent);"
+
+               :
+
+                   $@"var element = document.querySelector('[data-placeholder=""{GEMINI_PROMPT_DATA_PLACE_HOLDER}""]');
+                   element.innerText = {JsonConvert.SerializeObject(selectedCode)};
+               
+                   var inputEvent = new Event('input', {{
+                       'bubbles': true,
+                       'cancelable': true
+                   }});
+                   element.dispatchEvent(inputEvent);";
 
                 await webView.CoreWebView2.ExecuteScriptAsync(script);
             }
             else
             {
                 // Keep existing prompt and add code from VS.NET
-                string script = $@"var existingText = document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').value;
-                               document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').value = existingText + '\r\n' + {JsonConvert.SerializeObject(selectedCode)};
-        
-                               var inputEvent = new Event('input', {{
-                                   'bubbles': true,
-                                   'cancelable': true
-                               }});
-                               document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').dispatchEvent(inputEvent); ";
+                string script = _gptConfigured ?
+                        $@"var existingText = document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').value;
+                   document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').value = existingText + '\r\n' + {JsonConvert.SerializeObject(selectedCode)};
+               
+                   var inputEvent = new Event('input', {{
+                       'bubbles': true,
+                       'cancelable': true
+                   }});
+                   document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').dispatchEvent(inputEvent);"
+
+               :
+
+                    $@"var existingText = document.querySelector('[data-placeholder=""{GEMINI_PROMPT_DATA_PLACE_HOLDER}""]').innerText;
+               document.querySelector('[data-placeholder=""{GEMINI_PROMPT_DATA_PLACE_HOLDER}""]').innerText = existingText + '\r\n' + {JsonConvert.SerializeObject(selectedCode)};
+               
+               var inputEvent = new Event('input', {{
+                   'bubbles': true,
+                   'cancelable': true
+               }});
+               document.querySelector('[data-placeholder=""{GEMINI_PROMPT_DATA_PLACE_HOLDER}""]').dispatchEvent(inputEvent);";
 
                 await webView.CoreWebView2.ExecuteScriptAsync(script);
             }
@@ -288,9 +357,10 @@ namespace ChatGPTExtension
             // In case we have extra command send the prompt automatically
             if (!string.IsNullOrEmpty(extraCommand))
             {
-                await SubmitPromptGPTAsync();
+                await SubmitPromptAIAsync();
             }
         }
+
 
         private async Task<string> GetSelectedTextFromGPTAsync()
         {
@@ -410,15 +480,18 @@ namespace ChatGPTExtension
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "<Pending>")]
         private async void UserControl_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            string cursorPositionScript = "";
-
-            // If Home or End is pressed
-            if (e.Key == Key.Home || e.Key == Key.End)
+            // GPT
+            if (_gptConfigured)
             {
-                e.Handled = true; // Cancel the default behavior
+                string cursorPositionScript = "";
 
-                // JavaScript to find the start and end of the current line
-                string findLineBoundsScript = @"
+                // If Home or End is pressed
+                if (e.Key == Key.Home || e.Key == Key.End)
+                {
+                    e.Handled = true; // Cancel the default behavior
+
+                    // JavaScript to find the start and end of the current line
+                    string findLineBoundsScript = @"
             var textbox = document.getElementById('" + GPT_PROMPT_TEXT_AREA_ID + @"');
             var value = textbox.value;
             var start = textbox.selectionStart;
@@ -429,53 +502,151 @@ namespace ChatGPTExtension
             
             [start, end];";  // This will give the start and end positions of the current line
 
-                var result = await webView.ExecuteScriptAsync(findLineBoundsScript);
-                var bounds = JsonConvert.DeserializeObject<int[]>(result);
-                int startOfLine = bounds[0];
-                int endOfLine = bounds[1];
+                    var result = await webView.ExecuteScriptAsync(findLineBoundsScript);
+                    var bounds = JsonConvert.DeserializeObject<int[]>(result);
+                    int startOfLine = bounds[0];
+                    int endOfLine = bounds[1];
 
-                // If Shift is pressed
-                if ((Keyboard.Modifiers & ModifierKeys.Shift) != 0)
-                {
-                    // If Home is pressed
-                    if (e.Key == Key.Home)
+                    // If Shift is pressed
+                    if ((Keyboard.Modifiers & ModifierKeys.Shift) != 0)
                     {
-                        cursorPositionScript = @"
+                        // If Home is pressed
+                        if (e.Key == Key.Home)
+                        {
+                            cursorPositionScript = @"
                             var textbox = document.getElementById('" + GPT_PROMPT_TEXT_AREA_ID + @"');
                             var currentEnd = textbox.selectionEnd; 
                             textbox.setSelectionRange(" + startOfLine + @", currentEnd);";
-                    }
-                    // If End is pressed
-                    else if (e.Key == Key.End)
-                    {
-                        cursorPositionScript = @"
+                        }
+                        // If End is pressed
+                        else if (e.Key == Key.End)
+                        {
+                            cursorPositionScript = @"
                             var textbox = document.getElementById('" + GPT_PROMPT_TEXT_AREA_ID + @"');
                             var currentStart = textbox.selectionStart;
                             textbox.setSelectionRange(currentStart, " + endOfLine + @");";
+                        }
                     }
-                }
-                else // Shift is NOT pressed
-                {
-                    // If Home or End is pressed
-                    if (e.Key == Key.Home)
+                    else // Shift is NOT pressed
                     {
-                        cursorPositionScript = @"
+                        // If Home or End is pressed
+                        if (e.Key == Key.Home)
+                        {
+                            cursorPositionScript = @"
                             var textbox = document.getElementById('" + GPT_PROMPT_TEXT_AREA_ID + @"');
                             textbox.setSelectionRange(" + startOfLine + @", " + startOfLine + @");";
-                    }
-                    else if (e.Key == Key.End)
-                    {
-                        cursorPositionScript = @"
+                        }
+                        else if (e.Key == Key.End)
+                        {
+                            cursorPositionScript = @"
                             var textbox = document.getElementById('" + GPT_PROMPT_TEXT_AREA_ID + @"');
                             textbox.setSelectionRange(" + endOfLine + @", " + endOfLine + @");";
+                        }
+                    }
+
+                    // Execute javascript script code
+                    if (!string.IsNullOrEmpty(cursorPositionScript))
+                    {
+                        await webView.ExecuteScriptAsync(cursorPositionScript);
+                    }
+                }
+            }
+
+            // Gemini
+            else
+            {
+                if (e.Key == Key.Home || e.Key == Key.End)
+                {
+                    e.Handled = true; // Prevent default behavior
+
+                    bool shiftPressed = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
+                    string cursorPositionScript = $@"
+    (function() {{
+        var editor = document.querySelector('.ql-editor');
+        var selection = window.getSelection();
+        if (selection.rangeCount > 0) {{
+            var range = selection.getRangeAt(0);
+            var node = selection.anchorNode;
+            var offset = selection.anchorOffset;
+
+            // Normalize node to ensure we're working with text nodes or directly contenteditable
+            while (node && node.nodeType !== 3 && !['DIV', 'P', 'BR'].includes(node.nodeName)) {{
+                node = node.parentNode;
+            }}
+
+            var textContent = node.nodeType === 3 ? node.data : node.textContent;
+            var position = offset;
+
+            if ('{e.Key}' === 'Home') {{
+                // Move to the start of the line
+                while (position > 0 && textContent[position - 1] != '\\n') {{
+                    position--;
+                }}
+            }} else if ('{e.Key}' === 'End') {{
+                // Move to the end of the line
+                while (position < textContent.length && textContent[position] != '\\n') {{
+                    position++;
+                }}
+                // Adjust to position after the last character if not at the end of content
+                if (position < textContent.length) {{
+                    position++;
+                }}
+            }}
+
+            if (node.nodeType === 3) {{
+                if (!{shiftPressed.ToString().ToLower()}) {{
+                    // If Shift is not pressed, move the cursor without selecting
+                    range.setStart(node, position);
+                    range.setEnd(node, position);
+                }} else {{
+                    // If Shift is pressed, adjust the range for selection
+                    if ('{e.Key}' === 'Home') {{
+                        range.setStart(node, position);
+                    }} else if ('{e.Key}' === 'End') {{
+                        range.setEnd(node, position);
+                    }}
+                }}
+            }} else {{
+                // Handling for non-text nodes
+                var child = node.childNodes[0];
+                var childPosition = 0;
+                for (var i = 0; child && i < position; i++) {{
+                    if (child.nodeType === 3) {{
+                        var len = child.data.length;
+                        if (i + len >= position) {{
+                            if (!{shiftPressed.ToString().ToLower()}) {{
+                                range.setStart(child, position - i);
+                                range.setEnd(child, position - i);
+                            }} else {{
+                                if ('{e.Key}' === 'Home') {{
+                                    range.setStart(child, position - i);
+                                }} else if ('{e.Key}' === 'End') {{
+                                    range.setEnd(child, position - i);
+                                }}
+                            }}
+                            break;
+                        }}
+                        i += len;
+                    }} else {{
+                        i++;
+                    }}
+                    child = child.nextSibling;
+                }}
+            }}
+
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }}
+    }})();";
+
+                    // Execute the JavaScript code
+                    if (!string.IsNullOrEmpty(cursorPositionScript))
+                    {
+                        await webView.CoreWebView2.ExecuteScriptAsync(cursorPositionScript);
                     }
                 }
 
-                // Execute javascript script code
-                if (!string.IsNullOrEmpty(cursorPositionScript))
-                {
-                    await webView.ExecuteScriptAsync(cursorPositionScript);
-                }
+
             }
         }
 
@@ -500,220 +671,276 @@ namespace ChatGPTExtension
 
                 await webView.ExecuteScriptAsync(script);
 
-               
-
-        // Copy code button handler for GPT
-        string addEventListenersScript = $@"
-    var allButtons = Array.from(document.querySelectorAll('button'));
-    var targetButtons = allButtons.filter(function(button) {{
-        return button.textContent.trim() === '{GPT_COPY_CODE_BUTTON_TEXT}' && !button.hasAttribute('data-listener-added');
-    }});
-
-    targetButtons.forEach(function(button) {{
-        button.addEventListener('click', function() {{
-            window.chrome.webview.postMessage('CopyCodeButtonClicked');
-        }});
-        // Mark the button as having the listener added
-        button.setAttribute('data-listener-added', 'true');
-    }});
-";
 
 
-        await webView.ExecuteScriptAsync(addEventListenersScript);
-    }
+                string addEventListenersScript = "";
+                // Copy code button handler for GPT
+                if (_gptConfigured)
+                {
+                    addEventListenersScript = $@"
+                        var allButtons = Array.from(document.querySelectorAll('button'));
+                        var targetButtons = allButtons.filter(function(button) {{
+                            return button.textContent.trim() === '{GPT_COPY_CODE_BUTTON_TEXT}' && !button.hasAttribute('data-listener-added');
+                        }});
+
+                        targetButtons.forEach(function(button) {{
+                            button.addEventListener('click', function() {{
+                                window.chrome.webview.postMessage('CopyCodeButtonClicked');
+                            }});
+                            // Mark the button as having the listener added
+                            button.setAttribute('data-listener-added', 'true');
+                        }});
+                    ";
+                }
+                else
+                {
+                    addEventListenersScript = $@"
+                    var allButtons = Array.from(document.querySelectorAll('button[aria-label=""{GEMINI_COPY_CODE_BUTTON_ARIA_LABEL}""]'));
+                    var targetButtons = allButtons.filter(function(button) {{
+                        // Check if the button already has the event listener attribute to avoid adding multiple listeners
+                        return !button.hasAttribute('data-listener-added');
+                    }});
+
+                    targetButtons.forEach(function(button) {{
+                        button.addEventListener('click', function() {{
+                            // Replace 'CopyCodeButtonClicked' with the appropriate message for your application
+                            window.chrome.webview.postMessage('CopyCodeButtonClicked');
+                        }});
+                        // Mark the button as having the listener added to prevent adding the listener multiple times
+                        button.setAttribute('data-listener-added', 'true');
+                    }});";
+                }
+
+                await webView.ExecuteScriptAsync(addEventListenersScript);
+            }
             catch (Exception ex)
             {
                 Debug.WriteLine("Error in AddHanlderCopyCode(): " + ex.Message);
             }
         }
 
-        private async Task SubmitPromptGPTAsync()
-{
-    // Submit the GPT prompt
-    string script = "document.querySelector('[data-testid=\"send-button\"]').click();";
-    await webView.ExecuteScriptAsync(script);
-
-    // Wait a bit
-    await Task.Delay(1000);
-
-    // Click in the scroll to bottom button
-    string initialScript = "var button = document.querySelector('button.cursor-pointer.absolute'); if (button) { button.click(); }";
-    await webView.ExecuteScriptAsync(initialScript);
-
-    // Wait a bit
-    await Task.Delay(2000);
-
-    // Click in the scroll to bottom button
-    await webView.ExecuteScriptAsync(initialScript);
-}
-
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "<Pending>")]
-private async void WebView_WebMessageReceived(object sender, Microsoft.Web.WebView2.Core.CoreWebView2WebMessageReceivedEventArgs e)
-{
-    try
-    {
-        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-
-        // When GPT Copy code button was clicked, automatically insert the code in VS.NET
-        if (e.TryGetWebMessageAsString() == "CopyCodeButtonClicked" && _enableCopyCode)
+        private async Task SubmitPromptAIAsync()
         {
-            // Using async delay instead of freezing the thread
-            await Task.Delay(1000);
+            if (_gptConfigured)
+            {
+                // Submit the GPT prompt
+                string script = "document.querySelector('[data-testid=\"send-button\"]').click();";
+                await webView.ExecuteScriptAsync(script);
 
-            // Handle the button click event here
-            string textFromClipboard = Clipboard.GetText();
-            InsertTextIntoVS(textFromClipboard);
-            FormatCodeInVS();
+                // Wait a bit
+                await Task.Delay(1000);
+
+                // Click in the scroll to bottom button
+                string initialScript = "var button = document.querySelector('button.cursor-pointer.absolute'); if (button) { button.click(); }";
+                await webView.ExecuteScriptAsync(initialScript);
+
+                // Wait a bit
+                await Task.Delay(2000);
+
+                // Click in the scroll to bottom button
+                await webView.ExecuteScriptAsync(initialScript);
+            }
+            else
+            {
+                // Submit the Gemini prompt
+                string script = "document.querySelector('[aria-label=\"Send message\"]').click();";
+                await webView.ExecuteScriptAsync(script);
+            }
         }
 
-        var webMessage = e.TryGetWebMessageAsString();
-
-        switch (webMessage)
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "<Pending>")]
+        private async void WebView_WebMessageReceived(object sender, Microsoft.Web.WebView2.Core.CoreWebView2WebMessageReceivedEventArgs e)
         {
-            // Handle enter key to send the prompt to GPT
-            case "EnterPressed":
-                await SubmitPromptGPTAsync();
-                break;
+            try
+            {
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+                // When GPT Copy code button was clicked, automatically insert the code in VS.NET
+                if (e.TryGetWebMessageAsString() == "CopyCodeButtonClicked" && _enableCopyCode)
+                {
+                    // Using async delay instead of freezing the thread
+                    await Task.Delay(1000);
+
+                    // Handle the button click event here
+                    string textFromClipboard = Clipboard.GetText();
+                    InsertTextIntoVS(textFromClipboard);
+                    FormatCodeInVS();
+                }
+
+                var webMessage = e.TryGetWebMessageAsString();
+
+                switch (webMessage)
+                {
+                    // Handle enter key to send the prompt to GPT
+                    case "EnterPressed":
+                        await SubmitPromptAIAsync();
+                        break;
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Error in WebView_WebMessageReceived(): " + ex.Message);
+            }
         }
 
-    }
-    catch (Exception ex)
-    {
-        Debug.WriteLine("Error in WebView_WebMessageReceived(): " + ex.Message);
-    }
-}
+        private System.Timers.Timer timer;
 
-private System.Timers.Timer timer;
+        private void StartTimer()
+        {
+            try
+            {
+                ThreadHelper.ThrowIfNotOnUIThread();
 
-private void StartTimer()
-{
-    try
-    {
-        ThreadHelper.ThrowIfNotOnUIThread();
+                StopTimer();
 
-        StopTimer();
+                // Timer to add handler for GPT copy code click
+                timer = new System.Timers.Timer(5000);
+                timer.Elapsed += HandleTimerElapsed;
+                timer.Start();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Error in StartTimer(): " + ex.Message);
+            }
+        }
 
-        // Timer to add handler for GPT copy code click
-        timer = new System.Timers.Timer(5000);
-        timer.Elapsed += HandleTimerElapsed;
-        timer.Start();
-    }
-    catch (Exception ex)
-    {
-        Debug.WriteLine("Error in StartTimer(): " + ex.Message);
-    }
-}
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "<Pending>")]
+        private async void HandleTimerElapsed(object sender, System.Timers.ElapsedEventArgs e)
+        {
+            try
+            {
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                await AddHandlerCopyCodeAsync();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Error in HandleTimerElapsed(): " + ex.Message);
+            }
+        }
 
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "<Pending>")]
-private async void HandleTimerElapsed(object sender, System.Timers.ElapsedEventArgs e)
-{
-    try
-    {
-        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-        await AddHandlerCopyCodeAsync();
-    }
-    catch (Exception ex)
-    {
-        Debug.WriteLine("Error in HandleTimerElapsed(): " + ex.Message);
-    }
-}
+        public void Dispose()
+        {
+            StopTimer();
+        }
 
-public void Dispose()
-{
-    StopTimer();
-}
+        private void StopTimer()
+        {
+            timer?.Stop();
+        }
 
-private void StopTimer()
-{
-    timer?.Stop();
-}
+        #endregion
 
-#endregion
-
-#region Other Actions for GPT to process and Reload GPT
-
+        #region Other Actions for GPT to process and Reload GPT
 #pragma warning disable VSTHRD100 // Avoid async void methods
-private async void OnCompleteCodeButtonClick(object sender, RoutedEventArgs e)
+        private async void OnCompleteCodeButtonClick(object sender, RoutedEventArgs e)
 #pragma warning restore VSTHRD100 // Avoid async void methods
-{
-    try
-    {
-        // Prompt to show full complete code in GPT
-        string promptCompleteCode = "Please show full complete code with complete methods implementation without any placeholders like ... or assuming code segments";
-
-        // Replace the full prompt in GPT to send a new one
-        string script = $@"document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').value = '{promptCompleteCode}';
-        
-                               var inputEvent = new Event('input', {{
-                                   'bubbles': true,
-                                   'cancelable': true
-                               }});
-                               document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').dispatchEvent(inputEvent); ";
-
-        await webView.CoreWebView2.ExecuteScriptAsync(script);
-
-        // Also submit the prompt
-        await SubmitPromptGPTAsync();
-    }
-    catch (Exception ex)
-    {
-        Debug.WriteLine("Error in OnCompleteCodeButtonClick(): " + ex.Message);
-    }
-}
-
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "<Pending>")]
-private async void OnSendCodeMenuItemClick(object sender, RoutedEventArgs e)
-{
-    try
-    {
-        // Process other actions for GPT
-        if (sender is MenuItem menuItem && menuItem.Tag is string command)
         {
-            await SendSelectedCodeToGPTAsync(command);
+            try
+            {
+                // Define the promptCompleteCode prompt
+                string promptCompleteCode = "Please show full complete code with complete methods implementation for the provided code without any placeholders like ... or assuming code segments. Do not create methods you dont know.";
+
+                string script;
+                if (!_gptConfigured)
+                {
+                    // If _gptConfigured is false, set the innerText for a specific element
+                    script = $@"
+                            var element = document.querySelector('[data-placeholder=""{GEMINI_PROMPT_DATA_PLACE_HOLDER}""]');
+                                element.innerText = '{promptCompleteCode}';
+
+                                var inputEvent = new Event('input', {{
+                                    'bubbles': true,
+                                    'cancelable': true
+                                }});
+                             element.dispatchEvent(inputEvent); ";
+                }
+                else
+                {
+                    // If _gptConfigured is true, keep the original logic
+                    script = $@"
+                            document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').value = '{promptCompleteCode}';
+                
+                            var inputEvent = new Event('input', {{
+                                'bubbles': true,
+                                'cancelable': true
+                            }});
+                            document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').dispatchEvent(inputEvent);";
+                }
+
+                // Execute the constructed script in the WebView context
+                await webView.CoreWebView2.ExecuteScriptAsync(script);
+
+                // Also submit the prompt, assuming SubmitPromptGPTAsync() is a method to submit the prompt in GPT
+                await SubmitPromptAIAsync();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error in OnCompleteCodeButtonClick(): {ex.Message}");
+            }
         }
-    }
-    catch (Exception ex)
-    {
-        Debug.WriteLine("Error in OnSendCodeMenuItemClick(): " + ex.Message);
-    }
-}
 
-private void OnReloadChatGptItemClick(object sender, RoutedEventArgs e)
-{
-    try
-    {
-        // Set page as blank
-        webView.Source = new Uri("about:blank");
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "<Pending>")]
+        private async void OnSendCodeMenuItemClick(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Process other actions for the AI
+                if (sender is MenuItem menuItem && menuItem.Tag is string command)
+                {
+                    await SendSelectedCodeToAIAsync(command);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Error in OnSendCodeMenuItemClick(): " + ex.Message);
+            }
+        }
 
-        // Open Chat GPT again
-        webView.Source = new Uri(CHAT_GPT_URL);
-    }
-    catch (Exception ex)
-    {
-        Debug.WriteLine("Error in OnReloadChatGptItemClick(): " + ex.Message);
-    }
-}
+        private void OnReloadAIItemClick(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Set page as blank
+                webView.Source = new Uri("about:blank");
 
-#endregion
+                if (_gptConfigured)
+                {
+                    // Open Chat GPT again
+                    webView.Source = new Uri(CHAT_GPT_URL);
+                }
+                else
+                {
+                    // Open Gemini again
+                    webView.Source = new Uri(GEMINI_URL);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Error in OnReloadChatGptItemClick(): " + ex.Message);
+            }
+        }
 
-#region Find out language of the active document
+        #endregion
 
-private string GetActiveFileLanguage()
-{
-    ThreadHelper.ThrowIfNotOnUIThread();
+        #region Find out language of the active document
 
-    if (_serviceProvider == null)
-        return string.Empty;
+        private string GetActiveFileLanguage()
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
 
-    // Get the active document
-    DTE dte = (DTE)_serviceProvider.GetService(typeof(DTE));
-    if (dte != null && dte.ActiveDocument != null)
-    {
-        // Get the file extension
-        string fileExtension = System.IO.Path.GetExtension(dte.ActiveDocument.FullName).ToLower();
+            if (_serviceProvider == null)
+                return string.Empty;
 
-        // Dictionary mapping file extensions to language descriptions.
-        Dictionary<string, string> extensionToLanguageMap = new Dictionary<string, string>
+            // Get the active document
+            DTE dte = (DTE)_serviceProvider.GetService(typeof(DTE));
+            if (dte != null && dte.ActiveDocument != null)
+            {
+                // Get the file extension
+                string fileExtension = System.IO.Path.GetExtension(dte.ActiveDocument.FullName).ToLower();
+
+                // Dictionary mapping file extensions to language descriptions.
+                Dictionary<string, string> extensionToLanguageMap = new Dictionary<string, string>
                 {
                     {".cs", "C#"},
                     {".vb", "Visual Basic"},
@@ -727,71 +954,181 @@ private string GetActiveFileLanguage()
                     {".py", "Python"},
                 };
 
-        // Check if the file extension is supported and return name
-        if (extensionToLanguageMap.TryGetValue(fileExtension, out string language))
-        {
-            return language;
+                // Check if the file extension is supported and return name
+                if (extensionToLanguageMap.TryGetValue(fileExtension, out string language))
+                {
+                    return language;
+                }
+            }
+
+            return string.Empty;  // If no match is found or if there's no active document.
         }
-    }
-
-    return string.Empty;  // If no match is found or if there's no active document.
-}
-
-#endregion
-
-#region Configurable Prompts
-
-private void ConfigureExtensionMenuItem_Click(object sender, RoutedEventArgs e)
-{
-    // Show configure window
-    _configWindow.ShowDialog();
-
-    // Recreate the window and load the actions
-    _configWindow = new ConfigurationWindow();
-    LoadContextMenuActions();
-}
-
-private void LoadContextMenuActions()
-{
-    var actions = _configWindow.ActionItems;
-
-    CodeActionsContextMenu.Items.Clear();
-
-    // Add all configured actions/prompts in the context menu
-    foreach (var action in actions)
-    {
-        var name = action.Name;
-        var prompt = action.Prompt;
-
-        if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(prompt))
-        {
-            var formattedPrompt = prompt.Replace(" {languageCode}", string.Empty);
-
-            var menuItem = new MenuItem
-            {
-                Header = name,
-                Tag = formattedPrompt
-            };
-
-            menuItem.Click += OnSendCodeMenuItemClick;
-            CodeActionsContextMenu.Items.Add(menuItem);
-        }
-    }
-
-    // Add a separator line
-    CodeActionsContextMenu.Items.Add(new Separator());
-
-    // Add Reload Chat GPT menu item
-    var reloadMenuItem = new MenuItem { Header = "Reload Chat GPT..." };
-    reloadMenuItem.Click += OnReloadChatGptItemClick;
-    CodeActionsContextMenu.Items.Add(reloadMenuItem);
-
-    // Add Configure extension... menu item
-    var configureMenuItem = new MenuItem { Header = "Configure extension..." };
-    configureMenuItem.Click += ConfigureExtensionMenuItem_Click;
-    CodeActionsContextMenu.Items.Add(configureMenuItem);
-}
 
         #endregion
+
+        #region Configurable Prompts
+
+        private void ConfigureExtensionMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            // Show configure window
+            _configWindow.ShowDialog();
+
+            // Recreate the window and load the actions
+            _configWindow = new ConfigurationWindow();
+            LoadContextMenuActions();
+        }
+
+        private void LoadContextMenuActions()
+        {
+            var actions = _configWindow.ActionItems;
+
+            CodeActionsContextMenu.Items.Clear();
+
+            // Add all configured actions/prompts in the context menu
+            foreach (var action in actions)
+            {
+                var name = action.Name;
+                var prompt = action.Prompt;
+
+                if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(prompt))
+                {
+                    var formattedPrompt = prompt.Replace(" {languageCode}", string.Empty);
+
+                    var menuItem = new MenuItem
+                    {
+                        Header = name,
+                        Tag = formattedPrompt
+                    };
+
+                    menuItem.Click += OnSendCodeMenuItemClick;
+                    CodeActionsContextMenu.Items.Add(menuItem);
+                }
+            }
+
+            // Add a separator line
+            CodeActionsContextMenu.Items.Add(new Separator());
+
+            // Add Reload Chat GPT menu item
+            var reloadMenuItem = new MenuItem { Header = "Reload Chat GPT..." };
+            reloadMenuItem.Click += OnReloadAIItemClick;
+            CodeActionsContextMenu.Items.Add(reloadMenuItem);
+
+            // Add Configure extension... menu item
+            var configureMenuItem = new MenuItem { Header = "Configure extension..." };
+            configureMenuItem.Click += ConfigureExtensionMenuItem_Click;
+            CodeActionsContextMenu.Items.Add(configureMenuItem);
+
+            // Add another separator before the new options
+            CodeActionsContextMenu.Items.Add(new Separator());
+
+            var useGeminiMenuItem = new MenuItem { Header = "Use Gemini", IsCheckable = true };
+            var useGptMenuItem = new MenuItem { Header = "Use GPT", IsCheckable = true };
+
+            // Configure "Use GPT" menu item
+            useGptMenuItem.Click += (sender, e) =>
+            {
+                _gptConfigured = true;
+                useGptMenuItem.IsChecked = true;
+                useGeminiMenuItem.IsChecked = false;
+                reloadMenuItem.Header = "Reload Chat GPT...";
+                _parent.Caption = "Chat GPT Extension";
+                UpdateButtonContentAndTooltip();
+                OnReloadAIItemClick(null, null);
+                SaveConfiguration();
+            };
+            CodeActionsContextMenu.Items.Add(useGptMenuItem);
+
+            // Configure "Use Gemini" menu item
+            useGeminiMenuItem.Click += (sender, e) =>
+            {
+                _gptConfigured = false;
+                useGeminiMenuItem.IsChecked = true;
+                useGptMenuItem.IsChecked = false;
+                reloadMenuItem.Header = "Reload Gemini...";
+                _parent.Caption = "Gemini Extension";
+                UpdateButtonContentAndTooltip();
+                OnReloadAIItemClick(null, null);
+                SaveConfiguration();
+            };
+            CodeActionsContextMenu.Items.Add(useGeminiMenuItem);
+
+            // Set the initial state based on _gptConfigured
+            useGptMenuItem.IsChecked = _gptConfigured;
+            useGeminiMenuItem.IsChecked = !_gptConfigured;
+
+            if (_gptConfigured)
+            {
+                useGptMenuItem.IsChecked = true;
+                useGeminiMenuItem.IsChecked = false;
+                reloadMenuItem.Header = "Reload Chat GPT...";
+                _parent.Caption = "Chat GPT Extension";
+                UpdateButtonContentAndTooltip();
+            }
+            else
+            {
+                useGeminiMenuItem.IsChecked = true;
+                useGptMenuItem.IsChecked = false;
+                reloadMenuItem.Header = "Reload Gemini...";
+                _parent.Caption = "Gemini Extension";
+                UpdateButtonContentAndTooltip();
+            }
+        }
+
+        private void UpdateButtonContentAndTooltip()
+        {
+            // Determine the AI technology based on the _gptConfigured flag
+            string aiTechnology = _gptConfigured ? "GPT" : "Gemini";
+
+            // Update the content and tooltip for the buttons
+            btnVSNETToAI.Content = $"VS.NET to {aiTechnology} ➡️";
+            btnVSNETToAI.ToolTip = $"Transfer selected code from VS.NET to {aiTechnology}";
+
+            btnFixCodeInAI.Content = $"Fix Code in {aiTechnology} ➡️";
+            btnFixCodeInAI.ToolTip = $"Transfer selected code from {aiTechnology} to VS.NET";
+
+            btnImproveCodeInAI.Content = $"Improve Code in {aiTechnology} ➡️";
+            btnImproveCodeInAI.ToolTip = $"Refactor selected code from VS.NET in {aiTechnology}";
+
+            btnAIToVSNET.Content = $"⬅️ {aiTechnology} to VS.NET";
+            btnAIToVSNET.ToolTip = $"Transfer selected code from {aiTechnology} to VS.NET";
+        }
+
+        #endregion
+
+        #region Load/Save extension configuration
+
+        private const string _configurationFileName = "configuration.json";
+        private static readonly string _appDataPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ChatGPTExtension", "Actions");
+        private static readonly string _fullConfigPath = System.IO.Path.Combine(_appDataPath, _configurationFileName);
+
+        public void SaveConfiguration()
+        {
+            var configuration = new Configuration { GptConfigured = _gptConfigured };
+
+            // Ensure the directory exists
+            Directory.CreateDirectory(_appDataPath);
+
+            // Serialize and save the configuration to a file
+            var json = JsonConvert.SerializeObject(configuration, Formatting.Indented);
+            File.WriteAllText(_fullConfigPath, json);
+        }
+
+        public bool LoadConfiguration()
+        {
+            // Check if the configuration file exists
+            if (File.Exists(_fullConfigPath))
+            {
+                // Read and deserialize the configuration from the file
+                var json = File.ReadAllText(_fullConfigPath);
+                var configuration = JsonConvert.DeserializeObject<Configuration>(json);
+
+                return configuration?.GptConfigured ?? true; // Return the setting or 'true' as a default
+            }
+
+            return true; // Default to 'true' if the file does not exist
+        }
+
+        #endregion
+
     }
 }

@@ -3,7 +3,7 @@
  * 
  * Autor:  Daniel Liedke
  * 
- * Copyright © Daniel Liedke 2023
+ * Copyright © Daniel Liedke 2024
  * Usage and reproduction in any manner whatsoever without the written permission of Daniel Liedke is strictly forbidden.
  *  
  * Purpose: Creates menu command to display the extension

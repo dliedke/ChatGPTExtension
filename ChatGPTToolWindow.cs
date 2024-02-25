@@ -3,7 +3,7 @@
  * 
  * Autor:  Daniel Liedke
  * 
- * Copyright © Daniel Liedke 2023
+ * Copyright © Daniel Liedke 2024
  * Usage and reproduction in any manner whatsoever without the written permission of Daniel Liedke is strictly forbidden.
  *  
  * Purpose: Tool window exposed by this package and hosts a user control
@@ -38,7 +38,7 @@ namespace ChatGPTExtension
             this.Caption = "Chat GPT Extension";
 
             // Pass this package (which is an IServiceProvider) to the user control.
-            this.Content = new GptToolWindowControl(this);
+            this.Content = new GptToolWindowControl(this, this);
         }
     }
 }

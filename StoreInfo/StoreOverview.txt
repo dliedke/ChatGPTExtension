@@ -45,6 +45,7 @@ It works with both FREE and Plus versions of Chat GPT web. **No OpenAI tokens ar
 
 ## What's New
 
+- 3.0 - Gemini support!
 - 2.8 - Better code for Copy button handler to avoid breaking when GPT HTML changes
 - 2.7 - Fix Copy Code button handler
 - 2.6 - Fix AI prompt to add comments to the code
