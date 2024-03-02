@@ -36,16 +36,28 @@ Also integrates with **Google Gemini** FREE and Advanced.
 
 ## Usage
 
+- Use CTRL+mouse scroll to zoom in or out in the extension for better layout of the web site
+
 - The "VS.NET to GPT/Gemini" button copies the selected code from VS.NET to the GPT/Gemini prompt area, preserving any existing data.
+
 - The "Fix Code in GPT/Gemini" button copies the selected code from VS.NET to the GPT/Gemini prompt area and asks AI to fix it.
+
 - The "Improve Code in GPT/Gemini" button copies the selected code from VS.NET to the GPT/Gemini prompt area and asks AI to improve it.
+
 - The "GPT/Gemini to VS.NET" button copies the selected text from GPT/Gemini and sends it to VS.NET.
+
 - The "Complete Code" button asks GPT/Gemini to show full complete code when it is showing partial code only.
+
 - The "Enable Copy Code" switch, when enabled, automatically sends the code to VS.NET when the "Copy code" button in GPT/Gemini is clicked.
+
 - The "Arrow" button opens a submenu with other code operations that GPT/Gemini can perform.
-- The "Reload Chat GPT/Gemini..." submenu tries to reload GPT/Gemini in the internal browser.
+
+- The "Reload Chat GPT/Gemini..." submenu reloads GPT/Gemini in the internal browser.
+
 - The "Configure extension..." submenu opens the screen to configure the code action operations.
+
 - The "Use GPT" submenu will configure the extension to use Open AI Chat GPT
+
 - The "Use Gemini" submenu will configure the extension to use Google Gemini
 
 
