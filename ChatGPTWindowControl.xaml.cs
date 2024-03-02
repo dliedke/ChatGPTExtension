@@ -40,8 +40,8 @@ namespace ChatGPTExtension
 
         // Selectors might need updates in new Gemini versions
         private const string GEMINI_URL = "https://gemini.google.com";
-        private const string GEMINI_PROMPT_DATA_PLACE_HOLDER = "Enter a prompt here";
-        private const string GEMINI_COPY_CODE_BUTTON_ARIA_LABEL = "Copy code";
+        private const string GEMINI_PROMPT_CLASS = "ql-editor";
+        private const string GEMINI_COPY_CODE_BUTTON_CLASS = "copy-button";
 
         #endregion
 
@@ -56,7 +56,7 @@ namespace ChatGPTExtension
         private bool _gptConfigured = true;  // true for GPT, false for Gemini
         private ChatGPTToolWindow _parentToolWindow;
 
-        
+
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD110:Observe result of async calls", Justification = "<Pending>")]
         public GptToolWindowControl(IServiceProvider serviceProvider, ChatGPTToolWindow parent)
         {
@@ -124,7 +124,7 @@ namespace ChatGPTExtension
                 }
                 else
                 {
-                    await WaitForElementByDataPlaceholderAsync(GEMINI_PROMPT_DATA_PLACE_HOLDER);
+                    await WaitForElementByClassAsync(GEMINI_PROMPT_CLASS);
                 }
 
                 // Timer to inject JS code to detect clicks in "Copy code" button in Chat GPT
@@ -225,13 +225,13 @@ namespace ChatGPTExtension
             await AddHandlerCopyCodeAsync();
         }
 
-        private async Task WaitForElementByDataPlaceholderAsync(string dataPlaceholder)
+        private async Task WaitForElementByClassAsync(string className)
         {
             bool elementFound = false;
             while (!elementFound)
             {
                 // Use querySelector with an attribute selector to find the element by its data-placeholder value.
-                string script = $"document.querySelector('[data-placeholder=\"{dataPlaceholder}\"]') ? 'found' : 'notfound';";
+                string script = $"document.querySelector('.{className}') ? 'found' : 'notfound';";
                 var result = await webView.ExecuteScriptAsync(script);
                 if (result == "\"found\"") // Note the extra quotes, ExecuteScriptAsync returns JSON serialized strings.
                 {
@@ -314,7 +314,7 @@ namespace ChatGPTExtension
 
                :
 
-                   $@"var element = document.querySelector('[data-placeholder=""{GEMINI_PROMPT_DATA_PLACE_HOLDER}""]');
+                   $@"var element = document.querySelector('.{GEMINI_PROMPT_CLASS}');
                    element.innerText = {JsonConvert.SerializeObject(selectedCode)};
                
                    var inputEvent = new Event('input', {{
@@ -330,24 +330,24 @@ namespace ChatGPTExtension
                 // Keep existing prompt and add code from VS.NET
                 string script = _gptConfigured ?
                         $@"var existingText = document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').value;
-                   document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').value = existingText + '\r\n' + {JsonConvert.SerializeObject(selectedCode)};
+                           document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').value = existingText + '\r\n' + {JsonConvert.SerializeObject(selectedCode)};
                
-                   var inputEvent = new Event('input', {{
-                       'bubbles': true,
-                       'cancelable': true
-                   }});
-                   document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').dispatchEvent(inputEvent);"
+                           var inputEvent = new Event('input', {{
+                               'bubbles': true,
+                               'cancelable': true
+                           }});
+                           document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').dispatchEvent(inputEvent);"
 
                :
 
-                    $@"var existingText = document.querySelector('[data-placeholder=""{GEMINI_PROMPT_DATA_PLACE_HOLDER}""]').innerText;
-               document.querySelector('[data-placeholder=""{GEMINI_PROMPT_DATA_PLACE_HOLDER}""]').innerText = existingText + '\r\n' + {JsonConvert.SerializeObject(selectedCode)};
+                    $@"var existingText = document.querySelector('.{GEMINI_PROMPT_CLASS}').innerText;
+                       document.querySelector('.{GEMINI_PROMPT_CLASS}').innerText = existingText + '\r\n' + {JsonConvert.SerializeObject(selectedCode)};
                
-               var inputEvent = new Event('input', {{
-                   'bubbles': true,
-                   'cancelable': true
-               }});
-               document.querySelector('[data-placeholder=""{GEMINI_PROMPT_DATA_PLACE_HOLDER}""]').dispatchEvent(inputEvent);";
+                       var inputEvent = new Event('input', {{
+                           'bubbles': true,
+                           'cancelable': true
+                       }});
+                       document.querySelector('.{GEMINI_PROMPT_CLASS}').dispatchEvent(inputEvent);";
 
                 await webView.CoreWebView2.ExecuteScriptAsync(script);
             }
@@ -496,15 +496,15 @@ namespace ChatGPTExtension
 
                     // JavaScript to find the start and end of the current line
                     string findLineBoundsScript = @"
-            var textbox = document.getElementById('" + GPT_PROMPT_TEXT_AREA_ID + @"');
-            var value = textbox.value;
-            var start = textbox.selectionStart;
-            var end = textbox.selectionEnd;
+                            var textbox = document.getElementById('" + GPT_PROMPT_TEXT_AREA_ID + @"');
+                            var value = textbox.value;
+                            var start = textbox.selectionStart;
+                            var end = textbox.selectionEnd;
             
-            while(start > 0 && value[start-1] != '\n') { start--; }
-            while(end < value.length && value[end] != '\n') { end++; }
+                            while(start > 0 && value[start-1] != '\n') { start--; }
+                            while(end < value.length && value[end] != '\n') { end++; }
             
-            [start, end];";  // This will give the start and end positions of the current line
+                            [start, end];";  // This will give the start and end positions of the current line
 
                     var result = await webView.ExecuteScriptAsync(findLineBoundsScript);
                     var bounds = JsonConvert.DeserializeObject<int[]>(result);
@@ -698,7 +698,7 @@ namespace ChatGPTExtension
                 else
                 {
                     addEventListenersScript = $@"
-                    var allButtons = Array.from(document.querySelectorAll('button[aria-label=""{GEMINI_COPY_CODE_BUTTON_ARIA_LABEL}""]'));
+                    var allButtons = Array.from(document.getElementsByClassName('{GEMINI_COPY_CODE_BUTTON_CLASS}'));
                     var targetButtons = allButtons.filter(function(button) {{
                         // Check if the button already has the event listener attribute to avoid adding multiple listeners
                         return !button.hasAttribute('data-listener-added');
@@ -746,7 +746,14 @@ namespace ChatGPTExtension
             else
             {
                 // Submit the Gemini prompt
-                string script = "document.querySelector('[aria-label=\"Send message\"]').click();";
+                string script = @"var icons = document.querySelectorAll('mat-icon');
+                                    for (var i = 0; i < icons.length; i++) {
+                                      if (icons[i].textContent.trim().toLowerCase() === 'send') {
+                                        icons[i].click();
+                                        break; // Stop the loop once the correct icon is clicked
+                                      }
+                                    }
+                                    ";
                 await webView.ExecuteScriptAsync(script);
             }
         }
@@ -849,7 +856,7 @@ namespace ChatGPTExtension
                 {
                     // If _gptConfigured is false, set the innerText to set the AI prompt in Gemini
                     script = $@"
-                            var element = document.querySelector('[data-placeholder=""{GEMINI_PROMPT_DATA_PLACE_HOLDER}""]');
+                            var element = document.querySelector('.{GEMINI_PROMPT_CLASS}');
                                 element.innerText = '{promptCompleteCode}';
 
                                 var inputEvent = new Event('input', {{

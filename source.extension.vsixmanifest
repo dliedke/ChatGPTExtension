@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
     <Metadata>
-        <Identity Id="ChatGPTExtension.b5d7cf4a-65ad-4f6b-8f5a-5d27c2a5d4e2" Version="3.0" Language="en-US" Publisher="Daniel Carvalho Liedke" />
+        <Identity Id="ChatGPTExtension.b5d7cf4a-65ad-4f6b-8f5a-5d27c2a5d4e2" Version="3.1" Language="en-US" Publisher="Daniel Carvalho Liedke" />
         <DisplayName>ChatGPTExtension</DisplayName>
-        <Description xml:space="preserve">Chat GPT extension will load Chat GPT web and integrate with Visual Studio.</Description>
+        <Description xml:space="preserve">Chat GPT extension will load Chat GPT web and integrate with Visual Studio.
+Google Gemini also supported.</Description>
         <License>LICENSE.txt</License>
         <Icon>app.ico</Icon>
     </Metadata>
