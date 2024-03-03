@@ -15,6 +15,7 @@ Also integrates with **Google Gemini** FREE and Advanced.
 - Other code operations like commenting code, adding exception handling, creating unit tests, and several others
 - Configurable custom actions for GPT/Gemini to apply to the code; these can be added, removed, changed, or reordered as needed
 - Last AI model used will be saved for next sessions
+- GPT wide script support for better experience with two monitors
 
 ## Demo
 
@@ -56,6 +57,8 @@ Also integrates with **Google Gemini** FREE and Advanced.
 
 - The "Configure extension..." submenu opens the screen to configure the code action operations.
 
+- The "GPT wide" button inside "Configure extension..." submenu will allow setting the script for Wide GPT responses.
+
 - The "Use GPT" submenu will configure the extension to use Open AI Chat GPT
 
 - The "Use Gemini" submenu will configure the extension to use Google Gemini
@@ -63,6 +66,7 @@ Also integrates with **Google Gemini** FREE and Advanced.
 
 ## What's New
 
+- 3.2 - Added support for GPT wide script (disabled by default). This will allow wider AI responses and it good when using two monitors and extension is placed another monitor. Click in The "GPT wide" button inside "Configure extension..." to setup. Thanks Scott for the suggestion!
 - 3.1 - Support for Gemini in other languages than English
 - 3.0 - Gemini support!! Click in the arrow down button in the top to change default AI model
 - 2.8 - Better code for Copy button handler to avoid breaking when GPT HTML changes

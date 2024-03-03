@@ -293,5 +293,19 @@ namespace ChatGPTExtension
         }
 
         #endregion
+
+        #region GPT Wide Button
+
+        private void ConfigureGPTWideButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Show GPT wide script configuration screen
+            var gptWideWindow = new GPTWideWindow
+            {
+                Owner = this
+            };
+            gptWideWindow.ShowDialog();
+        }
+
+        #endregion
     }
 }

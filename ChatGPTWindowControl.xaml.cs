@@ -33,6 +33,8 @@ namespace ChatGPTExtension
     {
         #region Web IDs and URLs for GPT and Gemini
 
+        // Note: There are ids also in method SubmitPromptAIAsync()
+
         // IDs and selectors might need updates in new GPT versions
         private const string CHAT_GPT_URL = "https://chat.openai.com/";
         private const string GPT_PROMPT_TEXT_AREA_ID = "prompt-textarea";
@@ -72,6 +74,7 @@ namespace ChatGPTExtension
             _gptConfigured = LoadConfiguration();
             LoadContextMenuActions();
             _parentToolWindow = parent;
+
         }
 
         private async Task InitializeAsync()
@@ -216,6 +219,13 @@ namespace ChatGPTExtension
                 if (result == "\"found\"") // Note the extra quotes, ExecuteScriptAsync returns JSON serialized strings.
                 {
                     elementFound = true;
+
+                    // Run GPT wide script is available
+                    string gptWideScript = GPTWideWindow.GetGPTWideScript();
+                    if (!string.IsNullOrEmpty(gptWideScript))
+                    {
+                        await webView.ExecuteScriptAsync(gptWideScript);
+                    }
                 }
                 else
                 {
@@ -907,27 +917,30 @@ namespace ChatGPTExtension
             }
         }
 
-        private void OnReloadAIItemClick(object sender, RoutedEventArgs e)
+#pragma warning disable VSTHRD100 // Avoid async void methods
+        private async void OnReloadAIItemClick(object sender, RoutedEventArgs e)
+#pragma warning restore VSTHRD100 // Avoid async void methods
         {
             try
             {
-                // Set page as blank
-                webView.Source = new Uri("about:blank");
+                Uri targetUri = _gptConfigured ? new Uri(CHAT_GPT_URL) : new Uri(GEMINI_URL);
+                webView.Source = targetUri;
+
+                // Wait for the web view to navigate to the new source before waiting for elements.
+                // This might require handling the webView's LoadCompleted or similar event.
 
                 if (_gptConfigured)
                 {
-                    // Open Chat GPT again
-                    webView.Source = new Uri(CHAT_GPT_URL);
+                    await WaitForElementByIdAsync(GPT_PROMPT_TEXT_AREA_ID);
                 }
                 else
                 {
-                    // Open Gemini again
-                    webView.Source = new Uri(GEMINI_URL);
+                    await WaitForElementByClassAsync(GEMINI_PROMPT_CLASS);
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("Error in OnReloadChatGptItemClick(): " + ex.Message);
+                Debug.WriteLine($"Error in OnReloadChatGptItemClick(): {ex.Message}");
             }
         }
 
