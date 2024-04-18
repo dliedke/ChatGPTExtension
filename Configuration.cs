@@ -14,6 +14,6 @@ namespace ChatGPTExtension
 {
     public class Configuration
     {
-        public bool GptConfigured { get; set; }
+        public int GptConfigured { get; set; }
     }
 }

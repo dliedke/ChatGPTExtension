@@ -4,16 +4,18 @@ The Chat GPT extension loads the **Chat GPT web and integrates it with Visual St
 
 It works with both FREE and Plus versions of Chat GPT web. **No OpenAI tokens are required.**
 
-Also integrates with **Google Gemini** FREE and Advanced.
+Also integrates with **Google Gemini** FREE and Advanced/Ultra.
+
+Also integrates with **Anthropic Claude AI 3** Opus, Sonnet and Haiku.
 
 ## Features
 
-- Send selected code from VS.NET to GPT/Gemini
-- Send selected code from GPT/Gemini to VS.NET
+- Send selected code from VS.NET to GPT/Gemini/Claude
+- Send selected code from GPT/Gemini/Claude to VS.NET
 - When the GPT/Gemini "Copy code" button is clicked, the code is sent automatically to VS.NET
-- Buttons to automate code fixing, improve code and asking GPT/Gemini to show complete code
+- Buttons to automate code fixing, improve code and asking GPT/Gemini/Claude to show complete code
 - Other code operations like commenting code, adding exception handling, creating unit tests, and several others
-- Configurable custom actions for GPT/Gemini to apply to the code; these can be added, removed, changed, or reordered as needed
+- Configurable custom actions for GPT/Gemini/Claude to apply to the code; these can be added, removed, changed, or reordered as needed
 - Last AI model used will be saved for next sessions
 - GPT wide script support for better experience with two monitors
 
@@ -39,21 +41,21 @@ Also integrates with **Google Gemini** FREE and Advanced.
 
 - Use CTRL+mouse scroll to zoom in or out in the extension for better layout of the web site
 
-- The "VS.NET to GPT/Gemini" button copies the selected code from VS.NET to the GPT/Gemini prompt area, preserving any existing data.
+- The "VS.NET to GPT/Gemini/Claude" button copies the selected code from VS.NET to the GPT/Gemini/Claude prompt area, preserving any existing data.
 
-- The "Fix Code in GPT/Gemini" button copies the selected code from VS.NET to the GPT/Gemini prompt area and asks AI to fix it.
+- The "Fix Code in GPT/Gemini/Claude" button copies the selected code from VS.NET to the GPT/Gemini/Claude prompt area and asks AI to fix it.
 
-- The "Improve Code in GPT/Gemini" button copies the selected code from VS.NET to the GPT/Gemini prompt area and asks AI to improve it.
+- The "Improve Code in GPT/Gemini/Claude" button copies the selected code from VS.NET to the GPT/Gemini/Claude prompt area and asks AI to improve it.
 
-- The "GPT/Gemini to VS.NET" button copies the selected text from GPT/Gemini and sends it to VS.NET.
+- The "GPT/Gemini/Claude to VS.NET" button copies the selected text from GPT/Gemini/Claude and sends it to VS.NET.
 
-- The "Complete Code" button asks GPT/Gemini to show full complete code when it is showing partial code only.
+- The "Complete Code" button asks GPT/Gemini/Claude to show full complete code when it is showing partial code only.
 
-- The "Enable Copy Code" switch, when enabled, automatically sends the code to VS.NET when the "Copy code" button in GPT/Gemini is clicked.
+- The "Enable Copy Code" switch, when enabled, automatically sends the code to VS.NET when the "Copy code" button in GPT/Gemini/Claude is clicked.
 
-- The "Arrow" button opens a submenu with other code operations that GPT/Gemini can perform.
+- The "Arrow" button opens a submenu with other code operations that GPT/Gemini/Claude can perform.
 
-- The "Reload Chat GPT/Gemini..." submenu reloads GPT/Gemini in the internal browser.
+- The "Reload Chat GPT/Gemini/Claude..." submenu reloads GPT/Gemini/Claude in the internal browser.
 
 - The "Configure extension..." submenu opens the screen to configure the code action operations.
 
@@ -63,9 +65,12 @@ Also integrates with **Google Gemini** FREE and Advanced.
 
 - The "Use Gemini" submenu will configure the extension to use Google Gemini
 
+- The "Use Claude" submenu will configure the extension to use Anthropic Claude AI 3
+
 
 ## What's New
 
+- 3.3 - Added support for Anthropic Claude AI 3!! Click in the arrow down button in the top to change default AI model
 - 3.2 - Added support for GPT wide script (disabled by default). This will allow wider AI responses and it good when using two monitors and extension is placed another monitor. Click in The "GPT wide" button inside "Configure extension..." to setup. Thanks Scott for the suggestion!
 - 3.1 - Support for Gemini in other languages than English
 - 3.0 - Gemini support!! Click in the arrow down button in the top to change default AI model
