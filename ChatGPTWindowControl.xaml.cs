@@ -142,6 +142,13 @@ namespace ChatGPTExtension
                 // WebMessageReceived to receive events from browser in this extension
                 webView.WebMessageReceived += WebView_WebMessageReceived;
 
+                // Timer to inject JS code to detect clicks in "Copy code" button in Chat GPT
+                await _joinableTaskFactory.SwitchToMainThreadAsync();
+                await StartTimerAsync();
+
+                // Start monitoring the timer status
+                _ = CheckTimerStatusAsync();
+
                 // If the AI prompt appers, already call AddHandlerCopyCodeAsync()
                 if (_aiModelType == AIModelType.GPT)
                 {
@@ -155,10 +162,6 @@ namespace ChatGPTExtension
                 {
                     await WaitForElementByClassAsync(CLAUDE_PROMPT_CLASS);
                 }
-
-                // Timer to inject JS code to detect clicks in "Copy code" button in Chat GPT
-                await _joinableTaskFactory.SwitchToMainThreadAsync();
-                await StartTimerAsync();
 
                 // Remove event handlers when control is unloaded
                 Unloaded += OnControlUnloaded;
@@ -970,7 +973,7 @@ namespace ChatGPTExtension
                 StopTimer();
 
                 // Timer to add handler for GPT copy code click
-                timer = new System.Timers.Timer(5000);
+                timer = new System.Timers.Timer(3000);
                 timer.Elapsed += HandleTimerElapsed;
                 timer.Start();
             }
@@ -991,6 +994,20 @@ namespace ChatGPTExtension
             catch (Exception ex)
             {
                 Debug.WriteLine("Error in HandleTimerElapsed(): " + ex.Message);
+            }
+        }
+
+        private async Task CheckTimerStatusAsync()
+        {
+            while (true)
+            {
+                await Task.Delay(5000); // Check every 5 seconds
+
+                if (timer == null || !timer.Enabled)
+                {
+                    Debug.WriteLine("Timer is not running. Restarting the timer.");
+                    await StartTimerAsync();
+                }
             }
         }
 
