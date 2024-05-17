@@ -70,23 +70,46 @@ Also integrates with **Anthropic Claude AI 3** Opus, Sonnet and Haiku.
 
 ## What's New
 
+- 3.4 - Big release!
+        Updated Chat GPT url to https://chatgpt.com/ and fixed all integration issues.
+        Updated GPT wide script for newer version.
+        Fix issues with reload AI menu and copy code button handler.
+        Fix issues with Gemini double new lines when receiving code from VS.NET.
+
 - 3.3 - Added support for Anthropic Claude AI 3!! Click in the arrow down button in the top to change default AI model
+
 - 3.2 - Added support for GPT wide script (disabled by default). This will allow wider AI responses and it good when using two monitors and extension is placed another monitor. Click in The "GPT wide" button inside "Configure extension..." to setup. Thanks Scott for the suggestion!
+
 - 3.1 - Support for Gemini in other languages than English
+
 - 3.0 - Gemini support!! Click in the arrow down button in the top to change default AI model
+
 - 2.8 - Better code for Copy button handler to avoid breaking when GPT HTML changes
+
 - 2.7 - Fix Copy Code button handler
+
 - 2.6 - Fix AI prompt to add comments to the code
+
 - 2.5 - Fix auto scroll to bottom for new GPT trained up to April 2023
+
 - 2.4 - Fix Home, End, Shift-Home and Shift-End keys in GPT textbox prompt area.
+
 - 2.3 - Automatically hiding WebView2 with GPT if tool windows from bottom of VS.NET are activated. For example, this will fix issues with GPT over Output window for example when autohide is active.
+
 - 2.2 - Added new button "Complete Code" to ask GPT to show full complete code. Fixed issues with Shift-Home and Shift-End in GPT prompt textbox. Also added tooltips for help.
+
 - 2.1 - Removed "Preview" from the extension.
+
 - 2.0 - Added drag and drop support for reordering custom actions. Fixed issues detecting changes that need saving. A maximum of 20 custom actions can now be added.
+
 - 1.7 - Custom actions can now be added, removed, edited, and reordered in a grid. The current GPT prompt will be cleared for custom actions to run. Note: Due to migration, existing customized actions from version 1.6 will be lost. We apologize for any inconvenience.
+
 - 1.6 - Introduced configurable custom actions for GPT to apply to the code.
+
 - 1.5 - GPT now receives the detected language name, when available, for better response accuracy.
+
 - 1.4 - Fixed issues with the end and home keys inside the GPT prompt textbox. Added more actions to process code in the submenu.
+
 - 1.3 - Initial release.
 
 ## Known Issues

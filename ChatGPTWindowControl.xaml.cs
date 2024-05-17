@@ -26,6 +26,7 @@ using Newtonsoft.Json;
 using Microsoft.Win32;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Threading;
 
 namespace ChatGPTExtension
 {
@@ -36,9 +37,10 @@ namespace ChatGPTExtension
         // Note: There are ids also in method SubmitPromptAIAsync()
 
         // IDs and selectors might need updates in new GPT versions
-        private const string CHAT_GPT_URL = "https://chat.openai.com/";
+        private const string CHAT_GPT_URL = "https://chatgpt.com/";
         private const string GPT_PROMPT_TEXT_AREA_ID = "prompt-textarea";
-        private const string GPT_COPY_CODE_BUTTON_TEXT = "Copy code";
+        private const string GPT_COPY_CODE_BUTTON_SELECTOR = "button.flex.gap-1.items-center";
+        private const string GPT_COPY_CODE_BUTTON_ICON_SELECTOR = "button.flex.gap-1.items-center svg.icon-sm";
 
         // Selectors might need updates in new Gemini versions
         private const string GEMINI_URL = "https://gemini.google.com";
@@ -76,6 +78,9 @@ namespace ChatGPTExtension
         {
             _parentToolWindow = parent;
             _serviceProvider = serviceProvider;
+
+            // Initialize the JoinableTaskFactory
+            _joinableTaskFactory = ThreadHelper.JoinableTaskFactory;
 
             InitializeComponent();
 
@@ -152,7 +157,8 @@ namespace ChatGPTExtension
                 }
 
                 // Timer to inject JS code to detect clicks in "Copy code" button in Chat GPT
-                StartTimer();
+                await _joinableTaskFactory.SwitchToMainThreadAsync();
+                await StartTimerAsync();
 
                 // Remove event handlers when control is unloaded
                 Unloaded += OnControlUnloaded;
@@ -165,6 +171,11 @@ namespace ChatGPTExtension
 
         private void OnControlUnloaded(object sender, RoutedEventArgs e)
         {
+            if (timer != null)
+            {
+                timer.Stop();
+            }
+
             if (_windowEvents != null)
             {
                 // Unsubscribe from events to prevent memory leaks.
@@ -349,14 +360,7 @@ namespace ChatGPTExtension
 
                 if (_aiModelType == AIModelType.Gemini)
                 {
-                    script = $@"var element = document.querySelector('.{GEMINI_PROMPT_CLASS}');
-                                element.innerText = {JsonConvert.SerializeObject(selectedCode)};
-               
-                                var inputEvent = new Event('input', {{
-                                    'bubbles': true,
-                                    'cancelable': true
-                                }});
-                                element.dispatchEvent(inputEvent);";
+                    script = GetScriptGeminiReceiveCode(selectedCode);
                 }
 
                 if (_aiModelType == AIModelType.Claude)
@@ -397,21 +401,15 @@ namespace ChatGPTExtension
 
                 if (_aiModelType == AIModelType.Gemini)
                 {
-                    script = $@"var existingText = document.querySelector('.{GEMINI_PROMPT_CLASS}').innerText;
-                       document.querySelector('.{GEMINI_PROMPT_CLASS}').innerText = existingText + '\r\n' + {JsonConvert.SerializeObject(selectedCode)};
-               
-                       var inputEvent = new Event('input', {{
-                           'bubbles': true,
-                           'cancelable': true
-                       }});
-                       document.querySelector('.{GEMINI_PROMPT_CLASS}').dispatchEvent(inputEvent);";
+                    script = GetScriptGeminiReceiveCode(selectedCode);
                 }
+
 
                 if (_aiModelType == AIModelType.Claude)
                 {
                     var lines = selectedCode.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
                     var codeHtml = string.Join("", lines.Select(line => $"<p>{line}</p>"));
-                    
+
                     script = $@"var elements = document.querySelectorAll('.{CLAUDE_PROMPT_CLASS}');
                     var index = elements.length > 1 ? 1 : 0;
                     var existingHtml = elements[index].innerHTML;
@@ -435,6 +433,41 @@ namespace ChatGPTExtension
             }
         }
 
+        private static string GetScriptGeminiReceiveCode(string selectedCode)
+        {
+            var lines = selectedCode.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+            var codeHtml = string.Join("", lines.Select(line => $"<p>{line}</p>"));
+
+            // Serialize the HTML for JavaScript
+            var codeHtmlJson = JsonConvert.SerializeObject(codeHtml);
+
+            var script = $@"
+                    (function() {{
+                        // Check if the policy already exists and create it if it doesn't
+                        if (!window.myTrustedTypesPolicy) {{
+                            window.myTrustedTypesPolicy = trustedTypes.createPolicy('default', {{
+                                createHTML: (string) => string
+                            }});
+                        }}
+
+                        // Use the existing policy to create TrustedHTML
+                        const trustedHTML = window.myTrustedTypesPolicy.createHTML({codeHtmlJson});
+
+                        // Assign TrustedHTML to innerHTML by appending it
+                        var element = document.querySelector('.{GEMINI_PROMPT_CLASS}');
+                        element.innerHTML = element.innerHTML + trustedHTML;
+
+                        // Dispatch the input event
+                        var inputEvent = new Event('input', {{
+                            'bubbles': true,
+                            'cancelable': true
+                        }});
+                        element.dispatchEvent(inputEvent);
+                    }})();
+                ";
+
+            return script;
+        }
 
         private async Task<string> GetSelectedTextFromAIAsync()
         {
@@ -756,20 +789,38 @@ namespace ChatGPTExtension
                 // Copy code button handler for GPT
                 if (_aiModelType == AIModelType.GPT)
                 {
-                    addEventListenersScript = $@"
-                        var allButtons = Array.from(document.querySelectorAll('button'));
-                        var targetButtons = allButtons.filter(function(button) {{
-                            return button.textContent.trim() === '{GPT_COPY_CODE_BUTTON_TEXT}' && !button.hasAttribute('data-listener-added');
-                        }});
+                    addEventListenersScript = @"
+                        var buttonSelector = '" + GPT_COPY_CODE_BUTTON_SELECTOR + @"';
+                        var iconSelector = '" + GPT_COPY_CODE_BUTTON_ICON_SELECTOR + @"';
 
-                        targetButtons.forEach(function(button) {{
-                            button.addEventListener('click', function() {{
+                        function handleButtonClick(event) {
+                            if (!event.target.closest('button').hasAttribute('data-custom-click-handled')) {
+                                //event.stopPropagation();
                                 window.chrome.webview.postMessage('CopyCodeButtonClicked');
-                            }});
-                            // Mark the button as having the listener added
-                            button.setAttribute('data-listener-added', 'true');
-                        }});
-                    ";
+                                event.target.closest('button').setAttribute('data-custom-click-handled', 'true');
+                            }
+                        }
+
+                        var allButtons = Array.from(document.querySelectorAll(buttonSelector));
+                        var allIcons = Array.from(document.querySelectorAll(iconSelector));
+
+                        allButtons.forEach(function(button) {
+                            if (!button.hasAttribute('data-listener-added')) {
+                                button.addEventListener('click', handleButtonClick, true);
+            
+                                var buttonText = button.querySelector('svg + *');
+                                if (buttonText) {
+                                    buttonText.addEventListener('click', handleButtonClick, true);
+                                }
+            
+                                button.setAttribute('data-listener-added', 'true');
+                            }
+                        });
+
+                        allIcons.forEach(function(icon) {
+                            icon.addEventListener('click', handleButtonClick, true);
+                        });
+                        ";
                 }
 
                 // Copy code button handler for Gemini
@@ -824,14 +875,18 @@ namespace ChatGPTExtension
             if (_aiModelType == AIModelType.GPT)
             {
                 // Submit the GPT prompt
-                string script1 = "document.querySelector('[data-testid=\"send-button\"]').click();";
+                string script1 = "var button = document.querySelector('button.mb-1.mr-1 svg.icon-2xl');button.parentElement.click();";
                 await webView.ExecuteScriptAsync(script1);
 
                 // Wait a bit
                 await Task.Delay(3000);
 
-                // Click in the scroll to bottom button
-                string initialScript = "var button = document.querySelector('button.cursor-pointer.absolute'); if (button) { button.click(); }";
+                // Click on the scroll to bottom button
+                string initialScript = @"var button = document.querySelector('button.absolute[class*=""bottom-5""] svg.icon-md');
+                                            if (button) {
+                                                button.parentElement.click();
+                                            }";
+
                 await webView.ExecuteScriptAsync(initialScript);
 
                 // Wait a bit
@@ -881,6 +936,7 @@ namespace ChatGPTExtension
 
                     // Handle the button click event here
                     string textFromClipboard = Clipboard.GetText();
+
                     InsertTextIntoVS(textFromClipboard);
                     FormatCodeInVS();
                 }
@@ -903,12 +959,13 @@ namespace ChatGPTExtension
         }
 
         private System.Timers.Timer timer;
+        private JoinableTaskFactory _joinableTaskFactory;
 
-        private void StartTimer()
+        private async Task StartTimerAsync()
         {
             try
             {
-                ThreadHelper.ThrowIfNotOnUIThread();
+                await _joinableTaskFactory.SwitchToMainThreadAsync();
 
                 StopTimer();
 
@@ -919,7 +976,7 @@ namespace ChatGPTExtension
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("Error in StartTimer(): " + ex.Message);
+                Debug.WriteLine("Error in StartTimerAsync(): " + ex.Message);
             }
         }
 
@@ -978,15 +1035,7 @@ namespace ChatGPTExtension
                 if (_aiModelType == AIModelType.Gemini)
                 {
                     // Set the innerText to set the AI prompt in Gemini
-                    script = $@"
-                            var element = document.querySelector('.{GEMINI_PROMPT_CLASS}');
-                                element.innerText = '{promptCompleteCode}';
-
-                                var inputEvent = new Event('input', {{
-                                    'bubbles': true,
-                                    'cancelable': true
-                                }});
-                             element.dispatchEvent(inputEvent); ";
+                    script = GetScriptGeminiReceiveCode(promptCompleteCode);
                 }
 
                 if (_aiModelType == AIModelType.GPT)
@@ -1037,6 +1086,8 @@ namespace ChatGPTExtension
         {
             try
             {
+                await _joinableTaskFactory.SwitchToMainThreadAsync();
+
                 if (_aiModelType == AIModelType.GPT)
                 {
                     webView.Source = new Uri(CHAT_GPT_URL);
@@ -1052,10 +1103,12 @@ namespace ChatGPTExtension
                     webView.Source = new Uri(CLAUDE_URL);
                     await WaitForElementByClassAsync(CLAUDE_PROMPT_CLASS);
                 }
+
+                await StartTimerAsync();
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error in OnReloadChatGptItemClick(): {ex.Message}");
+                Debug.WriteLine($"Error in OnReloadAIItemClick(): {ex.Message}");
             }
         }
 

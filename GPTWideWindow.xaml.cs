@@ -107,17 +107,18 @@ namespace ChatGPTExtension
             e.Handled = true;
         }
 
-        // Script from https://www.reddit.com/r/ChatGPT/comments/15nbpaa/chatgpts_webinterface_width_fix/
-		//
+        // Script from https://gist.github.com/alexchexes/d2ff0b9137aa3ac9de8b0448138125ce
+        //
         private string _scriptGPTWide = @"// ==UserScript==
 // @name         ChatGPT CSS fixes
-// @version      2024-02-11
+// @version      2023-11-17
 // @updateURL    https://gist.github.com/alexchexes/d2ff0b9137aa3ac9de8b0448138125ce/raw/chatgpt_ui_fix.user.js
 // @downloadURL  https://gist.github.com/alexchexes/d2ff0b9137aa3ac9de8b0448138125ce/raw/chatgpt_ui_fix.user.js
 // @namespace    http://tampermonkey.net/
 // @description  Adjusts width of side bar and messages of the chatGPT web interface
 // @author       alexchexes
 // @match        https://chat.openai.com/*
+// @match        https://chatgpt.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=openai.com
 // @grant        none
 // ==/UserScript==
@@ -145,25 +146,20 @@ namespace ChatGPTExtension
 				max-width: 90% !important;
 			}
 		}
-
 		/* Code blocks font */
 		code, pre {
 			font-family: Consolas,Söhne Mono,Monaco,Andale Mono,Ubuntu Mono,monospace!important;
 			/* font-family: Iosevka Custom, Söhne Mono,Monaco,Andale Mono,Ubuntu Mono,monospace!important; */
 			/* font-size: 12px !important; */
 		}
-
 		/* Code blocks background color */
 		pre > div.rounded-md {
 			background-color: #1e1e1f;
 		}
-
 		/* Code blocks headings background color */
 		pre > div.rounded-md > div.flex.items-center.relative {
 			background-color: #424245;
 		}
-
-
 		/* Bring back background destinction between bot and user messages */
 		/* DARK THEME */
 		html.dark .flex.flex-col.pb-9.text-sm .w-full.text-token-text-primary[data-testid]:nth-child(odd) {
@@ -173,8 +169,6 @@ namespace ChatGPTExtension
 		html.light .flex.flex-col.pb-9.text-sm .w-full.text-token-text-primary[data-testid]:nth-child(odd) {
 			background-color: #f2f2f2;
 		}
-
-
 		/* Make top bar transparent as it consumes vertical space for no reason */
 		/* DARK THEME */
 		html.dark div.sticky.top-0.flex.items-center.justify-between.z-10.h-14.p-2.font-semibold {
@@ -186,12 +180,10 @@ namespace ChatGPTExtension
 			background-color: rgba(52,53,65,0);
 			background-image: linear-gradient(90deg, #fff 0%, transparent 20%);
 		}
-
 		/* Make GPT version number more visible */
 		html.dark .group.flex.cursor-pointer.items-center.gap-1.rounded-xl.py-2.px-3.text-lg.font-medium.hover\\:bg-gray-50.radix-state-open\\:bg-gray-50.dark\\:hover\\:bg-black\\/10.dark\\:radix-state-open\\:bg-black\\/20 span.text-token-text-secondary {
 			color: ${accentColor};
 		}
-
 		/* BREAK LINES IN CODE BLOCKS */
 		code.\\!whitespace-pre {
 			white-space: pre-wrap !important;
@@ -208,42 +200,33 @@ namespace ChatGPTExtension
 		${sidebar_container_selector} .w-\\[260px\\] {
 			width: ${sidebar_new_width} !important;
 		}
-
 		/* Adjust position of the new show/hide-sidebar control button to match the new width */
 		main div.fixed.left-0.top-1\\/2.z-40 {
 			transform: translateX(0px) translateY(-50%) rotate(180deg) translateZ(0px) !important;
 		}
-
-
 		/*------------------*/
 		/* Sidebar elements */
 		/*------------------*/
-
 		/* History periods headings color */
 		html.dark h3.h-9.pb-2.pt-3.px-2.text-xs.font-medium.text-ellipsis.overflow-hidden.break-all.text-token-text-tertiary {
 			color: ${accentColor};
 		}
-
 		/* Buttons on active chat (to make it visible when title is too long) */
 		html.dark div.group.relative.rounded-lg.active\\:opacity-90.bg-token-sidebar-surface-secondary button.flex.items-center.justify-center.text-token-text-primary.transition.hover\\:text-token-text-secondary.radix-state-open\\:text-token-text-secondary svg > path {
 			fill: ${accentColor};
 		}
-
 		ol > li > div > a > div.relative.grow.overflow-hidden.whitespace-nowrap {
 			overflow: visible;
 			white-space: unset;
 		}
-
 		ol > li > div > a > div.relative.grow.overflow-hidden.whitespace-nowrap > div.absolute.to-transparent {
 			background-image: none;
 		}
-
 		a.hover\\:pr-4:hover,
 		a.flex.py-3.px-3.items-center.gap-3.relative.rounded-md.hover\\:bg-gray-100.dark\\:hover\\:bg-\\[\\#2A2B32\\].cursor-pointer.break-all.bg-gray-50.hover\\:pr-4.dark\\:bg-gray-900.group
 		{
 			padding-right: unset !important;
 		}
-
 		div.absolute.inset-y-0.right-0.w-8.z-10.bg-gradient-to-l.dark\\:from-gray-900.from-gray-50.group-hover\\:from-gray-100.dark\\:group-hover\\:from-\\[\\#2A2B32\\] {
 			background: none;
 		}

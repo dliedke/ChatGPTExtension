@@ -48,7 +48,7 @@
         <Label Grid.Row="0" Foreground="White" Padding="10" HorizontalAlignment="Center">
             <TextBlock TextWrapping="Wrap">
         This is the script to wide GPT responses for wide screen monitors (code is not validated). Delete script to disable it.<LineBreak/><LineBreak/>
-        This script is from <Hyperlink Foreground="LightYellow" NavigateUri="https://www.reddit.com/r/ChatGPT/comments/15nbpaa/chatgpts_webinterface_width_fix/" RequestNavigate="Hyperlink_RequestNavigate">https://www.reddit.com/r/ChatGPT/comments/15nbpaa/chatgpts_webinterface_width_fix/</Hyperlink>
+        This script is from <Hyperlink Foreground="LightYellow" NavigateUri="https://gist.github.com/alexchexes/d2ff0b9137aa3ac9de8b0448138125ce" RequestNavigate="Hyperlink_RequestNavigate">https://gist.github.com/alexchexes/d2ff0b9137aa3ac9de8b0448138125ce</Hyperlink>
             </TextBlock>
         </Label>
 
