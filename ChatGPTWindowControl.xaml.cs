@@ -50,7 +50,7 @@ namespace ChatGPTExtension
         // Selectors might need updates in new Claude versions
         private const string CLAUDE_URL = "https://claude.ai/chats";
         private const string CLAUDE_PROMPT_CLASS = "ProseMirror";
-        private const string CLAUDE_COPY_CODE_BUTTON_TEXT = "Copy code";
+        private const string CLAUDE_COPY_CODE_BUTTON_TEXT = "Copy";
 
         #endregion
 

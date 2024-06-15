@@ -70,6 +70,8 @@ Also integrates with **Anthropic Claude AI 3** Opus, Sonnet and Haiku.
 
 ## What's New
 
+- 3.6 - Fix issues with copy code functionality for Claude AI
+
 - 3.5 - Fix issues with copy code functionality
 
 - 3.4 - Big release!
