@@ -878,7 +878,7 @@ namespace ChatGPTExtension
             if (_aiModelType == AIModelType.GPT)
             {
                 // Submit the GPT prompt
-                string script1 = "var button = document.querySelector('button.mb-1.mr-1 svg.icon-2xl');button.parentElement.click();";
+                string script1 = "document.querySelector('button[data-testid=\"fruitjuice-send-button\"]').click();";
                 await webView.ExecuteScriptAsync(script1);
 
                 // Wait a bit
@@ -1323,6 +1323,9 @@ namespace ChatGPTExtension
 
             btnAIToVSNET.Content = $"⬅️ {aiTechnology} to VS.NET";
             btnAIToVSNET.ToolTip = $"Transfer selected code from {aiTechnology} to VS.NET";
+
+            btnCompleteCodeInAI.Content = $"Complete Code in {aiTechnology} ➡️";
+            btnCompleteCodeInAI.ToolTip = $"Transfer selected code from {aiTechnology} to VS.NET";
         }
 
         #endregion
@@ -1368,5 +1371,77 @@ namespace ChatGPTExtension
 
         #endregion
 
+        #region Attach Current File Button
+
+#pragma warning disable VSTHRD100 // Avoid async void methods
+        private async void OnAttachFileButtonClick(object sender, RoutedEventArgs e)
+#pragma warning restore VSTHRD100 // Avoid async void methods
+        {
+            try
+            {
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+                // If current model is Gemini say it is not supported and return
+                if (_aiModelType == AIModelType.Gemini)
+                {
+                    // Display a message that the operation is not supported in Gemini
+                    MessageBox.Show("Attaching code files is currently not supported in Gemini.", "Unsupported Operation", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                // Get the full path of the currently selected file in VS.NET
+                DTE2 dte = (DTE2)Package.GetGlobalService(typeof(DTE));
+                if (dte.ActiveDocument != null)
+                {
+                    string filePath = dte.ActiveDocument.FullName;
+
+                    // Copy file to a file with same name but with .txt extension in temp directory
+                    string tempDirectory = Path.GetTempPath();
+                    string tempFileName = Path.GetFileNameWithoutExtension(filePath) + ".txt";
+                    string tempFilePath = Path.Combine(tempDirectory, tempFileName);
+                    File.Copy(filePath, tempFilePath, true);
+                    
+
+                    // Copy the file path to the clipboard
+                    Clipboard.SetText(tempFilePath);
+
+                    if (_aiModelType == AIModelType.Claude)
+                    {
+                        // Simulate click on the file input element using JavaScript
+                        string clickFileInputScript = @"document.querySelector('input[data-testid=""file-upload""]').click();";
+                        await webView.CoreWebView2.ExecuteScriptAsync(clickFileInputScript);
+                    }
+
+                    // If the AI model type is GPT
+                    if (_aiModelType == AIModelType.GPT)
+                    {
+                        // Simulate clicking the attach file button for GPT
+                        string clickButtonScript = @"document.querySelector('button.juice\\:w-8').click();";
+                        await webView.CoreWebView2.ExecuteScriptAsync(clickButtonScript);
+
+                        // Simulate clicking the menu item for 'Load from computer'
+                        string clickMenuItemScript = @"setTimeout(() => {
+                                                                document.querySelectorAll('div[role=""menuitem""]')[2].click()
+                                                            }, 500); // Delay to allow menu to appear after button click
+                                                        ";
+                        await webView.CoreWebView2.ExecuteScriptAsync(clickMenuItemScript);
+                    }
+
+                    // Wait for the file dialog to open
+                    await Task.Delay(600); // Adjust the delay as necessary
+
+                    // Simulate pasting the file path and pressing enter
+                    System.Windows.Forms.SendKeys.SendWait("^v");  // Paste the file path
+
+                    await Task.Delay(1000); // Adjust the delay as necessary
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error in OnAttachFileButtonClick(): {ex.Message}");
+            }
+        }
+
+        #endregion
     }
 }

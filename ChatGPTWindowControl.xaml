@@ -118,10 +118,13 @@
         <Button Grid.Row="0" Grid.Column="2" Name="btnImproveCodeInAI" Content="Improve Code in GPT ➡️" Click="OnSendCodeButtonClick" Tag="Improve {languageCode} code below:" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}"  ToolTip="Refactor selected code from VS.NET in GPT" />
 
         <!-- The button to trigger the code transfer from GPT to VS.NET -->
-        <Button Grid.Row="1" Grid.ColumnSpan="2" Name="btnAIToVSNET"  Content="⬅️ GPT to VS.NET" Click="OnReceiveCodeButtonClick" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}"  ToolTip="Transfer selected code from GPT to VS.NET"/>
+        <Button Grid.Row="1"  Name="btnAIToVSNET"  Content="⬅️ GPT to VS.NET" Click="OnReceiveCodeButtonClick" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}"  ToolTip="Transfer selected code from GPT to VS.NET"/>
 
+        <!-- The button to trigger the attach the current file in the GPT -->
+        <Button Grid.Row="1" Name="btnAttachFile" Grid.Column="1"  Content="Attach Current File📎" Click="OnAttachFileButtonClick" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}"  ToolTip="Attach currently selected file to AI (hit Enter after file is set in dialog)"/>
+        
         <!-- The button to trigger the complete code action in GPT -->
-        <Button Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2" Content="Complete Code" Click="OnCompleteCodeButtonClick" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}"  ToolTip="Ask GPT to provide full complete code"/>
+        <Button Grid.Row="1" Name="btnCompleteCodeInAI" Grid.Column="2" Grid.ColumnSpan="2" Content="Complete Code" Click="OnCompleteCodeButtonClick" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}"  ToolTip="Ask GPT to provide full complete code"/>
         
         <!-- The checkbox to "Enable Copy Code" -->
         <CheckBox Grid.Row="2" Grid.ColumnSpan="4" Style="{StaticResource CustomCheckBoxStyle}" HorizontalAlignment="Right" Name="EnableCopyCodeCheckBox" Click="EnableCopyCodeCheckBox_Click" IsChecked="True"  ToolTip="Enable sending code from GPT to VS.NET when Copy code button is clicked in GPT" />

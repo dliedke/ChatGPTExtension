@@ -18,6 +18,7 @@ Also integrates with **Anthropic Claude AI 3** Opus, Sonnet and Haiku.
 - Configurable custom actions for GPT/Gemini/Claude to apply to the code; these can be added, removed, changed, or reordered as needed
 - Last AI model used will be saved for next sessions
 - GPT wide script support for better experience with two monitors
+- Attach current code file to GPT/Claude
 
 ## Demo
 
@@ -49,6 +50,9 @@ Also integrates with **Anthropic Claude AI 3** Opus, Sonnet and Haiku.
 
 - The "GPT/Gemini/Claude to VS.NET" button copies the selected text from GPT/Gemini/Claude and sends it to VS.NET.
 
+- The "Attach Current File" button will attach current code file open in VS.NET to Claude or GPT.
+  Make sure to hit enter after file is added in dialog because of security constraints
+
 - The "Complete Code" button asks GPT/Gemini/Claude to show full complete code when it is showing partial code only.
 
 - The "Enable Copy Code" switch, when enabled, automatically sends the code to VS.NET when the "Copy code" button in GPT/Gemini/Claude is clicked.
@@ -68,7 +72,13 @@ Also integrates with **Anthropic Claude AI 3** Opus, Sonnet and Haiku.
 - The "Use Claude" submenu will configure the extension to use Anthropic Claude AI 3
 
 
+
 ## What's New
+
+- 3.7 - Added "Attach Current File" new option.
+        Make sure to hit enter after file is added in dialog because of security constraints.
+        File is copied as txt to temp directory so any extension can be added (ex: cshtml that is not supported in AIs).
+        Fixed Enter key not sending prompt for GPT
 
 - 3.6 - Fix issues with copy code functionality for Claude AI
 
