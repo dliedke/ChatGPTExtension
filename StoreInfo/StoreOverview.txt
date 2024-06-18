@@ -75,6 +75,8 @@ Also integrates with **Anthropic Claude AI 3** Opus, Sonnet and Haiku.
 
 ## What's New
 
+- 3.8 - Fix attach file in GPT
+
 - 3.7 - Added "Attach Current File" new option.
         Make sure to hit enter after file is added in dialog because of security constraints.
         File is copied as txt to temp directory so any extension can be added (ex: cshtml that is not supported in AIs).

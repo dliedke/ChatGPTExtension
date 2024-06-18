@@ -1400,7 +1400,6 @@ namespace ChatGPTExtension
                     string tempFileName = Path.GetFileNameWithoutExtension(filePath) + ".txt";
                     string tempFilePath = Path.Combine(tempDirectory, tempFileName);
                     File.Copy(filePath, tempFilePath, true);
-                    
 
                     // Copy the file path to the clipboard
                     Clipboard.SetText(tempFilePath);
@@ -1419,16 +1418,20 @@ namespace ChatGPTExtension
                         string clickButtonScript = @"document.querySelector('button.juice\\:w-8').click();";
                         await webView.CoreWebView2.ExecuteScriptAsync(clickButtonScript);
 
-                        // Simulate clicking the menu item for 'Load from computer'
+                        // Simulate clicking the last menu item
                         string clickMenuItemScript = @"setTimeout(() => {
-                                                                document.querySelectorAll('div[role=""menuitem""]')[2].click()
-                                                            }, 500); // Delay to allow menu to appear after button click
-                                                        ";
+                                                                const menuItems = document.querySelectorAll('div[role=""menuitem""]');
+                                                                if (menuItems.length > 0) {
+                                                                    menuItems[menuItems.length - 1].click();
+                                                                }
+                                                            }, 700); // Delay to allow menu to appear after button click
+                                                       ";
                         await webView.CoreWebView2.ExecuteScriptAsync(clickMenuItemScript);
                     }
 
+
                     // Wait for the file dialog to open
-                    await Task.Delay(600); // Adjust the delay as necessary
+                    await Task.Delay(900); // Adjust the delay as necessary
 
                     // Simulate pasting the file path and pressing enter
                     System.Windows.Forms.SendKeys.SendWait("^v");  // Paste the file path
