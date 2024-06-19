@@ -19,6 +19,7 @@ using System.Windows.Input;
 using System.Threading.Tasks;
 using System.Windows.Controls;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 
 using EnvDTE;
 using EnvDTE80;
@@ -331,6 +332,11 @@ namespace ChatGPTExtension
             // Place code in GPT prompt text, not overriding existing text
             // Also sends the event to enable the send message button in GPT
             string selectedCode = GetSelectedCodeFromVS();
+
+            if (await IsFileAttachedAsync())
+            {
+                selectedCode = ".";
+            }
 
             // No code to process
             if (string.IsNullOrEmpty(selectedCode))
@@ -924,6 +930,45 @@ namespace ChatGPTExtension
             }
         }
 
+        private async Task<bool> IsFileAttachedAsync()
+        {
+            if (_aiModelType == AIModelType.GPT)
+            {
+                // Check if a file with the specific name pattern is attached in GPT
+                string script = @"var divs = document.querySelectorAll('div.truncate.font-semibold');
+                            for (var i = 0; i < divs.length; i++) {
+                                if (divs[i].textContent.startsWith('GPTExtension_')) {
+                                    return true;
+                                }
+                            }
+                            return false;";
+                string result = await webView.ExecuteScriptAsync(script);
+                return bool.Parse(result);
+            }
+
+            if (_aiModelType == AIModelType.Claude)
+            {
+                // Check if a file with the specific name pattern is attached in Claude
+                string script = @"var divs = document.querySelectorAll('div[data-testid]');
+                            for (var i = 0; i < divs.length; i++) {
+                                if (divs[i].getAttribute('data-testid').startsWith('GPTExtension_')) {
+                                    return true;
+                                }
+                            }
+                            return false;";
+                string result = await webView.ExecuteScriptAsync(script);
+                return bool.Parse(result);
+            }
+
+            if (_aiModelType == AIModelType.Gemini)
+            {
+                // Gemini does not support file attachments from the extension
+                return false;
+            }
+
+            return false; // Return false for unknown AI model types
+        }
+
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "<Pending>")]
         private async void WebView_WebMessageReceived(object sender, Microsoft.Web.WebView2.Core.CoreWebView2WebMessageReceivedEventArgs e)
         {
@@ -1389,54 +1434,70 @@ namespace ChatGPTExtension
                     return;
                 }
 
-                // Get the full path of the currently selected file in VS.NET
+                // Get the active document in VS.NET
                 DTE2 dte = (DTE2)Package.GetGlobalService(typeof(DTE));
-                if (dte.ActiveDocument != null)
+                if (dte?.ActiveDocument != null)
                 {
-                    string filePath = dte.ActiveDocument.FullName;
-
-                    // Copy file to a file with same name but with .txt extension in temp directory
-                    string tempDirectory = Path.GetTempPath();
-                    string tempFileName = Path.GetFileNameWithoutExtension(filePath) + ".txt";
-                    string tempFilePath = Path.Combine(tempDirectory, tempFileName);
-                    File.Copy(filePath, tempFilePath, true);
-
-                    // Copy the file path to the clipboard
-                    Clipboard.SetText(tempFilePath);
-
-                    if (_aiModelType == AIModelType.Claude)
+                    try
                     {
-                        // Simulate click on the file input element using JavaScript
-                        string clickFileInputScript = @"document.querySelector('input[data-testid=""file-upload""]').click();";
-                        await webView.CoreWebView2.ExecuteScriptAsync(clickFileInputScript);
-                    }
+                        var textDocument = dte.ActiveDocument.Object("TextDocument") as TextDocument;
+                        if (textDocument != null)
+                        {
+                            var editPoint = textDocument.StartPoint.CreateEditPoint();
+                            if (editPoint != null)
+                            {
+                                var fileContent = editPoint.GetText(textDocument.EndPoint);
 
-                    // If the AI model type is GPT
-                    if (_aiModelType == AIModelType.GPT)
+                                // Generate a temporary file name
+                                string tempDirectory = Path.GetTempPath();
+                                string tempFileName = "GPTExtension_" + Guid.NewGuid().ToString() + ".txt";
+                                string tempFilePath = Path.Combine(tempDirectory, tempFileName);
+
+                                // Write the file content to the temporary file
+                                File.WriteAllText(tempFilePath, fileContent);
+
+                                // Copy the file path to the clipboard
+                                Clipboard.SetText(tempFilePath);
+
+                                if (_aiModelType == AIModelType.Claude)
+                                {
+                                    // Simulate click on the file input element using JavaScript
+                                    string clickFileInputScript = @"document.querySelector('input[data-testid=""file-upload""]')?.click();";
+                                    await webView.CoreWebView2.ExecuteScriptAsync(clickFileInputScript);
+                                }
+
+                                // If the AI model type is GPT
+                                if (_aiModelType == AIModelType.GPT)
+                                {
+                                    // Simulate clicking the attach file button for GPT
+                                    string clickButtonScript = @"document.querySelector('button.juice\\:w-8')?.click();";
+                                    await webView.CoreWebView2.ExecuteScriptAsync(clickButtonScript);
+
+                                    // Simulate clicking the last menu item
+                                    string clickMenuItemScript = @"setTimeout(() => {
+                                                        const menuItems = document.querySelectorAll('div[role=""menuitem""]');
+                                                        if (menuItems?.length > 0) {
+                                                            menuItems[menuItems.length - 1]?.click();
+                                                        }
+                                                    }, 800); // Delay to allow menu to appear after button click
+                                               ";
+                                    await webView.CoreWebView2.ExecuteScriptAsync(clickMenuItemScript);
+                                }
+
+                                // Wait for the file dialog to open
+                                await Task.Delay(1500); // Adjust the delay as necessary
+
+                                // Simulate pasting the file path and pressing enter
+                                System.Windows.Forms.SendKeys.SendWait("^v");  // Paste the file path
+
+                                // await Task.Delay(1000); // Adjust the delay as necessary
+                            }
+                        }
+                    }
+                    catch (COMException ex)
                     {
-                        // Simulate clicking the attach file button for GPT
-                        string clickButtonScript = @"document.querySelector('button.juice\\:w-8').click();";
-                        await webView.CoreWebView2.ExecuteScriptAsync(clickButtonScript);
-
-                        // Simulate clicking the last menu item
-                        string clickMenuItemScript = @"setTimeout(() => {
-                                                                const menuItems = document.querySelectorAll('div[role=""menuitem""]');
-                                                                if (menuItems.length > 0) {
-                                                                    menuItems[menuItems.length - 1].click();
-                                                                }
-                                                            }, 700); // Delay to allow menu to appear after button click
-                                                       ";
-                        await webView.CoreWebView2.ExecuteScriptAsync(clickMenuItemScript);
+                        Debug.WriteLine($"Error accessing active document: {ex.Message}");
                     }
-
-
-                    // Wait for the file dialog to open
-                    await Task.Delay(900); // Adjust the delay as necessary
-
-                    // Simulate pasting the file path and pressing enter
-                    System.Windows.Forms.SendKeys.SendWait("^v");  // Paste the file path
-
-                    await Task.Delay(1000); // Adjust the delay as necessary
                 }
             }
             catch (Exception ex)

@@ -75,6 +75,9 @@ Also integrates with **Anthropic Claude AI 3** Opus, Sonnet and Haiku.
 
 ## What's New
 
+- 4.0 - Removing old temporary files in attachment and also fix for attaching file not yet saved.
+        Extension actions now working with attached files using the button.
+
 - 3.8 - Fix attach file in GPT
 
 - 3.7 - Added "Attach Current File" new option.

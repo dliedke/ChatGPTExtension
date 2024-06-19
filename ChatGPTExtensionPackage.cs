@@ -18,6 +18,8 @@ using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 
 using Task = System.Threading.Tasks.Task;
+using System.Diagnostics;
+using System.IO;
 
 namespace ChatGPTExtension
 {
@@ -65,6 +67,35 @@ namespace ChatGPTExtension
             // Do any initialization that requires the UI thread after switching to the UI thread.
             await this.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
             await ChatGPTWindowCommand.InitializeAsync(this);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                // Clean up temporary files when the extension is being disposed
+                CleanupTemporaryFiles();
+            }
+
+            base.Dispose(disposing);
+        }
+
+        private void CleanupTemporaryFiles()
+        {
+            try
+            {
+                string tempDirectory = Path.GetTempPath();
+                string[] tempFiles = Directory.GetFiles(tempDirectory, "GPTExtension_*.txt");
+
+                foreach (string tempFile in tempFiles)
+                {
+                    File.Delete(tempFile);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error in CleanupTemporaryFiles(): {ex.Message}");
+            }
         }
 
         #endregion
