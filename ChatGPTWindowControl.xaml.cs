@@ -333,9 +333,15 @@ namespace ChatGPTExtension
             // Also sends the event to enable the send message button in GPT
             string selectedCode = GetSelectedCodeFromVS();
 
-            if (await IsFileAttachedAsync())
+            // Check if there is a file attached from this extension
+            bool attachedFile = false;
+            attachedFile = await IsFileAttachedAsync();
+
+            // If there is no selected code from VS.NET and we have attached file
+            // Then set the selected code to "(attached)"
+            if (string.IsNullOrEmpty(selectedCode) && attachedFile)
             {
-                selectedCode = ".";
+                selectedCode = "(attached)";
             }
 
             // No code to process
@@ -387,7 +393,6 @@ namespace ChatGPTExtension
 
                                 element.dispatchEvent(inputEvent);";
                 }
-
 
                 await webView.CoreWebView2.ExecuteScriptAsync(script);
             }
@@ -934,40 +939,62 @@ namespace ChatGPTExtension
         {
             if (_aiModelType == AIModelType.GPT)
             {
-                // Check if a file with the specific name pattern is attached in GPT
-                string script = @"var divs = document.querySelectorAll('div.truncate.font-semibold');
-                            for (var i = 0; i < divs.length; i++) {
-                                if (divs[i].textContent.startsWith('GPTExtension_')) {
-                                    return true;
-                                }
-                            }
-                            return false;";
-                string result = await webView.ExecuteScriptAsync(script);
-                return bool.Parse(result);
+                // Check if we have an attachment from this extension
+                string script = @"
+            var result = 'notfound';
+            var divs = document.querySelectorAll('div.truncate.font-semibold');
+            for (var i = 0; i < divs.length; i++) {
+                if (divs[i].textContent.startsWith('GPTExtension_')) {
+                    result = 'found';
+                    break;
+                }
+            }
+            result;";
+
+                try
+                {
+                    string result = await webView.CoreWebView2.ExecuteScriptAsync(script);
+                    return result == "\"found\"";
+                }
+                catch (Exception)
+                {
+                    return false;
+                }
             }
 
             if (_aiModelType == AIModelType.Claude)
             {
-                // Check if a file with the specific name pattern is attached in Claude
-                string script = @"var divs = document.querySelectorAll('div[data-testid]');
-                            for (var i = 0; i < divs.length; i++) {
-                                if (divs[i].getAttribute('data-testid').startsWith('GPTExtension_')) {
-                                    return true;
-                                }
-                            }
-                            return false;";
-                string result = await webView.ExecuteScriptAsync(script);
-                return bool.Parse(result);
+                // Check if we have an attachment from this extension
+                string script = @"
+            var result = 'notfound';
+            var divs = document.querySelectorAll('div[data-testid]');
+            for (var i = 0; i < divs.length; i++) {
+                if (divs[i].getAttribute('data-testid').startsWith('GPTExtension_')) {
+                    result = 'found';
+                    break;
+                }
+            }
+            result;";
+
+                try
+                {
+                    string result = await webView.CoreWebView2.ExecuteScriptAsync(script);
+                    return result == "\"found\"";
+                }
+                catch (Exception)
+                {
+                    return false;
+                }
             }
 
             if (_aiModelType == AIModelType.Gemini)
             {
-                // Gemini does not support file attachments from the extension
                 return false;
             }
 
-            return false; // Return false for unknown AI model types
+            return false;
         }
+
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "<Pending>")]
         private async void WebView_WebMessageReceived(object sender, Microsoft.Web.WebView2.Core.CoreWebView2WebMessageReceivedEventArgs e)
@@ -1490,7 +1517,6 @@ namespace ChatGPTExtension
                                 // Simulate pasting the file path and pressing enter
                                 System.Windows.Forms.SendKeys.SendWait("^v");  // Paste the file path
 
-                                // await Task.Delay(1000); // Adjust the delay as necessary
                             }
                         }
                     }
