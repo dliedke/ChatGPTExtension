@@ -75,6 +75,8 @@ Also integrates with **Anthropic Claude AI 3** Opus, Sonnet and Haiku.
 
 ## What's New
 
+- 4.1 - Fixed issues attaching file in GPT when %temp% is windows default value in appdata
+
 - 4.0 - Removing old temporary files in attachment and also fix for attaching file not yet saved.
         All extension actions now working with attached files using the button.
 

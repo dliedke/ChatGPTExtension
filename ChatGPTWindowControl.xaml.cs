@@ -1475,16 +1475,16 @@ namespace ChatGPTExtension
                             {
                                 var fileContent = editPoint.GetText(textDocument.EndPoint);
 
-                                // Generate a temporary file name
-                                string tempDirectory = Path.GetTempPath();
-                                string tempFileName = "GPTExtension_" + Guid.NewGuid().ToString() + ".txt";
-                                string tempFilePath = Path.Combine(tempDirectory, tempFileName);
+                                // Generate a file name in the user's directory
+                                string userDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                                string fileName = "GPTExtension_" + Guid.NewGuid().ToString() + ".txt";
+                                string filePath = Path.Combine(userDirectory, fileName);
 
                                 // Write the file content to the temporary file
-                                File.WriteAllText(tempFilePath, fileContent);
+                                File.WriteAllText(filePath, fileContent);
 
                                 // Copy the file path to the clipboard
-                                Clipboard.SetText(tempFilePath);
+                                Clipboard.SetText(filePath);
 
                                 if (_aiModelType == AIModelType.Claude)
                                 {

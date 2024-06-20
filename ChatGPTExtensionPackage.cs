@@ -74,27 +74,27 @@ namespace ChatGPTExtension
             if (disposing)
             {
                 // Clean up temporary files when the extension is being disposed
-                CleanupTemporaryFiles();
+                CleanupUserFiles();
             }
 
             base.Dispose(disposing);
         }
 
-        private void CleanupTemporaryFiles()
+        private void CleanupUserFiles()
         {
             try
             {
-                string tempDirectory = Path.GetTempPath();
-                string[] tempFiles = Directory.GetFiles(tempDirectory, "GPTExtension_*.txt");
+                string userDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                string[] userFiles = Directory.GetFiles(userDirectory, "GPTExtension_*.txt");
 
-                foreach (string tempFile in tempFiles)
+                foreach (string userFile in userFiles)
                 {
-                    File.Delete(tempFile);
+                    File.Delete(userFile);
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error in CleanupTemporaryFiles(): {ex.Message}");
+                Debug.WriteLine($"Error in CleanupUserFiles(): {ex.Message}");
             }
         }
 
