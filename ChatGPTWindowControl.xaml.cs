@@ -995,6 +995,7 @@ namespace ChatGPTExtension
             return false;
         }
 
+        private bool _isCreatingNewFile = false;
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "<Pending>")]
         private async void WebView_WebMessageReceived(object sender, Microsoft.Web.WebView2.Core.CoreWebView2WebMessageReceivedEventArgs e)
@@ -1004,8 +1005,9 @@ namespace ChatGPTExtension
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
                 // When Copy code button was clicked in AI app, automatically insert the code in VS.NET
-                if (e.TryGetWebMessageAsString() == "CopyCodeButtonClicked" && _enableCopyCode)
+                if (e.TryGetWebMessageAsString() == "CopyCodeButtonClicked" && _enableCopyCode && !_isCreatingNewFile)
                 {
+
                     // Using async delay instead of freezing the thread
                     await Task.Delay(1000);
 
@@ -1033,6 +1035,128 @@ namespace ChatGPTExtension
             }
         }
 
+        private async Task CreateNewFileFromAIAsync(string textFromBrowser)
+        {
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+            try
+            {
+                string codeFromAI = textFromBrowser;
+
+                if (!string.IsNullOrEmpty(codeFromAI))
+                {
+                    DTE2 dte = (DTE2)Package.GetGlobalService(typeof(DTE));
+                    Solution solution = dte.Solution;
+                    Project activeProject = solution.Projects.OfType<Project>().FirstOrDefault();
+
+                    if (activeProject == null)
+                    {
+                        MessageBox.Show("No active project found.", "Unsupported Operation", MessageBoxButton.OK, MessageBoxImage.Information);
+                        return;
+                    }
+
+                    string fileExtension = GetFileExtensionForProject(activeProject);
+                    string fileName = PromptForFileName(fileExtension);
+                    if (string.IsNullOrEmpty(fileName))
+                    {
+                        return;
+                    }
+
+                    await ThreadHelper.JoinableTaskFactory.RunAsync(async () =>
+                    {
+                        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+                        try
+                        {
+                            string projectDir = Path.GetDirectoryName(activeProject.FullName);
+                            string filePath = Path.Combine(projectDir, fileName);
+
+                            // Add the new file to the project directory
+                            File.WriteAllText(filePath, codeFromAI);
+
+                            // Add the new file to the project
+                            ProjectItem newFile = activeProject.ProjectItems.AddFromFile(filePath);
+
+                            // Open the new file
+                            EnvDTE.Window window = newFile.Open(EnvDTE.Constants.vsViewKindTextView);
+                            window.Visible = true;
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"Error creating file: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        }
+                    });
+
+                    // Format the code
+                    FormatCodeInVS();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"An error occurred: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        // Change the event handler signature
+        private async Task OnNewFileButtonClickAsync(object sender, RoutedEventArgs e)
+        {
+            // Retrieve selected code in GPT, insert and format in VS.NET
+            string textFromBrowser = await GetSelectedTextFromAIAsync();
+
+            // If we have text selected in browser send to VS.NET
+            if (!string.IsNullOrEmpty(textFromBrowser))
+            {
+                await CreateNewFileFromAIAsync(textFromBrowser);
+            }
+            else
+            {
+                MessageBox.Show("Please select code in the AI page to create a new file!", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private string GetFileExtensionForProject(Project project)
+        {
+            Microsoft.VisualStudio.Shell.ThreadHelper.ThrowIfNotOnUIThread();
+
+            string projectKind = project.Kind;
+
+            switch (projectKind)
+            {
+                case "{F184B08F-C81C-45F6-A57F-5ABD9991F28F}":
+                    return ".vb";
+                case "{E6FDF86B-F3D1-11D4-8576-0002A516ECE8}":
+                    return ".js";
+                case "{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}":                    
+                    return ".cpp";
+                case "{A1591282-1198-4647-A2B1-27E5FF5F6F3B}": // TypeScript Project
+                    return ".ts";
+                case "{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}": // C# Project
+                    return ".cs";
+                default:
+                    return ".txt"; // Default to .txt if project type is unknown
+            }
+        }
+
+        private string PromptForFileName(string defaultExtension)
+        {
+            var inputDialog = new InputDialog("New File", "Enter new file name", $"NewFile{defaultExtension}");
+            if (inputDialog.ShowDialog() == true)
+            {
+                string fileName = inputDialog.ResponseText.Trim();
+               
+                if (!fileName.EndsWith(defaultExtension, StringComparison.OrdinalIgnoreCase))
+                {
+                    fileName += defaultExtension;
+                }
+
+                if (fileName.StartsWith("."))
+                    return "";
+
+                return fileName;
+            }
+            return null;
+        }
+        
         private System.Timers.Timer timer;
         private JoinableTaskFactory _joinableTaskFactory;
 
@@ -1533,5 +1657,27 @@ namespace ChatGPTExtension
         }
 
         #endregion
+
+#pragma warning disable VSTHRD100 // Avoid async void methods
+        private async void OnNewFileButtonClick(object sender, RoutedEventArgs e)
+#pragma warning restore VSTHRD100 // Avoid async void methods
+        {
+            try
+            {
+                // Retrieve selected code in GPT, insert and format in VS.NET
+                string textFromBrowser = await GetSelectedTextFromAIAsync();
+
+                // If we have text selected in browser send to VS.NET
+                if (!string.IsNullOrEmpty(textFromBrowser))
+                {
+                    await CreateNewFileFromAIAsync(textFromBrowser);
+                }
+                else
+                {
+                    MessageBox.Show("Please select code in the AI page to create a new file!", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
+            catch { }
+        }
     }
 }

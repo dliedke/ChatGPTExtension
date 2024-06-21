@@ -55,6 +55,8 @@ Also integrates with **Anthropic Claude AI 3** Opus, Sonnet and Haiku.
 
 - The "Complete Code" button asks GPT/Gemini/Claude to show full complete code when it is showing partial code only.
 
+- The "New File" button will retrieve the selected code from the page and asks for filename to add a new file with code in the project.
+
 - The "Enable Copy Code" switch, when enabled, automatically sends the code to VS.NET when the "Copy code" button in GPT/Gemini/Claude is clicked.
 
 - The "Arrow" button opens a submenu with other code operations that GPT/Gemini/Claude can perform.
@@ -74,6 +76,8 @@ Also integrates with **Anthropic Claude AI 3** Opus, Sonnet and Haiku.
 
 
 ## What's New
+
+- 4.2 - New File button. Select code in the AI page and click new file to add the code in a new file in the existing project
 
 - 4.1 - Fixed issues attaching file in GPT when %temp% is windows default value in appdata
 
