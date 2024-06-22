@@ -857,23 +857,39 @@ namespace ChatGPTExtension
                     }});";
                 }
 
-                // Copy code button handler for Claude
+                // Copy code button handler for Claude and new button
                 if (_aiModelType == AIModelType.Claude)
                 {
-                    addEventListenersScript = $@"
-                    var allButtons = Array.from(document.querySelectorAll('button'));
-                    var targetButtons = allButtons.filter(function(button) {{
-                        var spanElement = button.querySelector('span');
-                        return spanElement && spanElement.textContent.trim() === '{CLAUDE_COPY_CODE_BUTTON_TEXT}' && !button.hasAttribute('data-listener-added');
-                    }});
+                    addEventListenersScript = @"
 
-                    targetButtons.forEach(function(button) {{
-                        button.addEventListener('click', function() {{
-                            window.chrome.webview.postMessage('CopyCodeButtonClicked');
-                        }});
-                        // Mark the button as having the listener added
-                        button.setAttribute('data-listener-added', 'true');
-                    }});";
+                    function addClickListener(button, message)
+                    {
+                        if (!button.hasAttribute('data-listener-added'))
+                        {
+                            button.addEventListener('click', function() {
+                                window.chrome.webview.postMessage(message);
+                            });
+                            button.setAttribute('data-listener-added', 'true');
+                        }
+                    }
+
+                    // For existing Claude copy code buttons
+                    var allButtons = Array.from(document.querySelectorAll('button'));
+                    var copyCodeButtons = allButtons.filter(function(button) {
+                        var spanElement = button.querySelector('span');
+                        return spanElement && spanElement.textContent.trim() === '" + CLAUDE_COPY_CODE_BUTTON_TEXT + @"';
+                    });
+
+                    copyCodeButtons.forEach(function(button) {
+                        addClickListener(button, 'CopyCodeButtonClicked');
+                    });
+
+                    // For the new button
+                    var newButton = document.querySelector('button.inline-flex[data-state=""closed""][class*=""rounded-md""][class*=""h-8""][class*=""w-8""]');
+                    if (newButton)
+                    {
+                        addClickListener(newButton, 'CopyCodeButtonClicked');
+                    }";
                 }
 
                 await webView.ExecuteScriptAsync(addEventListenersScript);
@@ -925,10 +941,14 @@ namespace ChatGPTExtension
 
             if (_aiModelType == AIModelType.Claude)
             {
+                // Wait a bit
+                await Task.Delay(800);
+
                 // Submit the Claude prompt (we have different selector for first chat message and other chat messages)
                 string script4 = "document.querySelector('[aria-label=\"Send Message\"]').click();";
                 await webView.ExecuteScriptAsync(script4);
 
+                // Click on button with 
                 // Submit the Claude prompt
                 string script3 = "document.querySelector('button.w-full.flex.items-center.bg-bg-200').click();";
                 await webView.ExecuteScriptAsync(script3);
@@ -1169,7 +1189,7 @@ namespace ChatGPTExtension
                 StopTimer();
 
                 // Timer to add handler for GPT copy code click
-                timer = new System.Timers.Timer(3000);
+                timer = new System.Timers.Timer(2000);
                 timer.Elapsed += HandleTimerElapsed;
                 timer.Start();
             }
@@ -1227,7 +1247,7 @@ namespace ChatGPTExtension
             try
             {
                 // Define the promptCompleteCode prompt
-                string promptCompleteCode = "Please show new full complete code without explanations with complete methods implementation for the provided code without any placeholders like ... or assuming code segments. Do not create methods you dont know.";
+                string promptCompleteCode = "Please show new full complete code without explanations with complete methods implementation for the provided code without any placeholders like ... or assuming code segments. Do not create methods you dont know. Keep all original comments.";
 
                 string script = string.Empty;
 
