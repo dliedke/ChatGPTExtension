@@ -118,20 +118,23 @@
         <Button Grid.Row="1" Grid.Column="0" Name="btnAIToVSNET" Content="⬅️ GPT to VS.NET" Click="OnReceiveCodeButtonClick" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}" ToolTip="Transfer selected code from GPT to VS.NET"/>
 
         <!-- Attach Current File Button -->
-        <Button Grid.Row="1" Grid.Column="1" Name="btnAttachFile" Content="Attach Current File📎" Click="OnAttachFileButtonClick" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}" ToolTip="Attach currently selected file to AI (hit Enter after file is set in dialog)"/>
+        <Button Grid.Row="1" Grid.Column="1" Name="btnAttachFile" Content="Attach Current VS File📎" Click="OnAttachFileButtonClick" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}" ToolTip="Attach currently selected file to AI (hit Enter after file is set in dialog)"/>
 
         <!-- Complete Code Button -->
-        <Button Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2" Name="btnCompleteCodeInAI" Content="Complete Code" Click="OnCompleteCodeButtonClick" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}" ToolTip="Ask GPT to provide full complete code"/>
+        <Button Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2" Name="btnCompleteCodeInAI" Content="Complete Code ✅" Click="OnCompleteCodeButtonClick" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}" ToolTip="Ask GPT to provide full complete code"/>
 
         <!-- New File Button -->
-        <Button Grid.Row="2" Grid.Column="0" Name="NewFileButton" Content="📄 New File" Style="{StaticResource CustomButtonStyle}" Click="OnNewFileButtonClick" ToolTip="Create a new file from GPT content" />
+        <Button Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="1" Name="btnNewFile" Content="📄 New File" Style="{StaticResource CustomButtonStyle}" Click="OnNewFileButtonClick" ToolTip="Create a new file from GPT content" />
+
+        <!-- New Continue Code Button -->
+        <Button Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="1" Name="btnContinueCode" Content="Continue Code ⏩" Click="OnContinueCodeButtonClick" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}" ToolTip="Continue code generation"/>
 
         <!-- Enable Copy Code Checkbox -->
-        <Border Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" Background="#343541" CornerRadius="4">
+        <Border Grid.Row="2" Grid.Column="2" Grid.ColumnSpan="2" Background="#343541" CornerRadius="4">
             <CheckBox Style="{StaticResource CustomCheckBoxStyle}" HorizontalAlignment="Right" Name="EnableCopyCodeCheckBox" Click="EnableCopyCodeCheckBox_Click" IsChecked="True" ToolTip="Enable sending code from GPT to VS.NET when Copy code button is clicked in GPT" />
         </Border>
 
         <!-- WebView2 Control -->
-        <controls:WebView2 Grid.Row="3" Grid.ColumnSpan="4" Name="webView" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+        <controls:WebView2 Grid.Row="4" Grid.ColumnSpan="4" Name="webView" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
     </Grid>
 </UserControl>

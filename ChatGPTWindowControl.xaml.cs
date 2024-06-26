@@ -52,6 +52,7 @@ namespace ChatGPTExtension
         private const string CLAUDE_URL = "https://claude.ai/chats";
         private const string CLAUDE_PROMPT_CLASS = "ProseMirror";
         private const string CLAUDE_COPY_CODE_BUTTON_TEXT = "Copy";
+        private const string CLAUDE_PROJECT_COPY_CODE_BUTTON_SELECTOR = "button.inline-flex[data-state=\"closed\"] svg path[d=\"M200,32H163.74a47.92,47.92,0,0,0-71.48,0H56A16,16,0,0,0,40,48V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V48A16,16,0,0,0,200,32Zm-72,0a32,32,0,0,1,32,32H96A32,32,0,0,1,128,32Zm72,184H56V48H82.75A47.93,47.93,0,0,0,80,64v8a8,8,0,0,0,8,8h80a8,8,0,0,0,8-8V64a47.93,47.93,0,0,0-2.75-16H200Z\"]";
 
         #endregion
 
@@ -884,12 +885,24 @@ namespace ChatGPTExtension
                         addClickListener(button, 'CopyCodeButtonClicked');
                     });
 
-                    // For the new button
+                    // For the new Claude artifacts copy code button
                     var newButton = document.querySelector('button.inline-flex[data-state=""closed""][class*=""rounded-md""][class*=""h-8""][class*=""w-8""]');
                     if (newButton)
                     {
                         addClickListener(newButton, 'CopyCodeButtonClicked');
-                    }";
+                    }
+
+                    // For the new Claude project copy code button
+                    var newButtonSvg = document.querySelector('" + CLAUDE_PROJECT_COPY_CODE_BUTTON_SELECTOR + @"');
+                    if (newButtonSvg)
+                    {
+                        var newButton = newButtonSvg.closest('button');
+                        if (newButton)
+                        {
+                            addClickListener(newButton, 'CopyCodeButtonClicked');
+                        }
+                    }
+                    ";
                 }
 
                 await webView.ExecuteScriptAsync(addEventListenersScript);
@@ -1146,7 +1159,7 @@ namespace ChatGPTExtension
                     return ".vb";
                 case "{E6FDF86B-F3D1-11D4-8576-0002A516ECE8}":
                     return ".js";
-                case "{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}":                    
+                case "{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}":
                     return ".cpp";
                 case "{A1591282-1198-4647-A2B1-27E5FF5F6F3B}": // TypeScript Project
                     return ".ts";
@@ -1163,7 +1176,7 @@ namespace ChatGPTExtension
             if (inputDialog.ShowDialog() == true)
             {
                 string fileName = inputDialog.ResponseText.Trim();
-               
+
                 if (!fileName.EndsWith(defaultExtension, StringComparison.OrdinalIgnoreCase))
                 {
                     fileName += defaultExtension;
@@ -1176,7 +1189,7 @@ namespace ChatGPTExtension
             }
             return null;
         }
-        
+
         private System.Timers.Timer timer;
         private JoinableTaskFactory _joinableTaskFactory;
 
@@ -1532,16 +1545,28 @@ namespace ChatGPTExtension
             btnVSNETToAI.ToolTip = $"Transfer selected code from VS.NET to {aiTechnology}";
 
             btnFixCodeInAI.Content = $"Fix Code in {aiTechnology} ➡️";
-            btnFixCodeInAI.ToolTip = $"Transfer selected code from {aiTechnology} to VS.NET";
+            btnFixCodeInAI.ToolTip = $"Fix bugs in VS.NET selected code using {aiTechnology}";
 
             btnImproveCodeInAI.Content = $"Improve Code in {aiTechnology} ➡️";
             btnImproveCodeInAI.ToolTip = $"Refactor selected code from VS.NET in {aiTechnology}";
 
+
             btnAIToVSNET.Content = $"⬅️ {aiTechnology} to VS.NET";
             btnAIToVSNET.ToolTip = $"Transfer selected code from {aiTechnology} to VS.NET";
 
-            btnCompleteCodeInAI.Content = $"Complete Code in {aiTechnology} ➡️";
-            btnCompleteCodeInAI.ToolTip = $"Transfer selected code from {aiTechnology} to VS.NET";
+            btnAttachFile.Content = $"Attach Open File to {aiTechnology}📎";
+            btnAttachFile.ToolTip = $"Attach VS.NET file open to {aiTechnology}";
+
+            btnCompleteCodeInAI.Content = $"Complete Code in {aiTechnology} ✅";
+            btnCompleteCodeInAI.ToolTip = $"Ask {aiTechnology} to generate complete code";
+
+
+            btnNewFile.ToolTip = $"Select code in {aiTechnology} to create a new file in VS.NET";
+
+            btnContinueCode.Content = $"Continue Code in {aiTechnology} ⏩";
+            btnContinueCode.ToolTip = $"Ask {aiTechnology} to continue the code generation";
+
+            EnableCopyCodeCheckBox.ToolTip = $"Enable sending code from {aiTechnology} to VS.NET when Copy code button is clicked in {aiTechnology}";
         }
 
         #endregion
@@ -1699,5 +1724,56 @@ namespace ChatGPTExtension
             }
             catch { }
         }
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "<Pending>")]
+        private async void OnContinueCodeButtonClick(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string promptContinueCode = "Continue code generation";
+
+                string script = string.Empty;
+
+                if (_aiModelType == AIModelType.Claude)
+                {
+                    script = $@"
+                        var element = document.querySelector('.{CLAUDE_PROMPT_CLASS}');
+                        element.innerText = '{promptContinueCode}';
+
+                        var inputEvent = new Event('input', {{
+                            'bubbles': true,
+                            'cancelable': true
+                        }});
+                        element.dispatchEvent(inputEvent);";
+                }
+                else if (_aiModelType == AIModelType.Gemini)
+                {
+                    script = GetScriptGeminiReceiveCode(promptContinueCode);
+                }
+                else if (_aiModelType == AIModelType.GPT)
+                {
+                    script = $@"
+                        document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').value = '{promptContinueCode}';
+        
+                        var inputEvent = new Event('input', {{
+                            'bubbles': true,
+                            'cancelable': true
+                        }});
+                        document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').dispatchEvent(inputEvent);";
+                }
+
+                await webView.CoreWebView2.ExecuteScriptAsync(script);
+                await SubmitPromptAIAsync();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error in OnContinueCodeButtonClick(): {ex.Message}");
+            }
+        }
     }
 }
+
+
+
+
+
