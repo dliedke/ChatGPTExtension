@@ -42,5 +42,13 @@ namespace ChatGPTExtension
             // Also the full ToolWindow as second parameter
             this.Content = new GptToolWindowControl(this, this);
         }
+
+        public void MinimizeWindow()
+        {
+            if (this.Frame is System.Windows.Window window)
+            {
+                window.WindowState = System.Windows.WindowState.Minimized;
+            }
+        }
     }
 }

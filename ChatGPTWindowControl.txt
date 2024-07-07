@@ -106,7 +106,7 @@
         </Button>
 
         <!-- VS.NET to GPT Button -->
-        <Button Grid.Row="0" Grid.Column="0" Name="btnVSNETToAI" Content="VS.NET to GPT ➡️" Click="OnSendCodeButtonClick" Tag="btnVSNETToAI" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}" ToolTip="Transfer selected code from VS.NET to GPT"/>
+        <Button Grid.Row="0" Grid.Column="0" Name="btnVSNETToAI" Content="VS.NET to GPT ➡️" Click="OnSendCodeButtonClick" Tag="" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}" ToolTip="Transfer selected code from VS.NET to GPT"/>
 
         <!-- Fix Code in GPT Button -->
         <Button Grid.Row="0" Grid.Column="1" Name="btnFixCodeInAI" Content="Fix Code in GPT ➡️" Click="OnSendCodeButtonClick" Tag="Fix {languageCode} code below:" Height="30" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}" ToolTip="Transfer selected code from GPT to VS.NET"/>

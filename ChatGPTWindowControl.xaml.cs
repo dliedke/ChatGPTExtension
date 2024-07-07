@@ -28,6 +28,9 @@ using Microsoft.Win32;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Threading;
+using System.Windows.Threading;
+using Window = System.Windows.Window;
+using Microsoft.VisualStudio.Shell.Interop;
 
 namespace ChatGPTExtension
 {
@@ -94,7 +97,20 @@ namespace ChatGPTExtension
             LoadContextMenuActions();
             _parentToolWindow = parent;
 
+            AddMinimizeRestoreMenuItem();
+
+
+            // Initialize WindowHelper
+            var dte = serviceProvider.GetService(typeof(DTE)) as DTE2;
+            _windowHelper = new WindowHelper(dte);
+
+            // Set up a timer to periodically check the window state
+            _updateTimer = new DispatcherTimer();
+            _updateTimer.Interval = TimeSpan.FromMilliseconds(500);
+            _updateTimer.Tick += UpdateTimer_Tick;
+            _updateTimer.Start();
         }
+
 
         private async Task InitializeAsync()
         {
@@ -301,8 +317,23 @@ namespace ChatGPTExtension
         {
             try
             {
+                ThreadHelper.ThrowIfNotOnUIThread();
+
                 Button btn = sender as Button;
                 string extraCommand = btn.Tag as string;
+
+                // If button is btnVSNETToAI and _isMinimized is true, then restore the window
+                if (extraCommand == "btnVSNETToAI" && _isMinimized)
+                {
+                    RestoreWindow();
+                    return;
+                }
+
+                // If button is btnVSNETToAI then clear extraCommand
+                if (extraCommand == "btnVSNETToAI")
+                {
+                    extraCommand = string.Empty;
+                }
 
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
                 SendSelectedCodeToAIAsync(extraCommand);
@@ -1703,6 +1734,8 @@ namespace ChatGPTExtension
 
         #endregion
 
+        #region New File Button/Continue Code Button
+
 #pragma warning disable VSTHRD100 // Avoid async void methods
         private async void OnNewFileButtonClick(object sender, RoutedEventArgs e)
 #pragma warning restore VSTHRD100 // Avoid async void methods
@@ -1770,10 +1803,187 @@ namespace ChatGPTExtension
                 Debug.WriteLine($"Error in OnContinueCodeButtonClick(): {ex.Message}");
             }
         }
+
+        #endregion
+
+        #region Minimize/Restore window when undocked
+
+        private Size _originalSize;
+        private Point _originalPosition;
+        private Point _minimizedPosition;
+        private bool _isMinimized = false;
+        private const double MINIMIZE_WIDTH = 160;
+        private const double MINIMIZE_HEIGHT = 30;
+        private MenuItem _minimizeRestoreMenuItem;
+        private WindowState _previousWindowState;
+        private DispatcherTimer _updateTimer;
+        private WindowHelper _windowHelper;
+
+        /// <summary>
+        /// Adds the Minimize/Restore menu item to the context menu.
+        /// </summary>
+        private void AddMinimizeRestoreMenuItem()
+        {
+            _minimizeRestoreMenuItem = new MenuItem { Header = "Minimize" };
+            _minimizeRestoreMenuItem.Click += MinimizeRestoreMenuItem_Click;
+            CodeActionsContextMenu.Items.Insert(0, _minimizeRestoreMenuItem);
+            CodeActionsContextMenu.Items.Insert(1, new Separator());
+        }
+
+        /// <summary>
+        /// Timer tick event handler to update menu visibility.
+        /// </summary>
+        private void UpdateTimer_Tick(object sender, EventArgs e)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            UpdateMinimizeRestoreMenuVisibility();
+        }
+
+        /// <summary>
+        /// Updates the visibility of the Minimize/Restore menu item based on window state.
+        /// </summary>
+        private void UpdateMinimizeRestoreMenuVisibility()
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            var vsWindow = GetVsWindow();
+            bool isFloating = vsWindow != null && _windowHelper.IsWindowFloating(vsWindow);
+            _minimizeRestoreMenuItem.Visibility = isFloating ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        /// <summary>
+        /// Gets the Visual Studio Window object for the current tool window.
+        /// </summary>
+        /// <returns>The EnvDTE.Window object or null if not found.</returns>
+        private EnvDTE.Window GetVsWindow()
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            if (_parentToolWindow?.Frame is IVsWindowFrame frame)
+            {
+                if (frame.GetProperty((int)__VSFPROPID.VSFPROPID_ExtWindowObject, out object windowObject) == Microsoft.VisualStudio.VSConstants.S_OK)
+                {
+                    return windowObject as EnvDTE.Window;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Event handler for the Minimize/Restore menu item click.
+        /// </summary>
+        private void MinimizeRestoreMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            if (_isMinimized)
+            {
+                RestoreWindow();
+            }
+            else
+            {
+                MinimizeWindow();
+            }
+        }
+
+        /// <summary>
+        /// Minimizes the window to a small size and moves it to the minimized position.
+        /// </summary>
+        private void MinimizeWindow()
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            var vsWindow = GetVsWindow();
+            if (vsWindow != null && _windowHelper.IsWindowFloating(vsWindow))
+            {
+                var wpfWindow = Window.GetWindow(this);
+                if (wpfWindow != null)
+                {
+                    // Save original size, position, and state
+                    _originalSize = new Size(wpfWindow.ActualWidth, wpfWindow.ActualHeight);
+                    _originalPosition = new Point(wpfWindow.Left, wpfWindow.Top);
+                    _previousWindowState = wpfWindow.WindowState;
+
+                    // Set new size and position
+                    wpfWindow.WindowState = WindowState.Normal;
+                    wpfWindow.Width = MINIMIZE_WIDTH;
+                    wpfWindow.Height = MINIMIZE_HEIGHT;
+
+                    // If it's the first time minimizing, set the minimized position
+                    if (_minimizedPosition == default(Point))
+                    {
+                        _minimizedPosition = new Point(200, 200);
+                    }
+
+                    wpfWindow.Left = _minimizedPosition.X;
+                    wpfWindow.Top = _minimizedPosition.Y;
+
+                    // Update UI
+                    _isMinimized = true;
+                    btnVSNETToAI.Content = "Restore";
+                    btnVSNETToAI.ToolTip = "Restore the floating window to its original size";
+                    btnFixCodeInAI.Visibility = Visibility.Hidden;
+                    btnImproveCodeInAI.Visibility = Visibility.Hidden;
+                    UpdateMinimizeRestoreMenuItemHeader();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Restores the window to its original size and position.
+        /// </summary>
+        private void RestoreWindow()
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            var vsWindow = GetVsWindow();
+            if (vsWindow != null && _windowHelper.IsWindowFloating(vsWindow))
+            {
+                var wpfWindow = Window.GetWindow(this);
+                if (wpfWindow != null)
+                {
+                    // Save the current minimized position
+                    _minimizedPosition = new Point(wpfWindow.Left, wpfWindow.Top);
+
+                    // Restore original size, position, and state
+                    wpfWindow.Width = _originalSize.Width;
+                    wpfWindow.Height = _originalSize.Height;
+                    wpfWindow.Left = _originalPosition.X;
+                    wpfWindow.Top = _originalPosition.Y;
+                    wpfWindow.WindowState = _previousWindowState;
+
+                    // Update UI
+                    _isMinimized = false;
+                    btnFixCodeInAI.Visibility = Visibility.Visible;
+                    btnImproveCodeInAI.Visibility = Visibility.Visible;
+                    UpdateButtonContentAndTooltip();
+                    UpdateMinimizeRestoreMenuItemHeader();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Updates the header of the Minimize/Restore menu item.
+        /// </summary>
+        private void UpdateMinimizeRestoreMenuItemHeader()
+        {
+            _minimizeRestoreMenuItem.Header = _isMinimized ? "Restore" : "Minimize";
+        }
+
+        #endregion
+    }
+
+    public class WindowHelper
+    {
+        private DTE2 _dte;
+
+        public WindowHelper(DTE2 dte)
+        {
+            _dte = dte;
+        }
+
+        public bool IsWindowFloating(EnvDTE.Window window)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            if (window == null)
+                throw new ArgumentNullException(nameof(window));
+
+            return window.IsFloating;
+        }
     }
 }
-
-
-
-
-
