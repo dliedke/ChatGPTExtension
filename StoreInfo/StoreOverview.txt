@@ -79,6 +79,8 @@ Also integrates with **Anthropic Claude AI** Opus, Sonnet and FREE Haiku.
 
 ## What's New
 
+- 4.6 - Removed code to hide extension in some scenarios
+
 - 4.5 - Added Minimize option when undocked the extension.<br>
         It is good for two monitors usage if you need to reduce quickly the window and then restore later for use.<br>
         Position of the original and minimized windows are saved during the session<br>

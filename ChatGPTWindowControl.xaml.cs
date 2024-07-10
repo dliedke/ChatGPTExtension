@@ -124,7 +124,7 @@ namespace ChatGPTExtension
                 {
                     _events = _dte.Events;
                     _windowEvents = _events.WindowEvents;
-                    _windowEvents.WindowActivated += OnWindowActivated;
+                    //_windowEvents.WindowActivated += OnWindowActivated;
                 }
 
                 // Create user path for the Edge WebView2 profile
@@ -208,41 +208,46 @@ namespace ChatGPTExtension
             }
         }
 
-        private void OnWindowActivated(EnvDTE.Window GotFocus, EnvDTE.Window LostFocus)
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
+        //private void OnWindowActivated(EnvDTE.Window GotFocus, EnvDTE.Window LostFocus)
+        //{
+        //    ThreadHelper.ThrowIfNotOnUIThread();
 
-            // Check if the activated window is our tool window
-            if (GotFocus.Caption == "Chat GPT Extension" || GotFocus.Caption == "Gemini Extension")
-            {
-                webView.Visibility = Visibility.Visible;
-            }
-            else
-            {
-                // If any of the tool windows from the bottom in VS.NET 
-                // are selected, then hide the webview to not conflict
-                if (GotFocus.Caption == "Output" ||
-                    GotFocus.Caption.StartsWith("Error List") ||
-                    GotFocus.Caption.StartsWith("Task List") ||
-                    GotFocus.Caption.StartsWith("PowerShell ") ||
-                    GotFocus.Caption.StartsWith("Developer ") ||
-                    GotFocus.Caption.StartsWith("Find ") ||
-                    GotFocus.Caption == "Exception Settings" ||
-                    GotFocus.Caption == "Package Manager Console" ||
-                    GotFocus.Caption == "CodeLens" ||
-                    GotFocus.Caption == "Bookmarks" ||
-                    GotFocus.Caption == "Call Hierarchy" ||
-                    GotFocus.Caption == "Code Definition Window")
-                {
-                    webView.Visibility = Visibility.Collapsed;
-                }
-                else
-                {
-                    // For code windows and other windows we will display the webview
-                    webView.Visibility = Visibility.Visible;
-                }
-            }
-        }
+        //    // Check if the activated window is our tool window
+        //    if (GotFocus.Caption == "Chat GPT Extension" || GotFocus.Caption == "Gemini Extension")
+        //    {
+        //        webView.Visibility = Visibility.Visible;
+        //    }
+        //    else
+        //    {
+        //        // If windows is not docked (floating)
+        //        var vsWindow = GetVsWindow();
+        //        if (vsWindow != null && !_windowHelper.IsWindowFloating(vsWindow))
+        //        {
+        //            // If any of the tool windows from the bottom in VS.NET 
+        //            // are selected, then hide the webview to not conflict
+        //            if (GotFocus.Caption == "Output" ||
+        //            GotFocus.Caption.StartsWith("Error List") ||
+        //            GotFocus.Caption.StartsWith("Task List") ||
+        //            GotFocus.Caption.StartsWith("PowerShell ") ||
+        //            GotFocus.Caption.StartsWith("Developer ") ||
+        //            GotFocus.Caption.StartsWith("Find ") ||
+        //            GotFocus.Caption == "Exception Settings" ||
+        //            GotFocus.Caption == "Package Manager Console" ||
+        //            GotFocus.Caption == "CodeLens" ||
+        //            GotFocus.Caption == "Bookmarks" ||
+        //            GotFocus.Caption == "Call Hierarchy" ||
+        //            GotFocus.Caption == "Code Definition Window")
+        //            {
+        //                webView.Visibility = Visibility.Collapsed;
+        //            }
+        //        }
+        //        else
+        //        {
+        //            // For code windows and other windows we will display the webview
+        //            webView.Visibility = Visibility.Visible;
+        //        }
+        //    }
+        //}
 
         public string GetEdgeWebView2Path()
         {
