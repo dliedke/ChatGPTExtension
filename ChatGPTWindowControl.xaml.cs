@@ -954,7 +954,7 @@ namespace ChatGPTExtension
             if (_aiModelType == AIModelType.GPT)
             {
                 // Submit the GPT prompt
-                string script1 = "document.querySelector('button[data-testid=\"fruitjuice-send-button\"]').click();";
+                string script1 = "document.querySelector('button[data-testid=\"send-button\"]').click();";
                 await webView.ExecuteScriptAsync(script1);
 
                 // Wait a bit
@@ -978,13 +978,15 @@ namespace ChatGPTExtension
             if (_aiModelType == AIModelType.Gemini)
             {
                 // Submit the Gemini prompt
-                string script2 = @"var icons = document.querySelectorAll('mat-icon');
-                                    for (var i = 0; i < icons.length; i++) {
-                                      if (icons[i].textContent.trim().toLowerCase() === 'send') {
-                                        icons[i].click();
-                                        break; // Stop the loop once the correct icon is clicked
-                                      }
-                                    }";
+                string script2 = @"
+                    var sendButton = document.querySelector('button.send-button[mat-icon-button]');
+                    if (sendButton) {
+                        sendButton.click();
+                    } else {
+                        console.error('Send button not found');
+                    }
+                ";
+
                 await webView.ExecuteScriptAsync(script2);
             }
 

@@ -79,6 +79,8 @@ Also integrates with **Anthropic Claude AI** Opus, Sonnet and FREE Haiku.
 
 ## What's New
 
+- 4.7 - Fixed send prompt in GPT and Gemini
+
 - 4.6 - Removed code to hide extension in some scenarios
 
 - 4.5 - Added Minimize option when undocked the extension.<br>
