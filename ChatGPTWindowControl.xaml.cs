@@ -1704,7 +1704,7 @@ namespace ChatGPTExtension
                                 if (_aiModelType == AIModelType.GPT)
                                 {
                                     // Simulate clicking the attach file button for GPT
-                                    string clickButtonScript = @"document.querySelector('button.juice\\:w-8')?.click();";
+                                    string clickButtonScript = @"document.querySelector('button svg path[d=""M9 7a5 5 0 0 1 10 0v8a7 7 0 1 1-14 0V9a1 1 0 0 1 2 0v6a5 5 0 0 0 10 0V7a3 3 0 1 0-6 0v8a1 1 0 1 0 2 0V9a1 1 0 1 1 2 0v6a3 3 0 1 1-6 0z""]').closest('button')?.click();";
                                     await webView.CoreWebView2.ExecuteScriptAsync(clickButtonScript);
 
                                     // Simulate clicking the last menu item
@@ -1719,7 +1719,7 @@ namespace ChatGPTExtension
                                 }
 
                                 // Wait for the file dialog to open
-                                await Task.Delay(1500); // Adjust the delay as necessary
+                                await Task.Delay(2500); // Adjust the delay as necessary
 
                                 // Simulate pasting the file path and pressing enter
                                 System.Windows.Forms.SendKeys.SendWait("^v");  // Paste the file path
