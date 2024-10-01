@@ -400,14 +400,18 @@ namespace ChatGPTExtension
 
                 if (_aiModelType == AIModelType.GPT)
                 {
-                    script = $@"var element = document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}');
-                                element.value = {JsonConvert.SerializeObject(selectedCode)};
-               
+                    // Escape single quotes and handle line breaks with paragraphs
+                    var escapedCode = EscapeAndFormatCode(selectedCode);
+
+                    script = $@"var element = document.querySelector('div[id=""{GPT_PROMPT_TEXT_AREA_ID}""]');
+                                element.innerHTML = '{escapedCode}';
+   
                                 var inputEvent = new Event('input', {{
                                     'bubbles': true,
                                     'cancelable': true
                                 }});
-                                element.dispatchEvent(inputEvent);";
+                                element.dispatchEvent(inputEvent);
+                                ";
                 }
 
                 if (_aiModelType == AIModelType.Gemini)
@@ -417,11 +421,11 @@ namespace ChatGPTExtension
 
                 if (_aiModelType == AIModelType.Claude)
                 {
-                    var lines = selectedCode.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
-                    var codeHtml = string.Join("", lines.Select(line => $"<p>{line}</p>"));
+                    // Escape single quotes and handle line breaks with paragraphs
+                    var escapedCode = EscapeAndFormatCode(selectedCode);
 
                     script = $@"var element = document.querySelector('.{CLAUDE_PROMPT_CLASS}');
-                                element.innerHTML = {JsonConvert.SerializeObject(codeHtml)};
+                                element.innerHTML = '{escapedCode}';
 
                                 var inputEvent = new Event('input', {{
                                 'bubbles': true,
@@ -440,14 +444,26 @@ namespace ChatGPTExtension
 
                 if (_aiModelType == AIModelType.GPT)
                 {
-                    script = $@"var existingText = document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').value;
-                                document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').value = existingText + '\r\n' + {JsonConvert.SerializeObject(selectedCode)};
-               
-                                var inputEvent = new Event('input', {{
-                                    'bubbles': true,
-                                    'cancelable': true
-                                }});
-                                document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').dispatchEvent(inputEvent);";
+                    // Escape single quotes and handle line breaks with paragraphs
+                    var escapedCode = EscapeAndFormatCode(selectedCode);
+
+                    script = $@"
+                                var promptArea = document.querySelector('div[id=""{GPT_PROMPT_TEXT_AREA_ID}""]');
+                                if (promptArea) {{
+                                    var existingText = promptArea.innerHTML;
+                                    var newText = existingText + '{escapedCode}';
+                                    promptArea.innerHTML = newText;
+
+                                    var inputEvent = new Event('input', {{
+                                        'bubbles': true,
+                                        'cancelable': true
+                                    }});
+                                    promptArea.dispatchEvent(inputEvent);
+
+                                }} else {{
+                                    console.error('GPT prompt area not found');
+                                }}
+                            ";
                 }
 
                 if (_aiModelType == AIModelType.Gemini)
@@ -458,13 +474,13 @@ namespace ChatGPTExtension
 
                 if (_aiModelType == AIModelType.Claude)
                 {
-                    var lines = selectedCode.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
-                    var codeHtml = string.Join("", lines.Select(line => $"<p>{line}</p>"));
+                    // Escape single quotes and handle line breaks with paragraphs
+                    var escapedCode = EscapeAndFormatCode(selectedCode);
 
                     script = $@"var elements = document.querySelectorAll('.{CLAUDE_PROMPT_CLASS}');
                     var index = elements.length > 1 ? 1 : 0;
                     var existingHtml = elements[index].innerHTML;
-                    elements[index].innerHTML = existingHtml + '<p></p>' + {JsonConvert.SerializeObject(codeHtml)};
+                    elements[index].innerHTML = existingHtml + '<p></p>' + {escapedCode};
 
                     var inputEvent = new Event('input', {{
                     'bubbles': true,
@@ -482,6 +498,21 @@ namespace ChatGPTExtension
             {
                 await SubmitPromptAIAsync();
             }
+        }
+
+        private string EscapeAndFormatCode(string selectedCode)
+        {
+            // Serialize to JSON to handle other special characters, then remove surrounding quotes
+            var escaped = JsonConvert.SerializeObject(selectedCode).Trim('"');
+
+            // Split into lines and wrap each in <p> tags
+            var formattedLines = escaped.Split(new[] { "\\r\\n", "\\n" }, StringSplitOptions.None)
+                .Select(line => $"<p>{line}</p>");
+
+            // Join the lines
+            var finalResult = string.Join("", formattedLines).Replace(@"'", @"\'");
+
+            return finalResult;
         }
 
         private static string GetScriptGeminiReceiveCode(string selectedCode)
@@ -655,57 +686,95 @@ namespace ChatGPTExtension
                     e.Handled = true; // Cancel the default behavior
 
                     // JavaScript to find the start and end of the current line
-                    string findLineBoundsScript = @"
-                            var textbox = document.getElementById('" + GPT_PROMPT_TEXT_AREA_ID + @"');
-                            var value = textbox.value;
-                            var start = textbox.selectionStart;
-                            var end = textbox.selectionEnd;
-            
-                            while(start > 0 && value[start-1] != '\n') { start--; }
-                            while(end < value.length && value[end] != '\n') { end++; }
-            
-                            [start, end];";  // This will give the start and end positions of the current line
+                    string findLineBoundsScript = $@"
+                (function() {{
+                    var editor = document.querySelector('div[id=""{GPT_PROMPT_TEXT_AREA_ID}""]');
+                    var selection = window.getSelection();
+                    var range = selection.getRangeAt(0);
+                    var node = range.startContainer;
+                    var offset = range.startOffset;
+
+                    // Normalize node to ensure we're working with text nodes
+                    while (node && node.nodeType !== 3) {{
+                        node = node.firstChild;
+                    }}
+
+                    var textContent = node.textContent;
+                    var start = offset;
+                    var end = offset;
+
+                    // Find start of line
+                    while (start > 0 && textContent[start - 1] !== '\n') {{
+                        start--;
+                    }}
+
+                    // Find end of line
+                    while (end < textContent.length && textContent[end] !== '\n') {{
+                        end++;
+                    }}
+
+                    return [start, end];
+                }})();
+            ";
 
                     var result = await webView.ExecuteScriptAsync(findLineBoundsScript);
                     var bounds = JsonConvert.DeserializeObject<int[]>(result);
                     int startOfLine = bounds[0];
                     int endOfLine = bounds[1];
 
-                    // If Shift is pressed
-                    if ((Keyboard.Modifiers & ModifierKeys.Shift) != 0)
+                    bool shiftPressed = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
+
+                    if (e.Key == Key.Home)
                     {
-                        // If Home is pressed
-                        if (e.Key == Key.Home)
-                        {
-                            cursorPositionScript = @"
-                            var textbox = document.getElementById('" + GPT_PROMPT_TEXT_AREA_ID + @"');
-                            var currentEnd = textbox.selectionEnd; 
-                            textbox.setSelectionRange(" + startOfLine + @", currentEnd);";
-                        }
-                        // If End is pressed
-                        else if (e.Key == Key.End)
-                        {
-                            cursorPositionScript = @"
-                            var textbox = document.getElementById('" + GPT_PROMPT_TEXT_AREA_ID + @"');
-                            var currentStart = textbox.selectionStart;
-                            textbox.setSelectionRange(currentStart, " + endOfLine + @");";
-                        }
+                        cursorPositionScript = $@"
+                    (function() {{
+                        var editor = document.querySelector('div[id=""{GPT_PROMPT_TEXT_AREA_ID}""]');
+                        var selection = window.getSelection();
+                        var range = selection.getRangeAt(0);
+                        var node = range.startContainer;
+
+                        // Normalize node to ensure we're working with text nodes
+                        while (node && node.nodeType !== 3) {{
+                            node = node.firstChild;
+                        }}
+
+                        if ({(shiftPressed ? "true" : "false")}) {{
+                            range.setStart(node, {startOfLine});
+                        }} else {{
+                            range.setStart(node, {startOfLine});
+                            range.setEnd(node, {startOfLine});
+                        }}
+
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                    }})();
+                ";
                     }
-                    else // Shift is NOT pressed
+                    else if (e.Key == Key.End)
                     {
-                        // If Home or End is pressed
-                        if (e.Key == Key.Home)
-                        {
-                            cursorPositionScript = @"
-                            var textbox = document.getElementById('" + GPT_PROMPT_TEXT_AREA_ID + @"');
-                            textbox.setSelectionRange(" + startOfLine + @", " + startOfLine + @");";
-                        }
-                        else if (e.Key == Key.End)
-                        {
-                            cursorPositionScript = @"
-                            var textbox = document.getElementById('" + GPT_PROMPT_TEXT_AREA_ID + @"');
-                            textbox.setSelectionRange(" + endOfLine + @", " + endOfLine + @");";
-                        }
+                        cursorPositionScript = $@"
+                    (function() {{
+                        var editor = document.querySelector('div[id=""{GPT_PROMPT_TEXT_AREA_ID}""]');
+                        var selection = window.getSelection();
+                        var range = selection.getRangeAt(0);
+                        var node = range.startContainer;
+
+                        // Normalize node to ensure we're working with text nodes
+                        while (node && node.nodeType !== 3) {{
+                            node = node.firstChild;
+                        }}
+
+                        if ({(shiftPressed ? "true" : "false")}) {{
+                            range.setEnd(node, {endOfLine});
+                        }} else {{
+                            range.setStart(node, {endOfLine});
+                            range.setEnd(node, {endOfLine});
+                        }}
+
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                    }})();
+                ";
                     }
 
                     // Execute javascript script code
@@ -1324,15 +1393,28 @@ namespace ChatGPTExtension
 
                 if (_aiModelType == AIModelType.GPT)
                 {
-                    // Set the AI prompt in GPT
+                    // Escape single quotes and handle line breaks with paragraphs
+                    var escapedPrompt = JsonConvert.SerializeObject(promptCompleteCode)
+                        .Trim('"') // Remove surrounding quotes added by SerializeObject
+                        .Replace("'", "\\'")
+                        .Split(new[] { "\\r\\n", "\\n" }, StringSplitOptions.None)
+                        .Select(line => $"<p>{line}</p>")
+                        .Aggregate((current, next) => current + next);
+
                     script = $@"
-                            document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').value = '{promptCompleteCode}';
-                
+                        var promptArea = document.querySelector('div[id=""{GPT_PROMPT_TEXT_AREA_ID}""]');
+                        if (promptArea) {{
+                            promptArea.innerHTML = '{escapedPrompt}';
+
                             var inputEvent = new Event('input', {{
                                 'bubbles': true,
                                 'cancelable': true
                             }});
-                            document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').dispatchEvent(inputEvent);";
+                            promptArea.dispatchEvent(inputEvent);
+                        }} else {{
+                            console.error('GPT prompt area not found');
+                        }}
+                    ";
                 }
 
                 // Execute the constructed script in the WebView context
@@ -1704,7 +1786,9 @@ namespace ChatGPTExtension
                                 if (_aiModelType == AIModelType.GPT)
                                 {
                                     // Simulate clicking the attach file button for GPT
-                                    string clickButtonScript = @"document.querySelector('button svg path[d=""M9 7a5 5 0 0 1 10 0v8a7 7 0 1 1-14 0V9a1 1 0 0 1 2 0v6a5 5 0 0 0 10 0V7a3 3 0 1 0-6 0v8a1 1 0 1 0 2 0V9a1 1 0 1 1 2 0v6a3 3 0 1 1-6 0z""]').closest('button')?.click();";
+                                    string clickButtonScript = @"
+                                                document.querySelector('button svg path[d=""M9 7C9 4.23858 11.2386 2 14 2C16.7614 2 19 4.23858 19 7V15C19 18.866 15.866 22 12 22C8.13401 22 5 18.866 5 15V9C5 8.44772 5.44772 8 6 8C6.55228 8 7 8.44772 7 9V15C7 17.7614 9.23858 20 12 20C14.7614 20 17 17.7614 17 15V7C17 5.34315 15.6569 4 14 4C12.3431 4 11 5.34315 11 7V15C11 15.5523 11.4477 16 12 16C12.5523 16 13 15.5523 13 15V9C13 8.44772 13.4477 8 14 8C14.5523 8 15 8.44772 15 9V15C15 16.6569 13.6569 18 12 18C10.3431 18 9 16.6569 9 15V7Z""]')?.closest('button')?.click();
+                                    ";
                                     await webView.CoreWebView2.ExecuteScriptAsync(clickButtonScript);
 
                                     // Simulate clicking the last menu item
@@ -1792,14 +1876,29 @@ namespace ChatGPTExtension
                 }
                 else if (_aiModelType == AIModelType.GPT)
                 {
+                    // Escape single quotes and handle line breaks with paragraphs
+                    var escapedPrompt = JsonConvert.SerializeObject(promptContinueCode)
+                        .Trim('"') // Remove surrounding quotes added by SerializeObject
+                        .Replace("'", "\\'")
+                        .Split(new[] { "\\r\\n", "\\n" }, StringSplitOptions.None)
+                        .Select(line => $"<p>{line}</p>")
+                        .Aggregate((current, next) => current + next);
+
                     script = $@"
-                        document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').value = '{promptContinueCode}';
-        
-                        var inputEvent = new Event('input', {{
-                            'bubbles': true,
-                            'cancelable': true
-                        }});
-                        document.getElementById('{GPT_PROMPT_TEXT_AREA_ID}').dispatchEvent(inputEvent);";
+                        var promptArea = document.querySelector('div[id=""{GPT_PROMPT_TEXT_AREA_ID}""]');
+                        if (promptArea) {{
+                            promptArea.innerHTML = '{escapedPrompt}';
+
+                            var inputEvent = new Event('input', {{
+                                'bubbles': true,
+                                'cancelable': true
+                            }});
+                            promptArea.dispatchEvent(inputEvent);
+                            
+                        }} else {{
+                            console.error('GPT prompt area not found');
+                        }}
+                    ";
                 }
 
                 await webView.CoreWebView2.ExecuteScriptAsync(script);
