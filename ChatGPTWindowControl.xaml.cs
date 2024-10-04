@@ -480,7 +480,7 @@ namespace ChatGPTExtension
                     script = $@"var elements = document.querySelectorAll('.{CLAUDE_PROMPT_CLASS}');
                     var index = elements.length > 1 ? 1 : 0;
                     var existingHtml = elements[index].innerHTML;
-                    elements[index].innerHTML = existingHtml + '<p></p>' + {escapedCode};
+                    elements[index].innerHTML = existingHtml + '<p></p>' + '{escapedCode}';
 
                     var inputEvent = new Event('input', {{
                     'bubbles': true,

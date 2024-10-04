@@ -79,6 +79,8 @@ Also integrates with **Anthropic Claude AI** Opus, Sonnet and FREE Haiku.
 
 ## What's New
 
+- 5.1 - Fixed Claude integration
+
 - 5.0 - Fixed GPT and Claude integrations
 
 - 4.8 - Fixed attach file in GPT
