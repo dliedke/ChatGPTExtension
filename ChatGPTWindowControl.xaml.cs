@@ -45,6 +45,7 @@ namespace ChatGPTExtension
         private const string GPT_PROMPT_TEXT_AREA_ID = "prompt-textarea";
         private const string GPT_COPY_CODE_BUTTON_SELECTOR = "button.flex.gap-1.items-center";
         private const string GPT_COPY_CODE_BUTTON_ICON_SELECTOR = "button.flex.gap-1.items-center svg.icon-sm";
+        private const string GPT_CANVAS_COPY_BUTTON_SELECTOR = "button.h-10.rounded-lg.px-2.text-token-text-secondary";
 
         // Selectors might need updates in new Gemini versions
         private const string GEMINI_URL = "https://gemini.google.com";
@@ -910,37 +911,63 @@ namespace ChatGPTExtension
                 if (_aiModelType == AIModelType.GPT)
                 {
                     addEventListenersScript = @"
-                        var buttonSelector = '" + GPT_COPY_CODE_BUTTON_SELECTOR + @"';
-                        var iconSelector = '" + GPT_COPY_CODE_BUTTON_ICON_SELECTOR + @"';
+                    var buttonSelector = '" + GPT_COPY_CODE_BUTTON_SELECTOR + @"';
+                    var iconSelector = '" + GPT_COPY_CODE_BUTTON_ICON_SELECTOR + @"';
+                    var canvasCopyButtonSelector = '" + GPT_CANVAS_COPY_BUTTON_SELECTOR + @"';
 
-                        function handleButtonClick(event) {
-                            if (!event.target.closest('button').hasAttribute('data-custom-click-handled')) {
-                                //event.stopPropagation();
-                                window.chrome.webview.postMessage('CopyCodeButtonClicked');
-                                event.target.closest('button').setAttribute('data-custom-click-handled', 'true');
-                            }
+                    function handleButtonClick(event) {
+                        var button = event.target.closest('button');
+                        if (button && !button.hasAttribute('data-custom-click-handled')) {
+                            window.chrome.webview.postMessage('CopyCodeButtonClicked');
+                            button.setAttribute('data-custom-click-handled', 'true');
                         }
+                    }
 
-                        var allButtons = Array.from(document.querySelectorAll(buttonSelector));
-                        var allIcons = Array.from(document.querySelectorAll(iconSelector));
+                    function addListenerToButton(button) {
+                        if (!button.hasAttribute('data-listener-added')) {
+                            button.addEventListener('click', handleButtonClick, true);
+                            
+                            var buttonText = button.querySelector('svg + *');
+                            if (buttonText) {
+                                buttonText.addEventListener('click', handleButtonClick, true);
+                            }
 
-                        allButtons.forEach(function(button) {
-                            if (!button.hasAttribute('data-listener-added')) {
-                                button.addEventListener('click', handleButtonClick, true);
-            
-                                var buttonText = button.querySelector('svg + *');
-                                if (buttonText) {
-                                    buttonText.addEventListener('click', handleButtonClick, true);
-                                }
-            
-                                button.setAttribute('data-listener-added', 'true');
+                            button.setAttribute('data-listener-added', 'true');
+                        }
+                    }
+
+                    // Handle existing buttons
+                    var allButtons = Array.from(document.querySelectorAll(buttonSelector));
+                    var allIcons = Array.from(document.querySelectorAll(iconSelector));
+                    var canvasCopyButtons = Array.from(document.querySelectorAll(canvasCopyButtonSelector));
+
+                    allButtons.forEach(addListenerToButton);
+                    allIcons.forEach(function(icon) {
+                        icon.addEventListener('click', handleButtonClick, true);
+                    });
+                    canvasCopyButtons.forEach(addListenerToButton);
+
+                    // Set up a MutationObserver to watch for new buttons being added
+                    var observer = new MutationObserver(function(mutations) {
+                        mutations.forEach(function(mutation) {
+                            if (mutation.type === 'childList') {
+                                mutation.addedNodes.forEach(function(node) {
+                                    if (node.nodeType === Node.ELEMENT_NODE) {
+                                        if (node.matches(buttonSelector) || node.matches(canvasCopyButtonSelector)) {
+                                            addListenerToButton(node);
+                                        } else {
+                                            var newButtons = node.querySelectorAll(buttonSelector + ', ' + canvasCopyButtonSelector);
+                                            newButtons.forEach(addListenerToButton);
+                                        }
+                                    }
+                                });
                             }
                         });
+                    });
 
-                        allIcons.forEach(function(icon) {
-                            icon.addEventListener('click', handleButtonClick, true);
-                        });
-                        ";
+                    // Start observing the document with the configured parameters
+                    observer.observe(document.body, { childList: true, subtree: true });
+                ";
                 }
 
                 // Copy code button handler for Gemini
