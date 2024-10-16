@@ -79,6 +79,8 @@ Also integrates with **Anthropic Claude AI** Opus, Sonnet and FREE Haiku.
 
 ## What's New
 
+- 5.3 - Huge refactor for maintainability, no new functionalities. Full regression test completed.
+
 - 5.2 - Support for GPT Canvas copy code button
 
 - 5.1 - Fixed Claude integration

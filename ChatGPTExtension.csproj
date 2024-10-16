@@ -51,7 +51,10 @@
     <Compile Include="ChatGPTWindowControl.xaml.cs">
       <DependentUpon>ChatGPTWindowControl.xaml</DependentUpon>
     </Compile>
+    <Compile Include="ClaudeConfiguration.cs" />
     <Compile Include="Configuration.cs" />
+    <Compile Include="GeminiConfiguration.cs" />
+    <Compile Include="GPTConfiguration.cs" />
     <Compile Include="GPTWideWindow.xaml.cs">
       <DependentUpon>GPTWideWindow.xaml</DependentUpon>
     </Compile>

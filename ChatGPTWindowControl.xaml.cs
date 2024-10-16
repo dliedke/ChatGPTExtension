@@ -36,30 +36,6 @@ namespace ChatGPTExtension
 {
     public partial class GptToolWindowControl : UserControl
     {
-        #region Web IDs and URLs for GPT and Gemini
-
-        // Note: There are ids also in method SubmitPromptAIAsync()
-
-        // IDs and selectors might need updates in new GPT versions
-        private const string CHAT_GPT_URL = "https://chatgpt.com/";
-        private const string GPT_PROMPT_TEXT_AREA_ID = "prompt-textarea";
-        private const string GPT_COPY_CODE_BUTTON_SELECTOR = "button.flex.gap-1.items-center";
-        private const string GPT_COPY_CODE_BUTTON_ICON_SELECTOR = "button.flex.gap-1.items-center svg.icon-sm";
-        private const string GPT_CANVAS_COPY_BUTTON_SELECTOR = "button.h-10.rounded-lg.px-2.text-token-text-secondary";
-
-        // Selectors might need updates in new Gemini versions
-        private const string GEMINI_URL = "https://gemini.google.com";
-        private const string GEMINI_PROMPT_CLASS = "ql-editor";
-        private const string GEMINI_COPY_CODE_BUTTON_CLASS = "copy-button";
-
-        // Selectors might need updates in new Claude versions
-        private const string CLAUDE_URL = "https://claude.ai/chats";
-        private const string CLAUDE_PROMPT_CLASS = "ProseMirror";
-        private const string CLAUDE_COPY_CODE_BUTTON_TEXT = "Copy";
-        private const string CLAUDE_PROJECT_COPY_CODE_BUTTON_SELECTOR = "button.inline-flex[data-state=\"closed\"] svg path[d=\"M200,32H163.74a47.92,47.92,0,0,0-71.48,0H56A16,16,0,0,0,40,48V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V48A16,16,0,0,0,200,32Zm-72,0a32,32,0,0,1,32,32H96A32,32,0,0,1,128,32Zm72,184H56V48H82.75A47.93,47.93,0,0,0,80,64v8a8,8,0,0,0,8,8h80a8,8,0,0,0,8-8V64a47.93,47.93,0,0,0-2.75-16H200Z\"]";
-
-        #endregion
-
         #region Constructor and Initialization
 
         private DTE2 _dte;
@@ -77,7 +53,6 @@ namespace ChatGPTExtension
             Gemini = 2,
             Claude = 3
         }
-
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD110:Observe result of async calls", Justification = "<Pending>")]
         public GptToolWindowControl(IServiceProvider serviceProvider, ChatGPTToolWindow parent)
@@ -119,70 +94,47 @@ namespace ChatGPTExtension
             {
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-                // Retrieves DTE and WindowsActivated event
                 _dte = Package.GetGlobalService(typeof(DTE)) as DTE2;
                 if (_dte != null)
                 {
                     _events = _dte.Events;
                     _windowEvents = _events.WindowEvents;
-                    //_windowEvents.WindowActivated += OnWindowActivated;
                 }
 
-                // Create user path for the Edge WebView2 profile
                 string userDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ChatGPTExtension", "WebView2");
                 if (!Directory.Exists(userDataPath))
                 {
                     Directory.CreateDirectory(userDataPath);
                 }
 
-                // Retrieve the Edge WebView2 directory
                 string edgeWebView2Path = GetEdgeWebView2Path();
 
-                // Set webview 2 path and user data path for the browser
                 CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(edgeWebView2Path, userDataPath);
                 await webView.EnsureCoreWebView2Async(environment);
 
-                if (_aiModelType == AIModelType.GPT)
+                switch (_aiModelType)
                 {
-                    // Open Chat GPT
-                    webView.Source = new Uri(CHAT_GPT_URL);
-                }
-                if (_aiModelType == AIModelType.Gemini)
-                {
-                    // Open Gemini
-                    webView.Source = new Uri(GEMINI_URL);
-                }
-                if (_aiModelType == AIModelType.Claude)
-                {
-                    // Open Claude
-                    webView.Source = new Uri(CLAUDE_URL);
+                    case AIModelType.GPT:
+                        webView.Source = new Uri(GPTConfiguration.CHAT_GPT_URL);
+                        await WaitForElementByIdAsync(GPTConfiguration.GPT_PROMPT_TEXT_AREA_ID);
+                        break;
+                    case AIModelType.Gemini:
+                        webView.Source = new Uri(GeminiConfiguration.GEMINI_URL);
+                        await WaitForElementByClassAsync(GeminiConfiguration.GEMINI_PROMPT_CLASS);
+                        break;
+                    case AIModelType.Claude:
+                        webView.Source = new Uri(ClaudeConfiguration.CLAUDE_URL);
+                        await WaitForElementByClassAsync(ClaudeConfiguration.CLAUDE_PROMPT_CLASS);
+                        break;
                 }
 
-                // WebMessageReceived to receive events from browser in this extension
                 webView.WebMessageReceived += WebView_WebMessageReceived;
 
-                // Timer to inject JS code to detect clicks in "Copy code" button in Chat GPT
                 await _joinableTaskFactory.SwitchToMainThreadAsync();
                 await StartTimerAsync();
 
-                // Start monitoring the timer status
                 _ = CheckTimerStatusAsync();
 
-                // If the AI prompt appers, already call AddHandlerCopyCodeAsync()
-                if (_aiModelType == AIModelType.GPT)
-                {
-                    await WaitForElementByIdAsync(GPT_PROMPT_TEXT_AREA_ID);
-                }
-                if (_aiModelType == AIModelType.Gemini)
-                {
-                    await WaitForElementByClassAsync(GEMINI_PROMPT_CLASS);
-                }
-                if (_aiModelType == AIModelType.Claude)
-                {
-                    await WaitForElementByClassAsync(CLAUDE_PROMPT_CLASS);
-                }
-
-                // Remove event handlers when control is unloaded
                 Unloaded += OnControlUnloaded;
             }
             catch (Exception ex)
@@ -208,47 +160,6 @@ namespace ChatGPTExtension
                 _dte = null;
             }
         }
-
-        //private void OnWindowActivated(EnvDTE.Window GotFocus, EnvDTE.Window LostFocus)
-        //{
-        //    ThreadHelper.ThrowIfNotOnUIThread();
-
-        //    // Check if the activated window is our tool window
-        //    if (GotFocus.Caption == "Chat GPT Extension" || GotFocus.Caption == "Gemini Extension")
-        //    {
-        //        webView.Visibility = Visibility.Visible;
-        //    }
-        //    else
-        //    {
-        //        // If windows is not docked (floating)
-        //        var vsWindow = GetVsWindow();
-        //        if (vsWindow != null && !_windowHelper.IsWindowFloating(vsWindow))
-        //        {
-        //            // If any of the tool windows from the bottom in VS.NET 
-        //            // are selected, then hide the webview to not conflict
-        //            if (GotFocus.Caption == "Output" ||
-        //            GotFocus.Caption.StartsWith("Error List") ||
-        //            GotFocus.Caption.StartsWith("Task List") ||
-        //            GotFocus.Caption.StartsWith("PowerShell ") ||
-        //            GotFocus.Caption.StartsWith("Developer ") ||
-        //            GotFocus.Caption.StartsWith("Find ") ||
-        //            GotFocus.Caption == "Exception Settings" ||
-        //            GotFocus.Caption == "Package Manager Console" ||
-        //            GotFocus.Caption == "CodeLens" ||
-        //            GotFocus.Caption == "Bookmarks" ||
-        //            GotFocus.Caption == "Call Hierarchy" ||
-        //            GotFocus.Caption == "Code Definition Window")
-        //            {
-        //                webView.Visibility = Visibility.Collapsed;
-        //            }
-        //        }
-        //        else
-        //        {
-        //            // For code windows and other windows we will display the webview
-        //            webView.Visibility = Visibility.Visible;
-        //        }
-        //    }
-        //}
 
         public string GetEdgeWebView2Path()
         {
@@ -367,134 +278,51 @@ namespace ChatGPTExtension
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-            // Place code in GPT prompt text, not overriding existing text
-            // Also sends the event to enable the send message button in GPT
             string selectedCode = GetSelectedCodeFromVS();
+            bool attachedFile = await IsFileAttachedAsync();
 
-            // Check if there is a file attached from this extension
-            bool attachedFile = false;
-            attachedFile = await IsFileAttachedAsync();
-
-            // If there is no selected code from VS.NET and we have attached file
-            // Then set the selected code to "(attached)"
             if (string.IsNullOrEmpty(selectedCode) && attachedFile)
             {
                 selectedCode = "(attached)";
             }
 
-            // No code to process
             if (string.IsNullOrEmpty(selectedCode))
             {
                 return;
             }
 
+            string activeLanguage = GetActiveFileLanguage();
+            string fullPrompt;
+
             if (!string.IsNullOrEmpty(extraCommand))
             {
-                // Get language of the file
-                string activeLanguage = GetActiveFileLanguage();
-
-                // Replace {languageCode} with correct programming language
-                selectedCode = extraCommand.Replace("{languageCode}", activeLanguage) + "\r\n" + selectedCode;
-
-                // Replace the full prompt in GPT/Gemini to send a new one
-                string script = string.Empty;
-
-                if (_aiModelType == AIModelType.GPT)
-                {
-                    // Escape single quotes and handle line breaks with paragraphs
-                    var escapedCode = EscapeAndFormatCode(selectedCode);
-
-                    script = $@"var element = document.querySelector('div[id=""{GPT_PROMPT_TEXT_AREA_ID}""]');
-                                element.innerHTML = '{escapedCode}';
-   
-                                var inputEvent = new Event('input', {{
-                                    'bubbles': true,
-                                    'cancelable': true
-                                }});
-                                element.dispatchEvent(inputEvent);
-                                ";
-                }
-
-                if (_aiModelType == AIModelType.Gemini)
-                {
-                    script = GetScriptGeminiReceiveCode(selectedCode);
-                }
-
-                if (_aiModelType == AIModelType.Claude)
-                {
-                    // Escape single quotes and handle line breaks with paragraphs
-                    var escapedCode = EscapeAndFormatCode(selectedCode);
-
-                    script = $@"var element = document.querySelector('.{CLAUDE_PROMPT_CLASS}');
-                                element.innerHTML = '{escapedCode}';
-
-                                var inputEvent = new Event('input', {{
-                                'bubbles': true,
-                                'cancelable': true
-                                }});
-
-                                element.dispatchEvent(inputEvent);";
-                }
-
-                await webView.CoreWebView2.ExecuteScriptAsync(script);
+                // Ensure we're using a case-insensitive replacement
+                string processedExtraCommand = extraCommand.Replace("{languageCode}", activeLanguage);
+                fullPrompt = processedExtraCommand + "\r\n\r\n" + selectedCode;
             }
             else
             {
-                // Keep existing prompt and add code from VS.NET
-                string script = string.Empty;
-
-                if (_aiModelType == AIModelType.GPT)
-                {
-                    // Escape single quotes and handle line breaks with paragraphs
-                    var escapedCode = EscapeAndFormatCode(selectedCode);
-
-                    script = $@"
-                                var promptArea = document.querySelector('div[id=""{GPT_PROMPT_TEXT_AREA_ID}""]');
-                                if (promptArea) {{
-                                    var existingText = promptArea.innerHTML;
-                                    var newText = existingText + '{escapedCode}';
-                                    promptArea.innerHTML = newText;
-
-                                    var inputEvent = new Event('input', {{
-                                        'bubbles': true,
-                                        'cancelable': true
-                                    }});
-                                    promptArea.dispatchEvent(inputEvent);
-
-                                }} else {{
-                                    console.error('GPT prompt area not found');
-                                }}
-                            ";
-                }
-
-                if (_aiModelType == AIModelType.Gemini)
-                {
-                    script = GetScriptGeminiReceiveCode(selectedCode);
-                }
-
-
-                if (_aiModelType == AIModelType.Claude)
-                {
-                    // Escape single quotes and handle line breaks with paragraphs
-                    var escapedCode = EscapeAndFormatCode(selectedCode);
-
-                    script = $@"var elements = document.querySelectorAll('.{CLAUDE_PROMPT_CLASS}');
-                    var index = elements.length > 1 ? 1 : 0;
-                    var existingHtml = elements[index].innerHTML;
-                    elements[index].innerHTML = existingHtml + '<p></p>' + '{escapedCode}';
-
-                    var inputEvent = new Event('input', {{
-                    'bubbles': true,
-                    'cancelable': true
-                    }});
-
-                    elements[index].dispatchEvent(inputEvent);";
-                }
-
-                await webView.CoreWebView2.ExecuteScriptAsync(script);
+                fullPrompt = selectedCode;
             }
 
-            // In case we have extra command send the prompt automatically
+            string script = string.Empty;
+
+            switch (_aiModelType)
+            {
+                case AIModelType.GPT:
+                    script = GPTConfiguration.Instance.GetSetPromptScript(fullPrompt);
+                    break;
+                case AIModelType.Gemini:
+                    script = GeminiConfiguration.Instance.GetSetPromptScript(fullPrompt);
+                    break;
+                case AIModelType.Claude:
+                    script = ClaudeConfiguration.Instance.GetSetPromptScript(fullPrompt);
+                    break;
+            }
+
+
+            await webView.CoreWebView2.ExecuteScriptAsync(script);
+
             if (!string.IsNullOrEmpty(extraCommand))
             {
                 await SubmitPromptAIAsync();
@@ -516,40 +344,9 @@ namespace ChatGPTExtension
             return finalResult;
         }
 
-        private static string GetScriptGeminiReceiveCode(string selectedCode)
+        private string GetScriptGeminiReceiveCode(string selectedCode)
         {
-            var lines = selectedCode.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
-            var codeHtml = string.Join("", lines.Select(line => $"<p>{line}</p>"));
-
-            // Serialize the HTML for JavaScript
-            var codeHtmlJson = JsonConvert.SerializeObject(codeHtml);
-
-            var script = $@"
-                    (function() {{
-                        // Check if the policy already exists and create it if it doesn't
-                        if (!window.myTrustedTypesPolicy) {{
-                            window.myTrustedTypesPolicy = trustedTypes.createPolicy('default', {{
-                                createHTML: (string) => string
-                            }});
-                        }}
-
-                        // Use the existing policy to create TrustedHTML
-                        const trustedHTML = window.myTrustedTypesPolicy.createHTML({codeHtmlJson});
-
-                        // Assign TrustedHTML to innerHTML by appending it
-                        var element = document.querySelector('.{GEMINI_PROMPT_CLASS}');
-                        element.innerHTML = element.innerHTML + trustedHTML;
-
-                        // Dispatch the input event
-                        var inputEvent = new Event('input', {{
-                            'bubbles': true,
-                            'cancelable': true
-                        }});
-                        element.dispatchEvent(inputEvent);
-                    }})();
-                ";
-
-            return script;
+            return GeminiConfiguration.Instance.GetReceiveCodeScript(selectedCode);
         }
 
         private async Task<string> GetSelectedTextFromAIAsync()
@@ -676,210 +473,33 @@ namespace ChatGPTExtension
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "<Pending>")]
         private async void UserControl_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            // GPT
-            if (_aiModelType == AIModelType.GPT)
+            if (e.Key == Key.Home || e.Key == Key.End)
             {
-                string cursorPositionScript = "";
+                e.Handled = true;
 
-                // If Home or End is pressed
-                if (e.Key == Key.Home || e.Key == Key.End)
+                bool shiftPressed = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
+                string key = e.Key.ToString();
+
+                string script = string.Empty;
+
+                switch (_aiModelType)
                 {
-                    e.Handled = true; // Cancel the default behavior
-
-                    // JavaScript to find the start and end of the current line
-                    string findLineBoundsScript = $@"
-                (function() {{
-                    var editor = document.querySelector('div[id=""{GPT_PROMPT_TEXT_AREA_ID}""]');
-                    var selection = window.getSelection();
-                    var range = selection.getRangeAt(0);
-                    var node = range.startContainer;
-                    var offset = range.startOffset;
-
-                    // Normalize node to ensure we're working with text nodes
-                    while (node && node.nodeType !== 3) {{
-                        node = node.firstChild;
-                    }}
-
-                    var textContent = node.textContent;
-                    var start = offset;
-                    var end = offset;
-
-                    // Find start of line
-                    while (start > 0 && textContent[start - 1] !== '\n') {{
-                        start--;
-                    }}
-
-                    // Find end of line
-                    while (end < textContent.length && textContent[end] !== '\n') {{
-                        end++;
-                    }}
-
-                    return [start, end];
-                }})();
-            ";
-
-                    var result = await webView.ExecuteScriptAsync(findLineBoundsScript);
-                    var bounds = JsonConvert.DeserializeObject<int[]>(result);
-                    int startOfLine = bounds[0];
-                    int endOfLine = bounds[1];
-
-                    bool shiftPressed = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
-
-                    if (e.Key == Key.Home)
-                    {
-                        cursorPositionScript = $@"
-                    (function() {{
-                        var editor = document.querySelector('div[id=""{GPT_PROMPT_TEXT_AREA_ID}""]');
-                        var selection = window.getSelection();
-                        var range = selection.getRangeAt(0);
-                        var node = range.startContainer;
-
-                        // Normalize node to ensure we're working with text nodes
-                        while (node && node.nodeType !== 3) {{
-                            node = node.firstChild;
-                        }}
-
-                        if ({(shiftPressed ? "true" : "false")}) {{
-                            range.setStart(node, {startOfLine});
-                        }} else {{
-                            range.setStart(node, {startOfLine});
-                            range.setEnd(node, {startOfLine});
-                        }}
-
-                        selection.removeAllRanges();
-                        selection.addRange(range);
-                    }})();
-                ";
-                    }
-                    else if (e.Key == Key.End)
-                    {
-                        cursorPositionScript = $@"
-                    (function() {{
-                        var editor = document.querySelector('div[id=""{GPT_PROMPT_TEXT_AREA_ID}""]');
-                        var selection = window.getSelection();
-                        var range = selection.getRangeAt(0);
-                        var node = range.startContainer;
-
-                        // Normalize node to ensure we're working with text nodes
-                        while (node && node.nodeType !== 3) {{
-                            node = node.firstChild;
-                        }}
-
-                        if ({(shiftPressed ? "true" : "false")}) {{
-                            range.setEnd(node, {endOfLine});
-                        }} else {{
-                            range.setStart(node, {endOfLine});
-                            range.setEnd(node, {endOfLine});
-                        }}
-
-                        selection.removeAllRanges();
-                        selection.addRange(range);
-                    }})();
-                ";
-                    }
-
-                    // Execute javascript script code
-                    if (!string.IsNullOrEmpty(cursorPositionScript))
-                    {
-                        await webView.ExecuteScriptAsync(cursorPositionScript);
-                    }
-                }
-            }
-
-            // Gemini or Claude
-            if (_aiModelType == AIModelType.Gemini || _aiModelType == AIModelType.Claude)
-            {
-                string editorElementClass = ".ql-editor";
-                if (_aiModelType == AIModelType.Claude)
-                {
-                    editorElementClass = "." + CLAUDE_PROMPT_CLASS;
+                    case AIModelType.GPT:
+                        script = e.Key == Key.Home
+                            ? GPTConfiguration.Instance.GetHomeKeyScript(shiftPressed, 0)
+                            : GPTConfiguration.Instance.GetEndKeyScript(shiftPressed, int.MaxValue);
+                        break;
+                    case AIModelType.Gemini:
+                    case AIModelType.Claude:
+                        script = _aiModelType == AIModelType.Gemini
+                            ? GeminiConfiguration.Instance.GetHomeEndKeyScript(key, shiftPressed)
+                            : ClaudeConfiguration.Instance.GetHomeEndKeyScript(key, shiftPressed);
+                        break;
                 }
 
-                if (e.Key == Key.Home || e.Key == Key.End)
+                if (!string.IsNullOrEmpty(script))
                 {
-                    e.Handled = true; // Prevent default behavior
-
-                    bool shiftPressed = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
-                    string cursorPositionScript = $@"
-                    (function() {{
-                        var editor = document.querySelector('{editorElementClass}');
-                        var selection = window.getSelection();
-                        if (selection.rangeCount > 0) {{
-                            var range = selection.getRangeAt(0);
-                            var node = selection.focusNode;
-                            var offset = selection.focusOffset;
-
-                            // Normalize node to ensure we're working with text nodes or directly contenteditable
-                            while (node && node.nodeType !== 3 && !['DIV', 'P', 'BR'].includes(node.nodeName)) {{
-                                node = node.parentNode;
-                            }}
-
-                            var textContent = node.nodeType === 3 ? node.data : node.textContent;
-                            var position = offset;
-
-                            if ('{e.Key}' === 'Home') {{
-                                // Move to the start of the line
-                                while (position > 0 && textContent[position - 1] != '\\n') {{
-                                    position--;
-                                }}
-                            }} else if ('{e.Key}' === 'End') {{
-                                // Move to the end of the line
-                                while (position < textContent.length && textContent[position] != '\\n') {{
-                                    position++;
-                                }}
-                            }}
-
-                            if (node.nodeType === 3) {{
-                                if (!{shiftPressed.ToString().ToLower()}) {{
-                                    // If Shift is not pressed, move the cursor without selecting
-                                    range.setStart(node, position);
-                                    range.setEnd(node, position);
-                                }} else {{
-                                    // If Shift is pressed, adjust the range for selection
-                                    if ('{e.Key}' === 'Home') {{
-                                        range.setStart(node, position);
-                                    }} else if ('{e.Key}' === 'End') {{
-                                        range.setEnd(node, position);
-                                    }}
-                                }}
-                            }} else {{
-                                // Handling for non-text nodes
-                                var child = node.childNodes[0];
-                                var childPosition = 0;
-                                for (var i = 0; child && i < position; i++) {{
-                                    if (child.nodeType === 3) {{
-                                        var len = child.data.length;
-                                        if (i + len >= position) {{
-                                            if (!{shiftPressed.ToString().ToLower()}) {{
-                                                range.setStart(child, position - i);
-                                                range.setEnd(child, position - i);
-                                            }} else {{
-                                                if ('{e.Key}' === 'Home') {{
-                                                    range.setStart(child, position - i);
-                                                }} else if ('{e.Key}' === 'End') {{
-                                                    range.setEnd(child, position - i);
-                                                }}
-                                            }}
-                                            break;
-                                        }}
-                                        i += len;
-                                    }} else {{
-                                        i++;
-                                    }}
-                                    child = child.nextSibling;
-                                }}
-                            }}
-
-                            selection.removeAllRanges();
-                            selection.addRange(range);
-                        }}
-                    }})();";
-
-                    // Execute the JavaScript code
-                    if (!string.IsNullOrEmpty(cursorPositionScript))
-                    {
-                        await webView.CoreWebView2.ExecuteScriptAsync(cursorPositionScript);
-                    }
+                    await webView.ExecuteScriptAsync(script);
                 }
             }
         }
@@ -888,278 +508,91 @@ namespace ChatGPTExtension
         {
             try
             {
-                // Capture Enter, Home and End keys that should
-                // be handled different in this extension to work
-                // with Chat GPT/Gemini
                 string script = @"if (!document.body.hasAttribute('data-keydown-listener-added')) {
-                                        document.addEventListener('keydown', function(event) {
-                                            // Check for Enter without Shift key
-                                            if (event.keyCode == 13 && !event.shiftKey) {
-                                                window.chrome.webview.postMessage('EnterPressed');
-                                            }
-                                        });
-                                        document.body.setAttribute('data-keydown-listener-added', 'true');
-                                    }
-                                ";
+                            document.addEventListener('keydown', function(event) {
+                                if (event.keyCode == 13 && !event.shiftKey) {
+                                    window.chrome.webview.postMessage('EnterPressed');
+                                }
+                            });
+                            document.body.setAttribute('data-keydown-listener-added', 'true');
+                        }";
 
                 await webView.ExecuteScriptAsync(script);
 
+                string addEventListenersScript = string.Empty;
 
-                string addEventListenersScript = "";
-
-                // Copy code button handler for GPT
-                if (_aiModelType == AIModelType.GPT)
+                switch (_aiModelType)
                 {
-                    addEventListenersScript = @"
-                    var buttonSelector = '" + GPT_COPY_CODE_BUTTON_SELECTOR + @"';
-                    var iconSelector = '" + GPT_COPY_CODE_BUTTON_ICON_SELECTOR + @"';
-                    var canvasCopyButtonSelector = '" + GPT_CANVAS_COPY_BUTTON_SELECTOR + @"';
-
-                    function handleButtonClick(event) {
-                        var button = event.target.closest('button');
-                        if (button && !button.hasAttribute('data-custom-click-handled')) {
-                            window.chrome.webview.postMessage('CopyCodeButtonClicked');
-                            button.setAttribute('data-custom-click-handled', 'true');
-                        }
-                    }
-
-                    function addListenerToButton(button) {
-                        if (!button.hasAttribute('data-listener-added')) {
-                            button.addEventListener('click', handleButtonClick, true);
-                            
-                            var buttonText = button.querySelector('svg + *');
-                            if (buttonText) {
-                                buttonText.addEventListener('click', handleButtonClick, true);
-                            }
-
-                            button.setAttribute('data-listener-added', 'true');
-                        }
-                    }
-
-                    // Handle existing buttons
-                    var allButtons = Array.from(document.querySelectorAll(buttonSelector));
-                    var allIcons = Array.from(document.querySelectorAll(iconSelector));
-                    var canvasCopyButtons = Array.from(document.querySelectorAll(canvasCopyButtonSelector));
-
-                    allButtons.forEach(addListenerToButton);
-                    allIcons.forEach(function(icon) {
-                        icon.addEventListener('click', handleButtonClick, true);
-                    });
-                    canvasCopyButtons.forEach(addListenerToButton);
-
-                    // Set up a MutationObserver to watch for new buttons being added
-                    var observer = new MutationObserver(function(mutations) {
-                        mutations.forEach(function(mutation) {
-                            if (mutation.type === 'childList') {
-                                mutation.addedNodes.forEach(function(node) {
-                                    if (node.nodeType === Node.ELEMENT_NODE) {
-                                        if (node.matches(buttonSelector) || node.matches(canvasCopyButtonSelector)) {
-                                            addListenerToButton(node);
-                                        } else {
-                                            var newButtons = node.querySelectorAll(buttonSelector + ', ' + canvasCopyButtonSelector);
-                                            newButtons.forEach(addListenerToButton);
-                                        }
-                                    }
-                                });
-                            }
-                        });
-                    });
-
-                    // Start observing the document with the configured parameters
-                    observer.observe(document.body, { childList: true, subtree: true });
-                ";
-                }
-
-                // Copy code button handler for Gemini
-                if (_aiModelType == AIModelType.Gemini)
-                {
-                    addEventListenersScript = $@"
-                    var allButtons = Array.from(document.getElementsByClassName('{GEMINI_COPY_CODE_BUTTON_CLASS}'));
-                    var targetButtons = allButtons.filter(function(button) {{
-                        // Check if the button already has the event listener attribute to avoid adding multiple listeners
-                        return !button.hasAttribute('data-listener-added');
-                    }});
-
-                    targetButtons.forEach(function(button) {{
-                        button.addEventListener('click', function() {{
-                            // Replace 'CopyCodeButtonClicked' with the appropriate message for your application
-                            window.chrome.webview.postMessage('CopyCodeButtonClicked');
-                        }});
-                        // Mark the button as having the listener added to prevent adding the listener multiple times
-                        button.setAttribute('data-listener-added', 'true');
-                    }});";
-                }
-
-                // Copy code button handler for Claude and new button
-                if (_aiModelType == AIModelType.Claude)
-                {
-                    addEventListenersScript = @"
-
-                    function addClickListener(button, message)
-                    {
-                        if (!button.hasAttribute('data-listener-added'))
-                        {
-                            button.addEventListener('click', function() {
-                                window.chrome.webview.postMessage(message);
-                            });
-                            button.setAttribute('data-listener-added', 'true');
-                        }
-                    }
-
-                    // For existing Claude copy code buttons
-                    var allButtons = Array.from(document.querySelectorAll('button'));
-                    var copyCodeButtons = allButtons.filter(function(button) {
-                        var spanElement = button.querySelector('span');
-                        return spanElement && spanElement.textContent.trim() === '" + CLAUDE_COPY_CODE_BUTTON_TEXT + @"';
-                    });
-
-                    copyCodeButtons.forEach(function(button) {
-                        addClickListener(button, 'CopyCodeButtonClicked');
-                    });
-
-                    // For the new Claude artifacts copy code button
-                    var newButton = document.querySelector('button.inline-flex[data-state=""closed""][class*=""rounded-md""][class*=""h-8""][class*=""w-8""]');
-                    if (newButton)
-                    {
-                        addClickListener(newButton, 'CopyCodeButtonClicked');
-                    }
-
-                    // For the new Claude project copy code button
-                    var newButtonSvg = document.querySelector('" + CLAUDE_PROJECT_COPY_CODE_BUTTON_SELECTOR + @"');
-                    if (newButtonSvg)
-                    {
-                        var newButton = newButtonSvg.closest('button');
-                        if (newButton)
-                        {
-                            addClickListener(newButton, 'CopyCodeButtonClicked');
-                        }
-                    }
-                    ";
+                    case AIModelType.GPT:
+                        addEventListenersScript = GPTConfiguration.Instance.GetAddEventListenersScript();
+                        break;
+                    case AIModelType.Gemini:
+                        addEventListenersScript = GeminiConfiguration.Instance.GetAddEventListenersScript();
+                        break;
+                    case AIModelType.Claude:
+                        addEventListenersScript = ClaudeConfiguration.Instance.GetAddEventListenersScript();
+                        break;
                 }
 
                 await webView.ExecuteScriptAsync(addEventListenersScript);
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("Error in AddHanlderCopyCode(): " + ex.Message);
+                Debug.WriteLine("Error in AddHandlerCopyCode(): " + ex.Message);
             }
         }
 
         private async Task SubmitPromptAIAsync()
         {
-            if (_aiModelType == AIModelType.GPT)
+            string script = string.Empty;
+
+            switch (_aiModelType)
             {
-                // Submit the GPT prompt
-                string script1 = "document.querySelector('button[data-testid=\"send-button\"]').click();";
-                await webView.ExecuteScriptAsync(script1);
-
-                // Wait a bit
-                await Task.Delay(3000);
-
-                // Click on the scroll to bottom button
-                string initialScript = @"var button = document.querySelector('button.absolute[class*=""bottom-5""] svg.icon-md');
-                                            if (button) {
-                                                button.parentElement.click();
-                                            }";
-
-                await webView.ExecuteScriptAsync(initialScript);
-
-                // Wait a bit
-                await Task.Delay(2000);
-
-                // Click in the scroll to bottom button
-                await webView.ExecuteScriptAsync(initialScript);
-            }
-
-            if (_aiModelType == AIModelType.Gemini)
-            {
-                // Submit the Gemini prompt
-                string script2 = @"
-                    var sendButton = document.querySelector('button.send-button[mat-icon-button]');
-                    if (sendButton) {
-                        sendButton.click();
-                    } else {
-                        console.error('Send button not found');
-                    }
-                ";
-
-                await webView.ExecuteScriptAsync(script2);
-            }
-
-            if (_aiModelType == AIModelType.Claude)
-            {
-                // Wait a bit
-                await Task.Delay(800);
-
-                // Submit the Claude prompt (we have different selector for first chat message and other chat messages)
-                string script4 = "document.querySelector('[aria-label=\"Send Message\"]').click();";
-                await webView.ExecuteScriptAsync(script4);
-
-                // Click on button with 
-                // Submit the Claude prompt
-                string script3 = "document.querySelector('button.w-full.flex.items-center.bg-bg-200').click();";
-                await webView.ExecuteScriptAsync(script3);
+                case AIModelType.GPT:
+                    script = GPTConfiguration.Instance.GetSubmitPromptScript();
+                    await webView.ExecuteScriptAsync(script);
+                    await Task.Delay(3000);
+                    script = GPTConfiguration.Instance.GetScrollToBottomScript();
+                    await webView.ExecuteScriptAsync(script);
+                    await Task.Delay(2000);
+                    await webView.ExecuteScriptAsync(script);
+                    break;
+                case AIModelType.Gemini:
+                    script = GeminiConfiguration.Instance.GetSubmitPromptScript();
+                    await webView.ExecuteScriptAsync(script);
+                    break;
+                case AIModelType.Claude:
+                    script = ClaudeConfiguration.Instance.GetSubmitPromptScript();
+                    await webView.ExecuteScriptAsync(script);
+                    break;
             }
         }
 
         private async Task<bool> IsFileAttachedAsync()
         {
-            if (_aiModelType == AIModelType.GPT)
+            string script = string.Empty;
+
+            switch (_aiModelType)
             {
-                // Check if we have an attachment from this extension
-                string script = @"
-            var result = 'notfound';
-            var divs = document.querySelectorAll('div.truncate.font-semibold');
-            for (var i = 0; i < divs.length; i++) {
-                if (divs[i].textContent.startsWith('GPTExtension_')) {
-                    result = 'found';
+                case AIModelType.GPT:
+                    script = GPTConfiguration.Instance.GetIsFileAttachedScript();
                     break;
-                }
-            }
-            result;";
-
-                try
-                {
-                    string result = await webView.CoreWebView2.ExecuteScriptAsync(script);
-                    return result == "\"found\"";
-                }
-                catch (Exception)
-                {
-                    return false;
-                }
+                case AIModelType.Claude:
+                    script = ClaudeConfiguration.Instance.GetIsFileAttachedScript();
+                    break;
+                case AIModelType.Gemini:
+                    return false; // Gemini doesn't support file attachments
             }
 
-            if (_aiModelType == AIModelType.Claude)
+            try
             {
-                // Check if we have an attachment from this extension
-                string script = @"
-            var result = 'notfound';
-            var divs = document.querySelectorAll('div[data-testid]');
-            for (var i = 0; i < divs.length; i++) {
-                if (divs[i].getAttribute('data-testid').startsWith('GPTExtension_')) {
-                    result = 'found';
-                    break;
-                }
+                string result = await webView.CoreWebView2.ExecuteScriptAsync(script);
+                return result == "\"found\"";
             }
-            result;";
-
-                try
-                {
-                    string result = await webView.CoreWebView2.ExecuteScriptAsync(script);
-                    return result == "\"found\"";
-                }
-                catch (Exception)
-                {
-                    return false;
-                }
-            }
-
-            if (_aiModelType == AIModelType.Gemini)
+            catch (Exception)
             {
                 return false;
             }
-
-            return false;
         }
 
         private bool _isCreatingNewFile = false;
@@ -1335,7 +768,6 @@ namespace ChatGPTExtension
 
                 StopTimer();
 
-                // Timer to add handler for GPT copy code click
                 timer = new System.Timers.Timer(2000);
                 timer.Elapsed += HandleTimerElapsed;
                 timer.Start();
@@ -1393,61 +825,23 @@ namespace ChatGPTExtension
         {
             try
             {
-                // Define the promptCompleteCode prompt
                 string promptCompleteCode = "Please show new full complete code without explanations with complete methods implementation for the provided code without any placeholders like ... or assuming code segments. Do not create methods you dont know. Keep all original comments.";
-
                 string script = string.Empty;
 
-                if (_aiModelType == AIModelType.Claude)
+                switch (_aiModelType)
                 {
-                    // Set the innerText to set the AI prompt in Claude
-                    script = $@"
-                            var element = document.querySelector('.{CLAUDE_PROMPT_CLASS}');
-                                element.innerText = '{promptCompleteCode}';
-
-                                var inputEvent = new Event('input', {{
-                                    'bubbles': true,
-                                    'cancelable': true
-                                }});
-                             element.dispatchEvent(inputEvent); ";
+                    case AIModelType.Claude:
+                        script = ClaudeConfiguration.Instance.GetSetPromptScript(promptCompleteCode);
+                        break;
+                    case AIModelType.Gemini:
+                        script = GeminiConfiguration.Instance.GetSetPromptScript(promptCompleteCode);
+                        break;
+                    case AIModelType.GPT:
+                        script = GPTConfiguration.Instance.GetSetPromptScript(promptCompleteCode);
+                        break;
                 }
 
-                if (_aiModelType == AIModelType.Gemini)
-                {
-                    // Set the innerText to set the AI prompt in Gemini
-                    script = GetScriptGeminiReceiveCode(promptCompleteCode);
-                }
-
-                if (_aiModelType == AIModelType.GPT)
-                {
-                    // Escape single quotes and handle line breaks with paragraphs
-                    var escapedPrompt = JsonConvert.SerializeObject(promptCompleteCode)
-                        .Trim('"') // Remove surrounding quotes added by SerializeObject
-                        .Replace("'", "\\'")
-                        .Split(new[] { "\\r\\n", "\\n" }, StringSplitOptions.None)
-                        .Select(line => $"<p>{line}</p>")
-                        .Aggregate((current, next) => current + next);
-
-                    script = $@"
-                        var promptArea = document.querySelector('div[id=""{GPT_PROMPT_TEXT_AREA_ID}""]');
-                        if (promptArea) {{
-                            promptArea.innerHTML = '{escapedPrompt}';
-
-                            var inputEvent = new Event('input', {{
-                                'bubbles': true,
-                                'cancelable': true
-                            }});
-                            promptArea.dispatchEvent(inputEvent);
-                        }} else {{
-                            console.error('GPT prompt area not found');
-                        }}
-                    ";
-                }
-
-                // Execute the constructed script in the WebView context
                 await webView.CoreWebView2.ExecuteScriptAsync(script);
-
-                // Also submit the prompt, assuming SubmitPromptGPTAsync() is a method to submit the prompt in GPT
                 await SubmitPromptAIAsync();
             }
             catch (Exception ex)
@@ -1483,18 +877,18 @@ namespace ChatGPTExtension
 
                 if (_aiModelType == AIModelType.GPT)
                 {
-                    webView.Source = new Uri(CHAT_GPT_URL);
-                    await WaitForElementByIdAsync(GPT_PROMPT_TEXT_AREA_ID);
+                    webView.Source = new Uri(GPTConfiguration.CHAT_GPT_URL);
+                    await WaitForElementByIdAsync(GPTConfiguration.GPT_PROMPT_TEXT_AREA_ID);
                 }
                 if (_aiModelType == AIModelType.Gemini)
                 {
-                    webView.Source = new Uri(GEMINI_URL);
-                    await WaitForElementByClassAsync(GEMINI_PROMPT_CLASS);
+                    webView.Source = new Uri(GeminiConfiguration.GEMINI_URL);
+                    await WaitForElementByClassAsync(GeminiConfiguration.GEMINI_PROMPT_CLASS);
                 }
                 if (_aiModelType == AIModelType.Claude)
                 {
-                    webView.Source = new Uri(CLAUDE_URL);
-                    await WaitForElementByClassAsync(CLAUDE_PROMPT_CLASS);
+                    webView.Source = new Uri(ClaudeConfiguration.CLAUDE_URL);
+                    await WaitForElementByClassAsync(ClaudeConfiguration.CLAUDE_PROMPT_CLASS);
                 }
 
                 await StartTimerAsync();
@@ -1576,12 +970,10 @@ namespace ChatGPTExtension
 
                 if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(prompt))
                 {
-                    var formattedPrompt = prompt.Replace(" {languageCode}", string.Empty);
-
                     var menuItem = new MenuItem
                     {
                         Header = name,
-                        Tag = formattedPrompt
+                        Tag = prompt
                     };
 
                     menuItem.Click += OnSendCodeMenuItemClick;
@@ -1769,10 +1161,8 @@ namespace ChatGPTExtension
             {
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-                // If current model is Gemini say it is not supported and return
                 if (_aiModelType == AIModelType.Gemini)
                 {
-                    // Display a message that the operation is not supported in Gemini
                     MessageBox.Show("Attaching code files is currently not supported in Gemini.", "Unsupported Operation", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
@@ -1804,28 +1194,15 @@ namespace ChatGPTExtension
 
                                 if (_aiModelType == AIModelType.Claude)
                                 {
-                                    // Simulate click on the file input element using JavaScript
-                                    string clickFileInputScript = @"document.querySelector('input[data-testid=""file-upload""]')?.click();";
+                                    string clickFileInputScript = ClaudeConfiguration.Instance.GetAttachFileScript();
                                     await webView.CoreWebView2.ExecuteScriptAsync(clickFileInputScript);
                                 }
-
-                                // If the AI model type is GPT
-                                if (_aiModelType == AIModelType.GPT)
+                                else if (_aiModelType == AIModelType.GPT)
                                 {
-                                    // Simulate clicking the attach file button for GPT
-                                    string clickButtonScript = @"
-                                                document.querySelector('button svg path[d=""M9 7C9 4.23858 11.2386 2 14 2C16.7614 2 19 4.23858 19 7V15C19 18.866 15.866 22 12 22C8.13401 22 5 18.866 5 15V9C5 8.44772 5.44772 8 6 8C6.55228 8 7 8.44772 7 9V15C7 17.7614 9.23858 20 12 20C14.7614 20 17 17.7614 17 15V7C17 5.34315 15.6569 4 14 4C12.3431 4 11 5.34315 11 7V15C11 15.5523 11.4477 16 12 16C12.5523 16 13 15.5523 13 15V9C13 8.44772 13.4477 8 14 8C14.5523 8 15 8.44772 15 9V15C15 16.6569 13.6569 18 12 18C10.3431 18 9 16.6569 9 15V7Z""]')?.closest('button')?.click();
-                                    ";
+                                    string clickButtonScript = GPTConfiguration.Instance.GetAttachFileButtonClickScript();
                                     await webView.CoreWebView2.ExecuteScriptAsync(clickButtonScript);
 
-                                    // Simulate clicking the last menu item
-                                    string clickMenuItemScript = @"setTimeout(() => {
-                                                        const menuItems = document.querySelectorAll('div[role=""menuitem""]');
-                                                        if (menuItems?.length > 0) {
-                                                            menuItems[menuItems.length - 1]?.click();
-                                                        }
-                                                    }, 800); // Delay to allow menu to appear after button click
-                                               ";
+                                    string clickMenuItemScript = GPTConfiguration.Instance.GetAttachFileMenuItemClickScript();
                                     await webView.CoreWebView2.ExecuteScriptAsync(clickMenuItemScript);
                                 }
 
@@ -1834,7 +1211,6 @@ namespace ChatGPTExtension
 
                                 // Simulate pasting the file path and pressing enter
                                 System.Windows.Forms.SendKeys.SendWait("^v");  // Paste the file path
-
                             }
                         }
                     }
@@ -1882,50 +1258,19 @@ namespace ChatGPTExtension
             try
             {
                 string promptContinueCode = "Continue code generation";
-
                 string script = string.Empty;
 
-                if (_aiModelType == AIModelType.Claude)
+                switch (_aiModelType)
                 {
-                    script = $@"
-                        var element = document.querySelector('.{CLAUDE_PROMPT_CLASS}');
-                        element.innerText = '{promptContinueCode}';
-
-                        var inputEvent = new Event('input', {{
-                            'bubbles': true,
-                            'cancelable': true
-                        }});
-                        element.dispatchEvent(inputEvent);";
-                }
-                else if (_aiModelType == AIModelType.Gemini)
-                {
-                    script = GetScriptGeminiReceiveCode(promptContinueCode);
-                }
-                else if (_aiModelType == AIModelType.GPT)
-                {
-                    // Escape single quotes and handle line breaks with paragraphs
-                    var escapedPrompt = JsonConvert.SerializeObject(promptContinueCode)
-                        .Trim('"') // Remove surrounding quotes added by SerializeObject
-                        .Replace("'", "\\'")
-                        .Split(new[] { "\\r\\n", "\\n" }, StringSplitOptions.None)
-                        .Select(line => $"<p>{line}</p>")
-                        .Aggregate((current, next) => current + next);
-
-                    script = $@"
-                        var promptArea = document.querySelector('div[id=""{GPT_PROMPT_TEXT_AREA_ID}""]');
-                        if (promptArea) {{
-                            promptArea.innerHTML = '{escapedPrompt}';
-
-                            var inputEvent = new Event('input', {{
-                                'bubbles': true,
-                                'cancelable': true
-                            }});
-                            promptArea.dispatchEvent(inputEvent);
-                            
-                        }} else {{
-                            console.error('GPT prompt area not found');
-                        }}
-                    ";
+                    case AIModelType.Claude:
+                        script = ClaudeConfiguration.Instance.GetSetPromptScript(promptContinueCode);
+                        break;
+                    case AIModelType.Gemini:
+                        script = GeminiConfiguration.Instance.GetSetPromptScript(promptContinueCode);
+                        break;
+                    case AIModelType.GPT:
+                        script = GPTConfiguration.Instance.GetSetPromptScript(promptContinueCode);
+                        break;
                 }
 
                 await webView.CoreWebView2.ExecuteScriptAsync(script);
