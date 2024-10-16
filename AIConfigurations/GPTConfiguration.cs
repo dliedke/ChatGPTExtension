@@ -17,6 +17,8 @@ using Newtonsoft.Json;
 
 public class GPTConfiguration
 {
+    #region Singleton
+
     private static GPTConfiguration _instance;
     private static readonly object _lock = new object();
 
@@ -40,75 +42,15 @@ public class GPTConfiguration
 
     private GPTConfiguration() { }
 
+    #endregion
+
     // Constants
     public const string CHAT_GPT_URL = "https://chatgpt.com/";
     public const string GPT_PROMPT_TEXT_AREA_ID = "prompt-textarea";
     public const string GPT_COPY_CODE_BUTTON_SELECTOR = "button.flex.gap-1.items-center";
     public const string GPT_COPY_CODE_BUTTON_ICON_SELECTOR = "button.flex.gap-1.items-center svg.icon-sm";
     public const string GPT_CANVAS_COPY_BUTTON_SELECTOR = "button.h-10.rounded-lg.px-2.text-token-text-secondary";
-
-    public string GetHomeKeyScript(bool shiftPressed, int startOfLine)
-    {
-        return $@"
-        (function() {{
-            var editor = document.querySelector('div[id=""{GPT_PROMPT_TEXT_AREA_ID}""]');
-            var selection = window.getSelection();
-            var range = selection.getRangeAt(0);
-            var node = range.startContainer;
-            while (node && node.nodeType !== 3) {{
-                node = node.firstChild;
-            }}
-            if ({(shiftPressed ? "true" : "false")}) {{
-                range.setStart(node, {startOfLine});
-            }} else {{
-                range.setStart(node, {startOfLine});
-                range.setEnd(node, {startOfLine});
-            }}
-            selection.removeAllRanges();
-            selection.addRange(range);
-        }})();";
-    }
-
-    public string GetEndKeyScript(bool shiftPressed, int endOfLine)
-    {
-        return $@"
-    (function() {{
-        var editor = document.querySelector('div[id=""{GPT_PROMPT_TEXT_AREA_ID}""]');
-        var selection = window.getSelection();
-        var range = selection.getRangeAt(0);
-        var node = range.startContainer;
-
-        while (node && node.nodeType !== 3) {{
-            node = node.firstChild;
-        }}
-
-        if (node) {{
-            var textContent = node.textContent;
-            var position = textContent.length;
-
-            // Find the end of the current line
-            while (position > 0 && textContent[position - 1] !== '\n') {{
-                position--;
-            }}
-            position = textContent.length - position;
-
-            if ({(shiftPressed ? "true" : "false")}) {{
-                range.setEnd(node, position);
-            }} else {{
-                range.setStart(node, position);
-                range.setEnd(node, position);
-            }}
-
-            selection.removeAllRanges();
-            selection.addRange(range);
-
-            // Scroll the editor to make the cursor visible
-            var rect = range.getBoundingClientRect();
-            editor.scrollTop = rect.top - editor.offsetTop;
-        }}
-    }})();";
-    }
-
+    
     public string GetSetPromptScript(string promptText)
     {
         var escapedPrompt = JsonConvert.SerializeObject(promptText)
@@ -235,5 +177,67 @@ public class GPTConfiguration
         }});
 
         observer.observe(document.body, {{ childList: true, subtree: true }});";
+    }
+
+    public string GetHomeKeyScript(bool shiftPressed, int startOfLine)
+    {
+        return $@"
+        (function() {{
+            var editor = document.querySelector('div[id=""{GPT_PROMPT_TEXT_AREA_ID}""]');
+            var selection = window.getSelection();
+            var range = selection.getRangeAt(0);
+            var node = range.startContainer;
+            while (node && node.nodeType !== 3) {{
+                node = node.firstChild;
+            }}
+            if ({(shiftPressed ? "true" : "false")}) {{
+                range.setStart(node, {startOfLine});
+            }} else {{
+                range.setStart(node, {startOfLine});
+                range.setEnd(node, {startOfLine});
+            }}
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }})();";
+    }
+
+    public string GetEndKeyScript(bool shiftPressed, int endOfLine)
+    {
+        return $@"
+    (function() {{
+        var editor = document.querySelector('div[id=""{GPT_PROMPT_TEXT_AREA_ID}""]');
+        var selection = window.getSelection();
+        var range = selection.getRangeAt(0);
+        var node = range.startContainer;
+
+        while (node && node.nodeType !== 3) {{
+            node = node.firstChild;
+        }}
+
+        if (node) {{
+            var textContent = node.textContent;
+            var position = textContent.length;
+
+            // Find the end of the current line
+            while (position > 0 && textContent[position - 1] !== '\n') {{
+                position--;
+            }}
+            position = textContent.length - position;
+
+            if ({(shiftPressed ? "true" : "false")}) {{
+                range.setEnd(node, position);
+            }} else {{
+                range.setStart(node, position);
+                range.setEnd(node, position);
+            }}
+
+            selection.removeAllRanges();
+            selection.addRange(range);
+
+            // Scroll the editor to make the cursor visible
+            var rect = range.getBoundingClientRect();
+            editor.scrollTop = rect.top - editor.offsetTop;
+        }}
+    }})();";
     }
 }

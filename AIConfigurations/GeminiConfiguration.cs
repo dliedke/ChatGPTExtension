@@ -17,6 +17,8 @@ using Newtonsoft.Json;
 
 public class GeminiConfiguration
 {
+    #region Singleton
+
     private static GeminiConfiguration _instance;
     private static readonly object _lock = new object();
 
@@ -40,78 +42,13 @@ public class GeminiConfiguration
 
     private GeminiConfiguration() { }
 
+    #endregion
+
     // Constants
     public const string GEMINI_URL = "https://gemini.google.com";
     public const string GEMINI_PROMPT_CLASS = "ql-editor";
     public const string GEMINI_COPY_CODE_BUTTON_CLASS = "copy-button";
-
-    public string GetHomeEndKeyScript(string key, bool shiftPressed)
-    {
-        return $@"
-        (function() {{
-            var editor = document.querySelector('.{GEMINI_PROMPT_CLASS}');
-            var selection = window.getSelection();
-            if (selection.rangeCount > 0) {{
-                var range = selection.getRangeAt(0);
-                var node = selection.focusNode;
-                var offset = selection.focusOffset;
-                while (node && node.nodeType !== 3 && !['DIV', 'P', 'BR'].includes(node.nodeName)) {{
-                    node = node.parentNode;
-                }}
-                var textContent = node.nodeType === 3 ? node.data : node.textContent;
-                var position = offset;
-                if ('{key}' === 'Home') {{
-                    while (position > 0 && textContent[position - 1] != '\n') {{
-                        position--;
-                    }}
-                }} else if ('{key}' === 'End') {{
-                    while (position < textContent.length && textContent[position] != '\n') {{
-                        position++;
-                    }}
-                }}
-                if (node.nodeType === 3) {{
-                    if (!{shiftPressed.ToString().ToLower()}) {{
-                        range.setStart(node, position);
-                        range.setEnd(node, position);
-                    }} else {{
-                        if ('{key}' === 'Home') {{
-                            range.setStart(node, position);
-                        }} else if ('{key}' === 'End') {{
-                            range.setEnd(node, position);
-                        }}
-                    }}
-                }} else {{
-                    var child = node.childNodes[0];
-                    var childPosition = 0;
-                    for (var i = 0; child && i < position; i++) {{
-                        if (child.nodeType === 3) {{
-                            var len = child.data.length;
-                            if (i + len >= position) {{
-                                if (!{shiftPressed.ToString().ToLower()}) {{
-                                    range.setStart(child, position - i);
-                                    range.setEnd(child, position - i);
-                                }} else {{
-                                    if ('{key}' === 'Home') {{
-                                        range.setStart(child, position - i);
-                                    }} else if ('{key}' === 'End') {{
-                                        range.setEnd(child, position - i);
-                                    }}
-                                }}
-                                break;
-                            }}
-                            i += len;
-                        }} else {{
-                            i++;
-                        }}
-                        child = child.nextSibling;
-                    }}
-                }}
-                selection.removeAllRanges();
-                selection.addRange(range);
-            }}
-        }})();";
-    }
-
+      
     public string GetSetPromptScript(string promptText)
     {
         var lines = promptText.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
@@ -188,4 +125,72 @@ public class GeminiConfiguration
             element.dispatchEvent(inputEvent);
         }})();";
     }
+
+    public string GetHomeEndKeyScript(string key, bool shiftPressed)
+    {
+        return $@"
+        (function() {{
+            var editor = document.querySelector('.{GEMINI_PROMPT_CLASS}');
+            var selection = window.getSelection();
+            if (selection.rangeCount > 0) {{
+                var range = selection.getRangeAt(0);
+                var node = selection.focusNode;
+                var offset = selection.focusOffset;
+                while (node && node.nodeType !== 3 && !['DIV', 'P', 'BR'].includes(node.nodeName)) {{
+                    node = node.parentNode;
+                }}
+                var textContent = node.nodeType === 3 ? node.data : node.textContent;
+                var position = offset;
+                if ('{key}' === 'Home') {{
+                    while (position > 0 && textContent[position - 1] != '\n') {{
+                        position--;
+                    }}
+                }} else if ('{key}' === 'End') {{
+                    while (position < textContent.length && textContent[position] != '\n') {{
+                        position++;
+                    }}
+                }}
+                if (node.nodeType === 3) {{
+                    if (!{shiftPressed.ToString().ToLower()}) {{
+                        range.setStart(node, position);
+                        range.setEnd(node, position);
+                    }} else {{
+                        if ('{key}' === 'Home') {{
+                            range.setStart(node, position);
+                        }} else if ('{key}' === 'End') {{
+                            range.setEnd(node, position);
+                        }}
+                    }}
+                }} else {{
+                    var child = node.childNodes[0];
+                    var childPosition = 0;
+                    for (var i = 0; child && i < position; i++) {{
+                        if (child.nodeType === 3) {{
+                            var len = child.data.length;
+                            if (i + len >= position) {{
+                                if (!{shiftPressed.ToString().ToLower()}) {{
+                                    range.setStart(child, position - i);
+                                    range.setEnd(child, position - i);
+                                }} else {{
+                                    if ('{key}' === 'Home') {{
+                                        range.setStart(child, position - i);
+                                    }} else if ('{key}' === 'End') {{
+                                        range.setEnd(child, position - i);
+                                    }}
+                                }}
+                                break;
+                            }}
+                            i += len;
+                        }} else {{
+                            i++;
+                        }}
+                        child = child.nextSibling;
+                    }}
+                }}
+                selection.removeAllRanges();
+                selection.addRange(range);
+            }}
+        }})();";
+    }
+
 }

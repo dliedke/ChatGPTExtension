@@ -51,19 +51,19 @@
     <Compile Include="ChatGPTWindowControl.xaml.cs">
       <DependentUpon>ChatGPTWindowControl.xaml</DependentUpon>
     </Compile>
-    <Compile Include="ClaudeConfiguration.cs" />
+    <Compile Include="AIConfigurations\ClaudeConfiguration.cs" />
     <Compile Include="Configuration.cs" />
-    <Compile Include="GeminiConfiguration.cs" />
-    <Compile Include="GPTConfiguration.cs" />
+    <Compile Include="AIConfigurations\GeminiConfiguration.cs" />
+    <Compile Include="AIConfigurations\GPTConfiguration.cs" />
     <Compile Include="GPTWideWindow.xaml.cs">
       <DependentUpon>GPTWideWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="ConfigurationWindow.xaml.cs">
       <DependentUpon>ConfigurationWindow.xaml</DependentUpon>
     </Compile>
-    <Compile Include="DragAndDropSupport\DragAdorner.cs" />
-    <Compile Include="DragAndDropSupport\ListViewDragDropManager.cs" />
-    <Compile Include="DragAndDropSupport\MouseUtilities.cs" />
+    <Compile Include="DragAndDrop\DragAdorner.cs" />
+    <Compile Include="DragAndDrop\ListViewDragDropManager.cs" />
+    <Compile Include="DragAndDrop\MouseUtilities.cs" />
     <Compile Include="InputDialog.xaml.cs">
       <DependentUpon>InputDialog.xaml</DependentUpon>
     </Compile>
