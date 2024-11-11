@@ -55,6 +55,7 @@
     <Compile Include="Configuration.cs" />
     <Compile Include="AIConfigurations\GeminiConfiguration.cs" />
     <Compile Include="AIConfigurations\GPTConfiguration.cs" />
+    <Compile Include="AIConfigurations\CopilotConfiguration.cs" />
     <Compile Include="GPTWideWindow.xaml.cs">
       <DependentUpon>GPTWideWindow.xaml</DependentUpon>
     </Compile>

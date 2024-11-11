@@ -51,7 +51,8 @@ namespace ChatGPTExtension
         {
             GPT = 1,
             Gemini = 2,
-            Claude = 3
+            Claude = 3,
+            Copilot = 4
         }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD110:Observe result of async calls", Justification = "<Pending>")]
@@ -88,6 +89,33 @@ namespace ChatGPTExtension
         }
 
 
+        private string GetActiveEdgeProfile()
+        {
+            try
+            {
+                string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                string preferencesPath = Path.Combine(localAppData, "Microsoft", "Edge", "User Data", "Local State");
+
+                if (File.Exists(preferencesPath))
+                {
+                    string jsonContent = File.ReadAllText(preferencesPath);
+                    dynamic preferences = JsonConvert.DeserializeObject(jsonContent);
+                    string profileName = preferences?.profile?.last_active_profiles?[0]?.ToString();
+
+                    if (!string.IsNullOrEmpty(profileName))
+                    {
+                        return profileName;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error getting active Edge profile: {ex.Message}");
+            }
+
+            return "Default"; // Fallback to Default if we can't determine the active profile
+        }
+
         private async Task InitializeAsync()
         {
             try
@@ -101,16 +129,63 @@ namespace ChatGPTExtension
                     _windowEvents = _events.WindowEvents;
                 }
 
-                string userDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ChatGPTExtension", "WebView2");
-                if (!Directory.Exists(userDataPath))
+                // Get the actual active Edge profile
+                string activeProfile = GetActiveEdgeProfile();
+                Debug.WriteLine($"Using Edge profile: {activeProfile}");
+
+                // Use the regular Edge profile path
+                string edgeProfilePath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "Microsoft",
+                    "Edge",
+                    "User Data"
+                );
+
+                // Configure options to use the correct profile
+                var options = new CoreWebView2EnvironmentOptions($"--profile-directory=\"{activeProfile}\"");
+
+                // Create environment with Edge's profile
+                CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(
+                    browserExecutableFolder: null,
+                    userDataFolder: edgeProfilePath,
+                    options: options
+                );
+
+                if (environment == null)
                 {
-                    Directory.CreateDirectory(userDataPath);
+                    throw new InvalidOperationException("Failed to create WebView2 environment.");
                 }
 
-                string edgeWebView2Path = GetEdgeWebView2Path();
-
-                CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(edgeWebView2Path, userDataPath);
                 await webView.EnsureCoreWebView2Async(environment);
+
+                if (webView.CoreWebView2 == null)
+                {
+                    throw new InvalidOperationException("Failed to initialize WebView2.");
+                }
+
+                // Configure basic settings
+                webView.CoreWebView2.Settings.IsPasswordAutosaveEnabled = true;
+                webView.CoreWebView2.Settings.IsGeneralAutofillEnabled = true;
+                webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;
+                webView.CoreWebView2.Settings.AreBrowserAcceleratorKeysEnabled = true;
+
+                // Set up headers before navigation
+                webView.CoreWebView2.NavigationStarting += (s, e) =>
+                {
+                    if (_aiModelType == AIModelType.Copilot)
+                    {
+                        foreach (var header in CopilotConfiguration.EnterpriseHeaders)
+                        {
+                            e.RequestHeaders.SetHeader(header.Key, header.Value);
+                        }
+
+                        // Add additional headers
+                        e.RequestHeaders.SetHeader("sec-fetch-site", "same-origin");
+                        e.RequestHeaders.SetHeader("sec-fetch-mode", "cors");
+                        e.RequestHeaders.SetHeader("sec-fetch-dest", "empty");
+                        e.RequestHeaders.SetHeader("x-ms-useragent", "azsdk-js-api-client-factory/1.0.0-beta.1 core-rest-pipeline/1.12.3 OS/Win32");
+                    }
+                };
 
                 switch (_aiModelType)
                 {
@@ -126,21 +201,52 @@ namespace ChatGPTExtension
                         webView.Source = new Uri(ClaudeConfiguration.CLAUDE_URL);
                         await WaitForElementByClassAsync(ClaudeConfiguration.CLAUDE_PROMPT_CLASS);
                         break;
+                    case AIModelType.Copilot:
+                        webView.Source = new Uri(CopilotConfiguration.COPILOT_ENTERPRISE_URL);
+                        await WaitForElementBySelectorAsync(CopilotConfiguration.COPILOT_PROMPT_SELECTOR);
+                        break;
                 }
 
                 webView.WebMessageReceived += WebView_WebMessageReceived;
 
                 await _joinableTaskFactory.SwitchToMainThreadAsync();
                 await StartTimerAsync();
-
                 _ = CheckTimerStatusAsync();
 
                 Unloaded += OnControlUnloaded;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("Error in InitializeAsync(): " + ex.Message);
+                Debug.WriteLine($"Error in InitializeAsync(): {ex.Message}");
+                MessageBox.Show(
+                    $"Error initializing the AI interface: {ex.Message}",
+                    "Initialization Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error
+                );
             }
+        }
+
+        // Add new method for Copilot element selection
+        private async Task WaitForElementBySelectorAsync(string selector)
+        {
+            bool elementFound = false;
+            while (!elementFound)
+            {
+                string script = $@"
+            var element = document.querySelector('{selector}');
+            element ? 'found' : 'notfound';";
+                var result = await webView.ExecuteScriptAsync(script);
+                if (result == "\"found\"")
+                {
+                    elementFound = true;
+                }
+                else
+                {
+                    await Task.Delay(500);
+                }
+            }
+            await AddHandlerCopyCodeAsync();
         }
 
         private void OnControlUnloaded(object sender, RoutedEventArgs e)
@@ -296,7 +402,6 @@ namespace ChatGPTExtension
 
             if (!string.IsNullOrEmpty(extraCommand))
             {
-                // Ensure we're using a case-insensitive replacement
                 string processedExtraCommand = extraCommand.Replace("{languageCode}", activeLanguage);
                 fullPrompt = processedExtraCommand + "\r\n\r\n" + selectedCode;
             }
@@ -318,8 +423,10 @@ namespace ChatGPTExtension
                 case AIModelType.Claude:
                     script = ClaudeConfiguration.Instance.GetSetPromptScript(fullPrompt);
                     break;
+                case AIModelType.Copilot:
+                    script = CopilotConfiguration.Instance.GetSetPromptScript(fullPrompt);
+                    break;
             }
-
 
             await webView.CoreWebView2.ExecuteScriptAsync(script);
 
@@ -532,6 +639,9 @@ namespace ChatGPTExtension
                     case AIModelType.Claude:
                         addEventListenersScript = ClaudeConfiguration.Instance.GetAddEventListenersScript();
                         break;
+                    case AIModelType.Copilot:
+                        script = CopilotConfiguration.Instance.GetAddEventListenersScript();
+                        break;
                 }
 
                 await webView.ExecuteScriptAsync(addEventListenersScript);
@@ -565,6 +675,10 @@ namespace ChatGPTExtension
                     script = ClaudeConfiguration.Instance.GetSubmitPromptScript();
                     await webView.ExecuteScriptAsync(script);
                     break;
+                case AIModelType.Copilot:
+                    script = CopilotConfiguration.Instance.GetSubmitPromptScript();
+                    await webView.ExecuteScriptAsync(script);
+                    break;
             }
         }
 
@@ -579,6 +693,9 @@ namespace ChatGPTExtension
                     break;
                 case AIModelType.Claude:
                     script = ClaudeConfiguration.Instance.GetIsFileAttachedScript();
+                    break;
+                case AIModelType.Copilot:
+                    script = CopilotConfiguration.Instance.GetIsFileAttachedScript();
                     break;
                 case AIModelType.Gemini:
                     return false; // Gemini doesn't support file attachments
@@ -875,27 +992,39 @@ namespace ChatGPTExtension
             {
                 await _joinableTaskFactory.SwitchToMainThreadAsync();
 
-                if (_aiModelType == AIModelType.GPT)
+                switch (_aiModelType)
                 {
-                    webView.Source = new Uri(GPTConfiguration.CHAT_GPT_URL);
-                    await WaitForElementByIdAsync(GPTConfiguration.GPT_PROMPT_TEXT_AREA_ID);
-                }
-                if (_aiModelType == AIModelType.Gemini)
-                {
-                    webView.Source = new Uri(GeminiConfiguration.GEMINI_URL);
-                    await WaitForElementByClassAsync(GeminiConfiguration.GEMINI_PROMPT_CLASS);
-                }
-                if (_aiModelType == AIModelType.Claude)
-                {
-                    webView.Source = new Uri(ClaudeConfiguration.CLAUDE_URL);
-                    await WaitForElementByClassAsync(ClaudeConfiguration.CLAUDE_PROMPT_CLASS);
+                    case AIModelType.GPT:
+                        webView.Source = new Uri(GPTConfiguration.CHAT_GPT_URL);
+                        await WaitForElementByIdAsync(GPTConfiguration.GPT_PROMPT_TEXT_AREA_ID);
+                        break;
+                    case AIModelType.Gemini:
+                        webView.Source = new Uri(GeminiConfiguration.GEMINI_URL);
+                        await WaitForElementByClassAsync(GeminiConfiguration.GEMINI_PROMPT_CLASS);
+                        break;
+                    case AIModelType.Claude:
+                        webView.Source = new Uri(ClaudeConfiguration.CLAUDE_URL);
+                        await WaitForElementByClassAsync(ClaudeConfiguration.CLAUDE_PROMPT_CLASS);
+                        break;
+                    case AIModelType.Copilot:
+                        webView.Source = new Uri(CopilotConfiguration.COPILOT_ENTERPRISE_URL);
+                        await WaitForElementBySelectorAsync(CopilotConfiguration.COPILOT_PROMPT_SELECTOR);
+                        break;
                 }
 
                 await StartTimerAsync();
+
+                Debug.WriteLine($"Successfully reloaded {_aiModelType} interface");
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error in OnReloadAIItemClick(): {ex.Message}");
+                MessageBox.Show(
+                    $"Error reloading the AI interface: {ex.Message}",
+                    "Reload Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error
+                );
             }
         }
 
@@ -984,8 +1113,8 @@ namespace ChatGPTExtension
             // Add a separator line
             CodeActionsContextMenu.Items.Add(new Separator());
 
-            // Add Reload Chat GPT menu item
-            var reloadMenuItem = new MenuItem { Header = "Reload Chat GPT..." };
+            // Add Reload AI menu item
+            var reloadMenuItem = new MenuItem { Header = "Reload AI..." };
             reloadMenuItem.Click += OnReloadAIItemClick;
             CodeActionsContextMenu.Items.Add(reloadMenuItem);
 
@@ -994,84 +1123,74 @@ namespace ChatGPTExtension
             configureMenuItem.Click += ConfigureExtensionMenuItem_Click;
             CodeActionsContextMenu.Items.Add(configureMenuItem);
 
-            // Add another separator before the new options
+            // Add another separator before the AI options
             CodeActionsContextMenu.Items.Add(new Separator());
 
-            var useGeminiMenuItem = new MenuItem { Header = "Use Gemini", IsCheckable = true };
             var useGptMenuItem = new MenuItem { Header = "Use GPT", IsCheckable = true };
+            var useGeminiMenuItem = new MenuItem { Header = "Use Gemini", IsCheckable = true };
             var useClaudeMenuItem = new MenuItem { Header = "Use Claude", IsCheckable = true };
+            var useCopilotMenuItem = new MenuItem { Header = "Use Copilot Enterprise", IsCheckable = true };
 
-            // Configure "Use GPT" menu item
-            useGptMenuItem.Click += (sender, e) =>
-            {
-                _aiModelType = AIModelType.GPT;
-                useGptMenuItem.IsChecked = true;
-                useGeminiMenuItem.IsChecked = false;
-                useClaudeMenuItem.IsChecked = false;
-                reloadMenuItem.Header = "Reload Chat GPT...";
-                _parentToolWindow.Caption = "Chat GPT Extension";
-                UpdateButtonContentAndTooltip();
-                OnReloadAIItemClick(null, null);
-                SaveConfiguration();
-            };
+            // Configure menu items for each AI model
+            useGptMenuItem.Click += (sender, e) => SwitchAIModel(AIModelType.GPT, useGptMenuItem, new[] { useGeminiMenuItem, useClaudeMenuItem, useCopilotMenuItem }, reloadMenuItem, "Chat GPT");
+            useGeminiMenuItem.Click += (sender, e) => SwitchAIModel(AIModelType.Gemini, useGeminiMenuItem, new[] { useGptMenuItem, useClaudeMenuItem, useCopilotMenuItem }, reloadMenuItem, "Gemini");
+            useClaudeMenuItem.Click += (sender, e) => SwitchAIModel(AIModelType.Claude, useClaudeMenuItem, new[] { useGptMenuItem, useGeminiMenuItem, useCopilotMenuItem }, reloadMenuItem, "Claude");
+            useCopilotMenuItem.Click += (sender, e) => SwitchAIModel(AIModelType.Copilot, useCopilotMenuItem, new[] { useGptMenuItem, useGeminiMenuItem, useClaudeMenuItem }, reloadMenuItem, "Copilot");
+
             CodeActionsContextMenu.Items.Add(useGptMenuItem);
-
-            // Configure "Use Gemini" menu item
-            useGeminiMenuItem.Click += (sender, e) =>
-            {
-                _aiModelType = AIModelType.Gemini;
-                useGeminiMenuItem.IsChecked = true;
-                useGptMenuItem.IsChecked = false;
-                useClaudeMenuItem.IsChecked = false;
-                reloadMenuItem.Header = "Reload Gemini...";
-                _parentToolWindow.Caption = "Gemini Extension";
-                UpdateButtonContentAndTooltip();
-                OnReloadAIItemClick(null, null);
-                SaveConfiguration();
-            };
             CodeActionsContextMenu.Items.Add(useGeminiMenuItem);
-
-            // Configure "Use Claude" menu item
-            useClaudeMenuItem.Click += (sender, e) =>
-            {
-                _aiModelType = AIModelType.Claude;
-                useGeminiMenuItem.IsChecked = false;
-                useGptMenuItem.IsChecked = false;
-                useClaudeMenuItem.IsChecked = true;
-                reloadMenuItem.Header = "Reload Claude...";
-                _parentToolWindow.Caption = "Claude Extension";
-                UpdateButtonContentAndTooltip();
-                OnReloadAIItemClick(null, null);
-                SaveConfiguration();
-            };
             CodeActionsContextMenu.Items.Add(useClaudeMenuItem);
+            CodeActionsContextMenu.Items.Add(useCopilotMenuItem);
 
-            // Set the initial state based on _gptConfigured
+            // Set initial states
             useGptMenuItem.IsChecked = (_aiModelType == AIModelType.GPT);
             useGeminiMenuItem.IsChecked = (_aiModelType == AIModelType.Gemini);
             useClaudeMenuItem.IsChecked = (_aiModelType == AIModelType.Claude);
+            useCopilotMenuItem.IsChecked = (_aiModelType == AIModelType.Copilot);
 
-            // Set all the user interface according to the AI model selected
-            if (_aiModelType == AIModelType.GPT)
-            {
-                reloadMenuItem.Header = "Reload Chat GPT...";
-                _parentToolWindow.Caption = "Chat GPT Extension";
-                UpdateButtonContentAndTooltip();
-            }
-            if (_aiModelType == AIModelType.Gemini)
-            {
-                reloadMenuItem.Header = "Reload Gemini...";
-                _parentToolWindow.Caption = "Gemini Extension";
-                UpdateButtonContentAndTooltip();
-            }
-            if (_aiModelType == AIModelType.Claude)
-            {
-                reloadMenuItem.Header = "Reload Claude...";
-                _parentToolWindow.Caption = "Claude Extension";
-                UpdateButtonContentAndTooltip();
-            }
+            // Update UI based on current AI model
+            UpdateUIForCurrentModel(reloadMenuItem);
 
             StopTimer();
+        }
+
+        private void SwitchAIModel(AIModelType newModel, MenuItem activeItem, MenuItem[] otherItems, MenuItem reloadMenuItem, string modelName)
+        {
+            _aiModelType = newModel;
+            activeItem.IsChecked = true;
+            foreach (var item in otherItems)
+            {
+                item.IsChecked = false;
+            }
+            reloadMenuItem.Header = $"Reload {modelName}...";
+            _parentToolWindow.Caption = $"{modelName} Extension";
+            UpdateButtonContentAndTooltip();
+            OnReloadAIItemClick(null, null);
+            SaveConfiguration();
+        }
+
+        private void UpdateUIForCurrentModel(MenuItem reloadMenuItem)
+        {
+            switch (_aiModelType)
+            {
+                case AIModelType.GPT:
+                    reloadMenuItem.Header = "Reload Chat GPT...";
+                    _parentToolWindow.Caption = "Chat GPT Extension";
+                    break;
+                case AIModelType.Gemini:
+                    reloadMenuItem.Header = "Reload Gemini...";
+                    _parentToolWindow.Caption = "Gemini Extension";
+                    break;
+                case AIModelType.Claude:
+                    reloadMenuItem.Header = "Reload Claude...";
+                    _parentToolWindow.Caption = "Claude Extension";
+                    break;
+                case AIModelType.Copilot:
+                    reloadMenuItem.Header = "Reload Copilot...";
+                    _parentToolWindow.Caption = "Copilot Extension";
+                    break;
+            }
+            UpdateButtonContentAndTooltip();
         }
 
         private void UpdateButtonContentAndTooltip()
