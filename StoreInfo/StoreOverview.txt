@@ -79,6 +79,9 @@ Also integrates with **Anthropic Claude AI** Opus, Sonnet and FREE Haiku.
 
 ## What's New
 
+- 5.4 - Fix user reported issue: Random pasting of clipboard contents into code when using ChatGPT #3<br>
+Fix issues sending code with HTML tags to AI models
+
 - 5.3 - Huge refactor for maintainability, no new functionalities. Full regression test completed.
 
 - 5.2 - Support for GPT Canvas copy code button

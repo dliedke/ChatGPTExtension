@@ -52,9 +52,15 @@ public class ClaudeConfiguration
 
     public string GetSetPromptScript(string promptText)
     {
-        var escapedCode = JsonConvert.SerializeObject(promptText)
+        // First encode the HTML characters
+        var htmlEncoded = System.Net.WebUtility.HtmlEncode(promptText);
+
+        // Then do the JSON serialization and other processing
+        var escapedCode = JsonConvert.SerializeObject(htmlEncoded)
             .Trim('"')
             .Replace("'", "\\'")
+            .Replace("<", "&lt;")
+            .Replace(">", "&gt;")
             .Split(new[] { "\\r\\n", "\\n" }, StringSplitOptions.None)
             .Select(line => $"<p>{line}</p>")
             .Aggregate((current, next) => current + next);

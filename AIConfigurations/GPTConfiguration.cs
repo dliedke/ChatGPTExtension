@@ -47,13 +47,17 @@ public class GPTConfiguration
     // Constants
     public const string CHAT_GPT_URL = "https://chatgpt.com/";
     public const string GPT_PROMPT_TEXT_AREA_ID = "prompt-textarea";
-    public const string GPT_COPY_CODE_BUTTON_SELECTOR = "button.flex.gap-1.items-center";
+    public const string GPT_COPY_CODE_BUTTON_SELECTOR = "button.flex.gap-1.items-center.select-none.py-1";
     public const string GPT_COPY_CODE_BUTTON_ICON_SELECTOR = "button.flex.gap-1.items-center svg.icon-sm";
     public const string GPT_CANVAS_COPY_BUTTON_SELECTOR = "button.h-10.rounded-lg.px-2.text-token-text-secondary";
-    
+
     public string GetSetPromptScript(string promptText)
     {
-        var escapedPrompt = JsonConvert.SerializeObject(promptText)
+        // First encode the HTML characters
+        var htmlEncoded = System.Net.WebUtility.HtmlEncode(promptText);
+
+        // Then do the JSON serialization and other processing
+        var escapedPrompt = JsonConvert.SerializeObject(htmlEncoded)
             .Trim('"')
             .Replace("'", "\\'")
             .Split(new[] { "\\r\\n", "\\n" }, StringSplitOptions.None)

@@ -65,9 +65,8 @@ namespace ChatGPTExtension
 
             InitializeComponent();
 
-#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-            InitializeAsync();
-#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+            // Add Loaded event handler to WebView
+            webView.Loaded += WebView_Loaded;
 
             _aiModelType = LoadConfiguration();
             LoadContextMenuActions();
@@ -85,6 +84,25 @@ namespace ChatGPTExtension
             _updateTimer.Interval = TimeSpan.FromMilliseconds(500);
             _updateTimer.Tick += UpdateTimer_Tick;
             _updateTimer.Start();
+        }
+
+#pragma warning disable VSTHRD100 // Avoid async void methods
+        private async void WebView_Loaded(object sender, RoutedEventArgs e)
+#pragma warning restore VSTHRD100 // Avoid async void methods
+        {
+            try
+            {
+                webView.Loaded -= WebView_Loaded; // Remove handler to prevent multiple initializations
+                await InitializeAsync();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error in WebView_Loaded: {ex.Message}");
+                MessageBox.Show($"Failed to initialize WebView2. Error: {ex.Message}\n\nPlease ensure WebView2 Runtime is installed and try restarting Visual Studio.",
+                    "WebView2 Initialization Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
         }
 
 
@@ -111,7 +129,7 @@ namespace ChatGPTExtension
 
                 CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(edgeWebView2Path, userDataPath);
                 await webView.EnsureCoreWebView2Async(environment);
-
+                
                 switch (_aiModelType)
                 {
                     case AIModelType.GPT:

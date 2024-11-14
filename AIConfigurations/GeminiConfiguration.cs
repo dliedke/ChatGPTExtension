@@ -51,7 +51,17 @@ public class GeminiConfiguration
       
     public string GetSetPromptScript(string promptText)
     {
-        var lines = promptText.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+        // First encode the HTML characters
+        var htmlEncoded = System.Net.WebUtility.HtmlEncode(promptText);
+
+        // Then do the other processing and JSON serialization
+        htmlEncoded = htmlEncoded
+               .Trim('"')
+               .Replace("'", "\\'")
+               .Replace("<", "&lt;")
+               .Replace(">", "&gt;");
+
+        var lines = htmlEncoded.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
         var codeHtml = string.Join("", lines.Select(line => $"<p>{line}</p>"));
         var codeHtmlJson = JsonConvert.SerializeObject(codeHtml);
 
