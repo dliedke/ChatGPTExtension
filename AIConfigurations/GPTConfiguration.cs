@@ -49,7 +49,7 @@ public class GPTConfiguration
     public const string GPT_PROMPT_TEXT_AREA_ID = "prompt-textarea";
     public const string GPT_COPY_CODE_BUTTON_SELECTOR = "button.flex.gap-1.items-center.select-none.py-1";
     public const string GPT_COPY_CODE_BUTTON_ICON_SELECTOR = "button.flex.gap-1.items-center svg.icon-sm";
-    public const string GPT_CANVAS_COPY_BUTTON_SELECTOR = "button.h-10.rounded-lg.px-2.text-token-text-secondary";
+    public const string GPT_CANVAS_COPY_BUTTON_SELECTOR = "div.flex.items-center.rounded.bg-token-sidebar-surface-primary button.flex.gap-1.items-center.select-none.py-1";
 
     public string GetSetPromptScript(string promptText)
     {
