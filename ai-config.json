@@ -1,6 +1,6 @@
 {
   "GPT": {
-    "Url": "https://chatgpt.com/",
+    "Url": "https://chat2gpt.com/",
     "PromptTextAreaId": "prompt-textarea",
     "CopyCodeButtonSelector": "button.flex.gap-1.items-center.select-none.py-1",
     "CopyCodeButtonIconSelector": "button.flex.gap-1.items-center svg.icon-sm",
