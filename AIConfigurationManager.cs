@@ -146,11 +146,13 @@ namespace ChatGPTExtension
             {
                 try
                 {
+                    // Try to load from cache first
+                    var cachedConfig = LoadFromCache();
+
                     // Check if we need to refresh the cache
-                    if (_currentConfig == null || ShouldRefreshCache())
+                    if (_currentConfig == null || ShouldRefreshCache(cachedConfig.LastUpdated))
                     {
-                        // Try to load from cache first
-                        var cachedConfig = LoadFromCache();
+                        // Get config from cache if it is still valid
                         if (cachedConfig != null && !ShouldRefreshCache(cachedConfig.LastUpdated))
                         {
                             _currentConfig = cachedConfig;
