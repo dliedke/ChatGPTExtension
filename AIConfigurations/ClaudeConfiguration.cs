@@ -15,58 +15,61 @@ using System.Linq;
 
 using Newtonsoft.Json;
 
-public class ClaudeConfiguration
+namespace ChatGPTExtension
 {
-    #region Singleton
 
-    private static ClaudeConfiguration _instance;
-    private static readonly object _lock = new object();
-
-    public static ClaudeConfiguration Instance
+    public class ClaudeConfiguration
     {
-        get
+        #region Singleton
+
+        private static ClaudeConfiguration _instance;
+        private static readonly object _lock = new object();
+
+        public static ClaudeConfiguration Instance
         {
-            if (_instance == null)
+            get
             {
-                lock (_lock)
+                if (_instance == null)
                 {
-                    if (_instance == null)
+                    lock (_lock)
                     {
-                        _instance = new ClaudeConfiguration();
+                        if (_instance == null)
+                        {
+                            _instance = new ClaudeConfiguration();
+                        }
                     }
                 }
+                return _instance;
             }
-            return _instance;
         }
-    }
 
-    private ClaudeConfiguration() { }
+        private ClaudeConfiguration() { }
 
-    #endregion
+        #endregion
 
-    // Constants
-    public const string CLAUDE_URL = "https://claude.ai/chats";
-    public const string CLAUDE_PROMPT_CLASS = "ProseMirror";
-    public const string CLAUDE_COPY_CODE_BUTTON_TEXT = "Copy";
-    private const string CLAUDE_PROJECT_COPY_CODE_BUTTON_SELECTOR = "button.inline-flex[data-state=\"closed\"] svg path[d=\"M200,32H163.74a47.92,47.92,0,0,0-71.48,0H56A16,16,0,0,0,40,48V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V48A16,16,0,0,0,200,32Zm-72,0a32,32,0,0,1,32,32H96A32,32,0,0,1,128,32Zm72,184H56V48H82.75A47.93,47.93,0,0,0,80,64v8a8,8,0,0,0,8,8h80a8,8,0,0,0,8-8V64a47.93,47.93,0,0,0-2.75-16H200Z\"]";
+        // Constants
+        public const string CLAUDE_URL = "https://claude.ai/chats";
+        public const string CLAUDE_PROMPT_CLASS = "ProseMirror";
+        public const string CLAUDE_COPY_CODE_BUTTON_TEXT = "Copy";
+        public const string CLAUDE_PROJECT_COPY_CODE_BUTTON_SELECTOR = "button.inline-flex[data-state=\"closed\"] svg path[d=\"M200,32H163.74a47.92,47.92,0,0,0-71.48,0H56A16,16,0,0,0,40,48V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V48A16,16,0,0,0,200,32Zm-72,0a32,32,0,0,1,32,32H96A32,32,0,0,1,128,32Zm72,184H56V48H82.75A47.93,47.93,0,0,0,80,64v8a8,8,0,0,0,8,8h80a8,8,0,0,0,8-8V64a47.93,47.93,0,0,0-2.75-16H200Z\"]";
 
-    public string GetSetPromptScript(string promptText)
-    {
-        // First encode the HTML characters
-        var htmlEncoded = System.Net.WebUtility.HtmlEncode(promptText);
+        public string GetSetPromptScript(string promptText)
+        {
+            // First encode the HTML characters
+            var htmlEncoded = System.Net.WebUtility.HtmlEncode(promptText);
 
-        // Then do the JSON serialization and other processing
-        var escapedCode = JsonConvert.SerializeObject(htmlEncoded)
-            .Trim('"')
-            .Replace("'", "\\'")
-            .Replace("<", "&lt;")
-            .Replace(">", "&gt;")
-            .Split(new[] { "\\r\\n", "\\n" }, StringSplitOptions.None)
-            .Select(line => $"<p>{line}</p>")
-            .Aggregate((current, next) => current + next);
+            // Then do the JSON serialization and other processing
+            var escapedCode = JsonConvert.SerializeObject(htmlEncoded)
+                .Trim('"')
+                .Replace("'", "\\'")
+                .Replace("<", "&lt;")
+                .Replace(">", "&gt;")
+                .Split(new[] { "\\r\\n", "\\n" }, StringSplitOptions.None)
+                .Select(line => $"<p>{line}</p>")
+                .Aggregate((current, next) => current + next);
 
-        return $@"
-                var element = document.querySelector('.{CLAUDE_PROMPT_CLASS}');
+            return $@"
+                var element = document.querySelector('.{AIConfiguration.ClaudePromptClass}');
                 var existingHtml = element.innerHTML;
                 var newContent = existingHtml + (existingHtml && existingHtml.trim() ? '<p><br></p>' : '') + '{escapedCode}';
                 element.innerHTML = newContent;
@@ -75,23 +78,23 @@ public class ClaudeConfiguration
                     'cancelable': true
                 }});
                 element.dispatchEvent(inputEvent);";
-    }
+        }
 
-    public string GetSubmitPromptScript()
-    {
-        return @"
+        public string GetSubmitPromptScript()
+        {
+            return @"
         document.querySelector('[aria-label=""Send Message""]').click();
         document.querySelector('button.w-full.flex.items-center.bg-bg-200').click();";
-    }
+        }
 
-    public string GetAttachFileScript()
-    {
-        return @"document.querySelector('input[data-testid=""file-upload""]')?.click();";
-    }
+        public string GetAttachFileScript()
+        {
+            return @"document.querySelector('input[data-testid=""file-upload""]')?.click();";
+        }
 
-    public string GetIsFileAttachedScript()
-    {
-        return @"
+        public string GetIsFileAttachedScript()
+        {
+            return @"
         var result = 'notfound';
         var divs = document.querySelectorAll('div[data-testid]');
         for (var i = 0; i < divs.length; i++) {
@@ -101,11 +104,11 @@ public class ClaudeConfiguration
             }
         }
         result;";
-    }
+        }
 
-    public string GetAddEventListenersScript()
-    {
-        return $@"
+        public string GetAddEventListenersScript()
+        {
+            return $@"
         function addClickListener(button, message)
         {{
             if (!button.hasAttribute('data-listener-added'))
@@ -120,7 +123,7 @@ public class ClaudeConfiguration
         var allButtons = Array.from(document.querySelectorAll('button'));
         var copyCodeButtons = allButtons.filter(function(button) {{
             var spanElement = button.querySelector('span');
-            return spanElement && spanElement.textContent.trim() === '{CLAUDE_COPY_CODE_BUTTON_TEXT}';
+            return spanElement && spanElement.textContent.trim() === '{AIConfiguration.ClaudeCopyCodeButtonText}';
         }});
 
         copyCodeButtons.forEach(function(button) {{
@@ -133,7 +136,7 @@ public class ClaudeConfiguration
             addClickListener(newButton, 'CopyCodeButtonClicked');
         }}
 
-        var newButtonSvg = document.querySelector('{CLAUDE_PROJECT_COPY_CODE_BUTTON_SELECTOR}');
+        var newButtonSvg = document.querySelector('{AIConfiguration.ClaudeProjectCopyCodeButtonSelector.Replace("\\", "\\\\").Replace("'", "\\'")}');
         if (newButtonSvg)
         {{
             var newButton = newButtonSvg.closest('button');
@@ -142,14 +145,14 @@ public class ClaudeConfiguration
                 addClickListener(newButton, 'CopyCodeButtonClicked');
             }}
         }}";
-    }
+        }
 
 
-    public string GetHomeEndKeyScript(string key, bool shiftPressed)
-    {
-        return $@"
+        public string GetHomeEndKeyScript(string key, bool shiftPressed)
+        {
+            return $@"
         (function() {{
-            var editor = document.querySelector('.{CLAUDE_PROMPT_CLASS}');
+            var editor = document.querySelector('.{AIConfiguration.ClaudePromptClass}');
             var selection = window.getSelection();
             if (selection.rangeCount > 0) {{
                 var range = selection.getRangeAt(0);
@@ -211,6 +214,6 @@ public class ClaudeConfiguration
                 selection.addRange(range);
             }}
         }})();";
+        }
     }
-
 }

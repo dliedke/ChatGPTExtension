@@ -74,7 +74,6 @@ namespace ChatGPTExtension
 
             AddMinimizeRestoreMenuItem();
 
-
             // Initialize WindowHelper
             var dte = serviceProvider.GetService(typeof(DTE)) as DTE2;
             _windowHelper = new WindowHelper(dte);
@@ -105,12 +104,26 @@ namespace ChatGPTExtension
             }
         }
 
+        public async Task InitializeConfigurationAsync()
+        {
+            try
+            {
+                await AIConfiguration.AIConfigurationManager.Instance.InitializeAsync();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error initializing configuration: {ex.Message}");
+            }
+        }
 
         private async Task InitializeAsync()
         {
             try
             {
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+                // Initialize the configuration first
+                await InitializeConfigurationAsync();
 
                 _dte = Package.GetGlobalService(typeof(DTE)) as DTE2;
                 if (_dte != null)
@@ -129,20 +142,20 @@ namespace ChatGPTExtension
 
                 CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(edgeWebView2Path, userDataPath);
                 await webView.EnsureCoreWebView2Async(environment);
-                
+
                 switch (_aiModelType)
                 {
                     case AIModelType.GPT:
-                        webView.Source = new Uri(GPTConfiguration.CHAT_GPT_URL);
-                        await WaitForElementByIdAsync(GPTConfiguration.GPT_PROMPT_TEXT_AREA_ID);
+                        webView.Source = new Uri(AIConfiguration.GPTUrl);
+                        await WaitForElementByIdAsync(AIConfiguration.GPTPromptTextAreaId);
                         break;
                     case AIModelType.Gemini:
-                        webView.Source = new Uri(GeminiConfiguration.GEMINI_URL);
-                        await WaitForElementByClassAsync(GeminiConfiguration.GEMINI_PROMPT_CLASS);
+                        webView.Source = new Uri(AIConfiguration.GeminiUrl);
+                        await WaitForElementByClassAsync(AIConfiguration.GeminiPromptClass);
                         break;
                     case AIModelType.Claude:
-                        webView.Source = new Uri(ClaudeConfiguration.CLAUDE_URL);
-                        await WaitForElementByClassAsync(ClaudeConfiguration.CLAUDE_PROMPT_CLASS);
+                        webView.Source = new Uri(AIConfiguration.ClaudeUrl);
+                        await WaitForElementByClassAsync(AIConfiguration.ClaudePromptClass);
                         break;
                 }
 
@@ -895,18 +908,18 @@ namespace ChatGPTExtension
 
                 if (_aiModelType == AIModelType.GPT)
                 {
-                    webView.Source = new Uri(GPTConfiguration.CHAT_GPT_URL);
-                    await WaitForElementByIdAsync(GPTConfiguration.GPT_PROMPT_TEXT_AREA_ID);
+                    webView.Source = new Uri(AIConfiguration.GPTUrl);
+                    await WaitForElementByIdAsync(AIConfiguration.GPTPromptTextAreaId);
                 }
                 if (_aiModelType == AIModelType.Gemini)
                 {
-                    webView.Source = new Uri(GeminiConfiguration.GEMINI_URL);
-                    await WaitForElementByClassAsync(GeminiConfiguration.GEMINI_PROMPT_CLASS);
+                    webView.Source = new Uri(AIConfiguration.GeminiUrl);
+                    await WaitForElementByClassAsync(AIConfiguration.GeminiPromptClass);
                 }
                 if (_aiModelType == AIModelType.Claude)
                 {
-                    webView.Source = new Uri(ClaudeConfiguration.CLAUDE_URL);
-                    await WaitForElementByClassAsync(ClaudeConfiguration.CLAUDE_PROMPT_CLASS);
+                    webView.Source = new Uri(AIConfiguration.ClaudeUrl);
+                    await WaitForElementByClassAsync(AIConfiguration.ClaudePromptClass);
                 }
 
                 await StartTimerAsync();

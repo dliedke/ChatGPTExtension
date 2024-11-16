@@ -46,6 +46,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="ActionItem.cs" />
+    <None Include="ai-config.json" />
+    <Compile Include="AIConfigurationManager.cs" />
     <Compile Include="ChatGPTToolWindow.cs" />
     <Compile Include="ChatGPTWindowCommand.cs" />
     <Compile Include="ChatGPTWindowControl.xaml.cs">

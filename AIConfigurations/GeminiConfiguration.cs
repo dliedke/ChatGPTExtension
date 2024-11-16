@@ -15,57 +15,60 @@ using System.Linq;
 
 using Newtonsoft.Json;
 
-public class GeminiConfiguration
+namespace ChatGPTExtension
 {
-    #region Singleton
 
-    private static GeminiConfiguration _instance;
-    private static readonly object _lock = new object();
-
-    public static GeminiConfiguration Instance
+    public class GeminiConfiguration
     {
-        get
+        #region Singleton
+
+        private static GeminiConfiguration _instance;
+        private static readonly object _lock = new object();
+
+        public static GeminiConfiguration Instance
         {
-            if (_instance == null)
+            get
             {
-                lock (_lock)
+                if (_instance == null)
                 {
-                    if (_instance == null)
+                    lock (_lock)
                     {
-                        _instance = new GeminiConfiguration();
+                        if (_instance == null)
+                        {
+                            _instance = new GeminiConfiguration();
+                        }
                     }
                 }
+                return _instance;
             }
-            return _instance;
         }
-    }
 
-    private GeminiConfiguration() { }
+        private GeminiConfiguration() { }
 
-    #endregion
+        #endregion
 
-    // Constants
-    public const string GEMINI_URL = "https://gemini.google.com";
-    public const string GEMINI_PROMPT_CLASS = "ql-editor";
-    public const string GEMINI_COPY_CODE_BUTTON_CLASS = "copy-button";
-      
-    public string GetSetPromptScript(string promptText)
-    {
-        // First encode the HTML characters
-        var htmlEncoded = System.Net.WebUtility.HtmlEncode(promptText);
+        // Constants
+        public const string GEMINI_URL = "https://gemini.google.com";
+        public const string GEMINI_PROMPT_CLASS = "ql-editor";
+        public const string GEMINI_COPY_CODE_BUTTON_CLASS = "copy-button";
 
-        // Then do the other processing and JSON serialization
-        htmlEncoded = htmlEncoded
-               .Trim('"')
-               .Replace("'", "\\'")
-               .Replace("<", "&lt;")
-               .Replace(">", "&gt;");
+        public string GetSetPromptScript(string promptText)
+        {
+            // First encode the HTML characters
+            var htmlEncoded = System.Net.WebUtility.HtmlEncode(promptText);
 
-        var lines = htmlEncoded.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
-        var codeHtml = string.Join("", lines.Select(line => $"<p>{line}</p>"));
-        var codeHtmlJson = JsonConvert.SerializeObject(codeHtml);
+            // Then do the other processing and JSON serialization
+            htmlEncoded = htmlEncoded
+                   .Trim('"')
+                   .Replace("'", "\\'")
+                   .Replace("<", "&lt;")
+                   .Replace(">", "&gt;");
 
-        return $@"
+            var lines = htmlEncoded.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+            var codeHtml = string.Join("", lines.Select(line => $"<p>{line}</p>"));
+            var codeHtmlJson = JsonConvert.SerializeObject(codeHtml);
+
+            return $@"
                 (function() {{
                     if (!window.myTrustedTypesPolicy) {{
                         window.myTrustedTypesPolicy = trustedTypes.createPolicy('default', {{
@@ -73,7 +76,7 @@ public class GeminiConfiguration
                         }});
                     }}
                     const trustedHTML = window.myTrustedTypesPolicy.createHTML({codeHtmlJson});
-                    var element = document.querySelector('.{GEMINI_PROMPT_CLASS}');
+                    var element = document.querySelector('.{AIConfiguration.GeminiPromptClass}');
                     var existingHtml = element.innerHTML;
                     var newContent = existingHtml + (existingHtml && existingHtml.trim() ? '<p><br></p>' : '') + trustedHTML;
                     element.innerHTML = newContent;
@@ -83,23 +86,23 @@ public class GeminiConfiguration
                     }});
                     element.dispatchEvent(inputEvent);
                 }})();";
-    }
+        }
 
-    public string GetSubmitPromptScript()
-    {
-        return @"
+        public string GetSubmitPromptScript()
+        {
+            return @"
         var sendButton = document.querySelector('button.send-button[mat-icon-button]');
         if (sendButton) {
             sendButton.click();
         } else {
             console.error('Send button not found');
         }";
-    }
+        }
 
-    public string GetAddEventListenersScript()
-    {
-        return $@"
-        var allButtons = Array.from(document.getElementsByClassName('{GEMINI_COPY_CODE_BUTTON_CLASS}'));
+        public string GetAddEventListenersScript()
+        {
+            return $@"
+        var allButtons = Array.from(document.getElementsByClassName('{AIConfiguration.GeminiCopyCodeButtonClass}'));
         var targetButtons = allButtons.filter(function(button) {{
             return !button.hasAttribute('data-listener-added');
         }});
@@ -110,15 +113,15 @@ public class GeminiConfiguration
             }});
             button.setAttribute('data-listener-added', 'true');
         }});";
-    }
+        }
 
-    public string GetReceiveCodeScript(string selectedCode)
-    {
-        var lines = selectedCode.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
-        var codeHtml = string.Join("", lines.Select(line => $"<p>{line}</p>"));
-        var codeHtmlJson = JsonConvert.SerializeObject(codeHtml);
+        public string GetReceiveCodeScript(string selectedCode)
+        {
+            var lines = selectedCode.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+            var codeHtml = string.Join("", lines.Select(line => $"<p>{line}</p>"));
+            var codeHtmlJson = JsonConvert.SerializeObject(codeHtml);
 
-        return $@"
+            return $@"
         (function() {{
             if (!window.myTrustedTypesPolicy) {{
                 window.myTrustedTypesPolicy = trustedTypes.createPolicy('default', {{
@@ -126,7 +129,7 @@ public class GeminiConfiguration
                 }});
             }}
             const trustedHTML = window.myTrustedTypesPolicy.createHTML({codeHtmlJson});
-            var element = document.querySelector('.{GEMINI_PROMPT_CLASS}');
+            var element = document.querySelector('.{AIConfiguration.GeminiPromptClass}');
             element.innerHTML = element.innerHTML + trustedHTML;
             var inputEvent = new Event('input', {{
                 'bubbles': true,
@@ -134,11 +137,11 @@ public class GeminiConfiguration
             }});
             element.dispatchEvent(inputEvent);
         }})();";
-    }
+        }
 
-    public string GetHomeEndKeyScript(string key, bool shiftPressed)
-    {
-        return $@"
+        public string GetHomeEndKeyScript(string key, bool shiftPressed)
+        {
+            return $@"
         (function() {{
             var editor = document.querySelector('.{GEMINI_PROMPT_CLASS}');
             var selection = window.getSelection();
@@ -201,6 +204,6 @@ public class GeminiConfiguration
                 selection.addRange(range);
             }}
         }})();";
+        }
     }
-
 }
