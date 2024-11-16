@@ -146,19 +146,9 @@ namespace ChatGPTExtension
             {
                 try
                 {
-                    // Try to load from cache first
-                    var cachedConfig = LoadFromCache();
-
-                    // Check if we need to refresh the cache
-                    if (_currentConfig == null || ShouldRefreshCache(cachedConfig.LastUpdated))
+                    // We don't have a local file cache, get it from GitHub and save it
+                    if (!File.Exists(LOCAL_CACHE_PATH))
                     {
-                        // Get config from cache if it is still valid
-                        if (cachedConfig != null && !ShouldRefreshCache(cachedConfig.LastUpdated))
-                        {
-                            _currentConfig = cachedConfig;
-                            return _currentConfig;
-                        }
-
                         // Try to fetch from GitHub
                         var githubConfig = await FetchFromGitHubAsync();
                         if (githubConfig != null)
@@ -166,6 +156,31 @@ namespace ChatGPTExtension
                             _currentConfig = githubConfig;
                             SaveToCache(_currentConfig);
                             return _currentConfig;
+                        }
+                    }
+                    else
+                    {
+                        // Load config from file cache
+                        var cachedConfig = LoadFromCache();
+
+                        // Use config from cache if it is still valid
+                        if (cachedConfig != null && !ShouldRefreshCache(cachedConfig?.LastUpdated))
+                        {
+                            _currentConfig = cachedConfig;
+                            return _currentConfig;
+                        }
+
+                        // Check if we need to refresh the cache
+                        if (ShouldRefreshCache(cachedConfig?.LastUpdated))
+                        {
+                            // Try to fetch from GitHub
+                            var githubConfig = await FetchFromGitHubAsync();
+                            if (githubConfig != null)
+                            {
+                                _currentConfig = githubConfig;
+                                SaveToCache(_currentConfig);
+                                return _currentConfig;
+                            }
                         }
                     }
 
@@ -184,6 +199,12 @@ namespace ChatGPTExtension
                 if (!File.Exists(LOCAL_CACHE_PATH))
                 {
                     return true;  // First time installation, should refresh cache
+                }
+
+                // No date provided, should refresh cache
+                if (lastUpdated == null)
+                {
+                    return true;
                 }
 
                 // Use provided lastUpdated or get it from current config

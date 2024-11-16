@@ -79,6 +79,8 @@ Also integrates with **Anthropic Claude AI** Opus, Sonnet and FREE Haiku.
 
 ## What's New
 
+- 5.7 - Fix selectors local cache issues
+
 - 5.6 - Javascript selectors now in config file with 24h cache sync with github project. Also fixed selector for copy code button for GPT-4o Canvas
 
 - 5.5 - Fix user reported issue: Random pasting of clipboard contents into code when using ChatGPT #3 for other scenarios<br>
