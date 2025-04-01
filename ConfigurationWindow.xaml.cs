@@ -3,7 +3,7 @@
  * 
  * Autor:  Daniel Liedke
  * 
- * Copyright © Daniel Liedke 2024
+ * Copyright © Daniel Liedke 2025
  * Usage and reproduction in any manner whatsoever without the written permission of Daniel Liedke is strictly forbidden.
  *  
  * Purpose: User control to configure custom actions for GPT
