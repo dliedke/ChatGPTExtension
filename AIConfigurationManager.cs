@@ -11,6 +11,8 @@ namespace ChatGPTExtension
         public GPTSettings GPT { get; set; }
         public GeminiSettings Gemini { get; set; }
         public ClaudeSettings Claude { get; set; }
+        public DeepSeekSettings DeepSeek { get; set; }
+
         public DateTime LastUpdated { get; set; }
 
         // Static holders for current configuration
@@ -29,6 +31,14 @@ namespace ChatGPTExtension
         private static string _claudeCopyCodeButtonText = ClaudeConfiguration.CLAUDE_COPY_CODE_BUTTON_TEXT;
         private static string _claudeProjectCopyCodeButtonSelector = ClaudeConfiguration.CLAUDE_PROJECT_COPY_CODE_BUTTON_SELECTOR;
 
+        private static string _deepSeekUrl = DeepSeekConfiguration.DEEPSEEK_URL;
+        private static string _deepSeekPromptId = DeepSeekConfiguration.DEEPSEEK_PROMPT_ID;
+        private static string _deepSeekPromptClass = DeepSeekConfiguration.DEEPSEEK_PROMPT_CLASS;
+        private static string _deepSeekCopyCodeButtonClass = DeepSeekConfiguration.DEEPSEEK_COPY_CODE_BUTTON_CLASS;
+        private static string _deepSeekSendButtonSelector = DeepSeekConfiguration.DEEPSEEK_SEND_BUTTON_SELECTOR;
+        private static string _deepSeekAttachFileSelector = DeepSeekConfiguration.DEEPSEEK_ATTACH_FILE_SELECTOR;
+
+
         // Public static getters
         public static string GPTUrl => _gptUrl;
         public static string GPTPromptTextAreaId => _gptPromptTextAreaId;
@@ -44,6 +54,15 @@ namespace ChatGPTExtension
         public static string ClaudePromptClass => _claudePromptClass;
         public static string ClaudeCopyCodeButtonText => _claudeCopyCodeButtonText;
         public static string ClaudeProjectCopyCodeButtonSelector => _claudeProjectCopyCodeButtonSelector;
+
+        // Public static getters
+        public static string DeepSeekUrl => _deepSeekUrl;
+        public static string DeepSeekPromptId => _deepSeekPromptId;
+        public static string DeepSeekPromptClass => _deepSeekPromptClass;
+        public static string DeepSeekCopyCodeButtonClass => _deepSeekCopyCodeButtonClass;
+        public static string DeepSeekSendButtonSelector => _deepSeekSendButtonSelector;
+        public static string DeepSeekAttachFileSelector => _deepSeekAttachFileSelector;
+
 
         // Method to update static values from current configuration
         internal void UpdateStaticValues()
@@ -71,6 +90,16 @@ namespace ChatGPTExtension
                 _claudeCopyCodeButtonText = Claude.CopyCodeButtonText ?? _claudeCopyCodeButtonText;
                 _claudeProjectCopyCodeButtonSelector = Claude.ProjectCopyCodeButtonSelector ?? _claudeProjectCopyCodeButtonSelector;
             }
+
+            if (DeepSeek != null)
+            {
+                _deepSeekUrl = DeepSeek.Url ?? _deepSeekUrl;
+                _deepSeekPromptId = DeepSeek.PromptId ?? _deepSeekPromptId;
+                _deepSeekPromptClass = DeepSeek.PromptClass ?? _deepSeekPromptClass;
+                _deepSeekCopyCodeButtonClass = DeepSeek.CopyCodeButtonClass ?? _deepSeekCopyCodeButtonClass;
+                _deepSeekSendButtonSelector = DeepSeek.SendButtonSelector ?? _deepSeekSendButtonSelector;
+                _deepSeekAttachFileSelector = DeepSeek.AttachFileSelector ?? _deepSeekAttachFileSelector;
+            }
         }
 
         public class GPTSettings
@@ -95,6 +124,16 @@ namespace ChatGPTExtension
             public string PromptClass { get; set; }
             public string CopyCodeButtonText { get; set; }
             public string ProjectCopyCodeButtonSelector { get; set; }
+        }
+
+        public class DeepSeekSettings
+        {
+            public string Url { get; set; }
+            public string PromptId { get; set; }
+            public string PromptClass { get; set; }
+            public string CopyCodeButtonClass { get; set; }
+            public string SendButtonSelector { get; set; }
+            public string AttachFileSelector { get; set; }
         }
 
         public class AIConfigurationManager
@@ -295,6 +334,15 @@ namespace ChatGPTExtension
                         PromptClass = ClaudeConfiguration.CLAUDE_PROMPT_CLASS,
                         CopyCodeButtonText = ClaudeConfiguration.CLAUDE_COPY_CODE_BUTTON_TEXT,
                         ProjectCopyCodeButtonSelector = ClaudeConfiguration.CLAUDE_PROJECT_COPY_CODE_BUTTON_SELECTOR
+                    },
+                    DeepSeek = new DeepSeekSettings
+                    {
+                        Url = DeepSeekConfiguration.DEEPSEEK_URL,
+                        PromptId = DeepSeekConfiguration.DEEPSEEK_PROMPT_ID,
+                        PromptClass = DeepSeekConfiguration.DEEPSEEK_PROMPT_CLASS,
+                        CopyCodeButtonClass = DeepSeekConfiguration.DEEPSEEK_COPY_CODE_BUTTON_CLASS,
+                        SendButtonSelector = DeepSeekConfiguration.DEEPSEEK_SEND_BUTTON_SELECTOR,
+                        AttachFileSelector = DeepSeekConfiguration.DEEPSEEK_ATTACH_FILE_SELECTOR
                     }
                 };
             }

@@ -51,7 +51,8 @@ namespace ChatGPTExtension
         {
             GPT = 1,
             Gemini = 2,
-            Claude = 3
+            Claude = 3,
+            DeepSeek = 4
         }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD110:Observe result of async calls", Justification = "<Pending>")]
@@ -156,6 +157,10 @@ namespace ChatGPTExtension
                     case AIModelType.Claude:
                         webView.Source = new Uri(AIConfiguration.ClaudeUrl);
                         await WaitForElementByClassAsync(AIConfiguration.ClaudePromptClass);
+                        break;
+                    case AIModelType.DeepSeek:
+                        webView.Source = new Uri(AIConfiguration.DeepSeekUrl);
+                        await WaitForElementByIdAsync(AIConfiguration.DeepSeekPromptId);
                         break;
                 }
 
@@ -349,8 +354,10 @@ namespace ChatGPTExtension
                 case AIModelType.Claude:
                     script = ClaudeConfiguration.Instance.GetSetPromptScript(fullPrompt);
                     break;
+                case AIModelType.DeepSeek:
+                    script = DeepSeekConfiguration.Instance.GetSetPromptScript(fullPrompt);
+                    break;
             }
-
 
             await webView.CoreWebView2.ExecuteScriptAsync(script);
 
@@ -358,26 +365,6 @@ namespace ChatGPTExtension
             {
                 await SubmitPromptAIAsync();
             }
-        }
-
-        private string EscapeAndFormatCode(string selectedCode)
-        {
-            // Serialize to JSON to handle other special characters, then remove surrounding quotes
-            var escaped = JsonConvert.SerializeObject(selectedCode).Trim('"');
-
-            // Split into lines and wrap each in <p> tags
-            var formattedLines = escaped.Split(new[] { "\\r\\n", "\\n" }, StringSplitOptions.None)
-                .Select(line => $"<p>{line}</p>");
-
-            // Join the lines
-            var finalResult = string.Join("", formattedLines).Replace(@"'", @"\'");
-
-            return finalResult;
-        }
-
-        private string GetScriptGeminiReceiveCode(string selectedCode)
-        {
-            return GeminiConfiguration.Instance.GetReceiveCodeScript(selectedCode);
         }
 
         private async Task<string> GetSelectedTextFromAIAsync()
@@ -521,10 +508,13 @@ namespace ChatGPTExtension
                             : GPTConfiguration.Instance.GetEndKeyScript(shiftPressed, int.MaxValue);
                         break;
                     case AIModelType.Gemini:
+                        script = GeminiConfiguration.Instance.GetHomeEndKeyScript(key, shiftPressed);
+                        break;
                     case AIModelType.Claude:
-                        script = _aiModelType == AIModelType.Gemini
-                            ? GeminiConfiguration.Instance.GetHomeEndKeyScript(key, shiftPressed)
-                            : ClaudeConfiguration.Instance.GetHomeEndKeyScript(key, shiftPressed);
+                        script = ClaudeConfiguration.Instance.GetHomeEndKeyScript(key, shiftPressed);
+                        break;
+                    case AIModelType.DeepSeek:
+                        script = DeepSeekConfiguration.Instance.GetHomeEndKeyScript(key, shiftPressed);
                         break;
                 }
 
@@ -563,6 +553,9 @@ namespace ChatGPTExtension
                     case AIModelType.Claude:
                         addEventListenersScript = ClaudeConfiguration.Instance.GetAddEventListenersScript();
                         break;
+                    case AIModelType.DeepSeek:
+                        addEventListenersScript = DeepSeekConfiguration.Instance.GetAddEventListenersScript();
+                        break;
                 }
 
                 await webView.ExecuteScriptAsync(addEventListenersScript);
@@ -596,6 +589,10 @@ namespace ChatGPTExtension
                     script = ClaudeConfiguration.Instance.GetSubmitPromptScript();
                     await webView.ExecuteScriptAsync(script);
                     break;
+                case AIModelType.DeepSeek:
+                    script = DeepSeekConfiguration.Instance.GetSubmitPromptScript();
+                    await webView.ExecuteScriptAsync(script);
+                    break;
             }
         }
 
@@ -610,6 +607,9 @@ namespace ChatGPTExtension
                     break;
                 case AIModelType.Claude:
                     script = ClaudeConfiguration.Instance.GetIsFileAttachedScript();
+                    break;
+                case AIModelType.DeepSeek:
+                    script = DeepSeekConfiguration.Instance.GetIsFileAttachedScript();
                     break;
                 case AIModelType.Gemini:
                     return false; // Gemini doesn't support file attachments
@@ -856,7 +856,8 @@ namespace ChatGPTExtension
         {
             try
             {
-                string promptCompleteCode = "Please show new full complete code without explanations with complete methods implementation for the provided code without any placeholders like ... or assuming code segments. Do not create methods you dont know. Keep all original comments.";
+                string promptCompleteCode = "Please show new full complete code without explanations with complete methods implementation for the provided code without any placeholders like ... or assuming code segments. Do not create methods you dont know. Keep all original comments.\r\n\r\n";
+
                 string script = string.Empty;
 
                 switch (_aiModelType)
@@ -869,6 +870,9 @@ namespace ChatGPTExtension
                         break;
                     case AIModelType.GPT:
                         script = GPTConfiguration.Instance.GetSetPromptScript(promptCompleteCode);
+                        break;
+                    case AIModelType.DeepSeek:
+                        script = DeepSeekConfiguration.Instance.GetSetPromptScript(promptCompleteCode);
                         break;
                 }
 
@@ -920,6 +924,11 @@ namespace ChatGPTExtension
                 {
                     webView.Source = new Uri(AIConfiguration.ClaudeUrl);
                     await WaitForElementByClassAsync(AIConfiguration.ClaudePromptClass);
+                }
+                if (_aiModelType == AIModelType.DeepSeek)
+                {
+                    webView.Source = new Uri(AIConfiguration.DeepSeekUrl);
+                    await WaitForElementByClassAsync(AIConfiguration.DeepSeekPromptClass);
                 }
 
                 await StartTimerAsync();
@@ -1031,6 +1040,7 @@ namespace ChatGPTExtension
             var useGeminiMenuItem = new MenuItem { Header = "Use Gemini", IsCheckable = true };
             var useGptMenuItem = new MenuItem { Header = "Use GPT", IsCheckable = true };
             var useClaudeMenuItem = new MenuItem { Header = "Use Claude", IsCheckable = true };
+            var useDeepSeekMenuItem = new MenuItem { Header = "Use DeepSeek", IsCheckable = true };
 
             // Configure "Use GPT" menu item
             useGptMenuItem.Click += (sender, e) =>
@@ -1077,10 +1087,27 @@ namespace ChatGPTExtension
             };
             CodeActionsContextMenu.Items.Add(useClaudeMenuItem);
 
+            // Configure "Use DeepSeek" menu item
+            useDeepSeekMenuItem.Click += (sender, e) =>
+            {
+                _aiModelType = AIModelType.DeepSeek;
+                useGptMenuItem.IsChecked = false;
+                useGeminiMenuItem.IsChecked = false;
+                useClaudeMenuItem.IsChecked = false;
+                useDeepSeekMenuItem.IsChecked = true;
+                reloadMenuItem.Header = "Reload DeepSeek...";
+                _parentToolWindow.Caption = "DeepSeek Extension";
+                UpdateButtonContentAndTooltip();
+                OnReloadAIItemClick(null, null);
+                SaveConfiguration();
+            };
+            CodeActionsContextMenu.Items.Add(useDeepSeekMenuItem);
+
             // Set the initial state based on _gptConfigured
             useGptMenuItem.IsChecked = (_aiModelType == AIModelType.GPT);
             useGeminiMenuItem.IsChecked = (_aiModelType == AIModelType.Gemini);
             useClaudeMenuItem.IsChecked = (_aiModelType == AIModelType.Claude);
+            useDeepSeekMenuItem.IsChecked = (_aiModelType == AIModelType.DeepSeek);
 
             // Set all the user interface according to the AI model selected
             if (_aiModelType == AIModelType.GPT)
@@ -1099,6 +1126,12 @@ namespace ChatGPTExtension
             {
                 reloadMenuItem.Header = "Reload Claude...";
                 _parentToolWindow.Caption = "Claude Extension";
+                UpdateButtonContentAndTooltip();
+            }
+            if (_aiModelType == AIModelType.DeepSeek)
+            {
+                reloadMenuItem.Header = "Reload DeepSeek...";
+                _parentToolWindow.Caption = "DeepSeek Extension";
                 UpdateButtonContentAndTooltip();
             }
 
@@ -1236,6 +1269,11 @@ namespace ChatGPTExtension
                                     string clickMenuItemScript = GPTConfiguration.Instance.GetAttachFileMenuItemClickScript();
                                     await webView.CoreWebView2.ExecuteScriptAsync(clickMenuItemScript);
                                 }
+                                else if (_aiModelType == AIModelType.DeepSeek)
+                                {
+                                    string clickAttachScript = DeepSeekConfiguration.Instance.GetAttachFileScript();
+                                    await webView.CoreWebView2.ExecuteScriptAsync(clickAttachScript);
+                                }
 
                                 // Wait for the file dialog to open
                                 await Task.Delay(2500); // Adjust the delay as necessary
@@ -1288,7 +1326,7 @@ namespace ChatGPTExtension
         {
             try
             {
-                string promptContinueCode = "Continue code generation";
+                string promptContinueCode = "Continue code generation\r\n\r\n";
                 string script = string.Empty;
 
                 switch (_aiModelType)
@@ -1301,6 +1339,9 @@ namespace ChatGPTExtension
                         break;
                     case AIModelType.GPT:
                         script = GPTConfiguration.Instance.GetSetPromptScript(promptContinueCode);
+                        break;
+                    case AIModelType.DeepSeek:
+                        script = DeepSeekConfiguration.Instance.GetSetPromptScript(promptContinueCode);
                         break;
                 }
 
