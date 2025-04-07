@@ -1,24 +1,26 @@
 # Chat GPT Extension
 
-The Chat GPT extension loads the **Chat GPT web and integrates it with Visual Studio 2022.**
+The Chat GPT extension loads the **OpenAI Chat GPT web and integrates it with Visual Studio 2022.**
 
-It works with both FREE and Plus versions of Chat GPT web. **No OpenAI tokens are required.**
+It works with Free/Plus/Pro versions of OpenAI Chat GPT web. **No OpenAI tokens are required.**
 
-Also integrates with **Google Gemini** FREE and Ultra.
+Also integrates with **Google Gemini** Free and Advanced.
 
-Also integrates with **Anthropic Claude AI** Opus, Sonnet and FREE Haiku.
+Also integrates with **Anthropic Claude AI** Haiku and Sonnet.
+
+Also integrates with **Hangzhou Deepseek**.
 
 ## Features
 
-- Send selected code from VS.NET to GPT/Gemini/Claude
-- Send selected code from GPT/Gemini/Claude to VS.NET
-- When the GPT/Gemini "Copy code" button is clicked, the code is sent automatically to VS.NET
-- Buttons to automate code fixing, improve code and asking GPT/Gemini/Claude to show complete code and continue code generation
-- Other code operations like commenting code, adding exception handling, creating unit tests, and several others
-- Configurable custom actions for GPT/Gemini/Claude to apply to the code; these can be added, removed, changed, or reordered as needed
-- Last AI model used will be saved for next sessions
-- GPT wide script support for better experience with two monitors
-- Attach current code file to GPT/Claude
+1. Send selected code from VS.NET to GPT/Gemini/Claude/Deepseek
+2. Send selected code from GPT/Gemini/Claude/Deepseek to VS.NET
+3. When the GPT/Gemini/Claude/Deepseek "Copy code" button is clicked, the code is sent automatically to VS.NET
+4. Buttons to automate code fixing, improve code and asking GPT/Gemini/Claude/Deepseek to show complete code and continue code generation
+5. Other code operations like commenting code, adding exception handling, creating unit tests, and several others
+6. Configurable custom actions for GPT/Gemini/Claude/Deepseek to apply to the code; these can be added, removed, changed, or reordered as needed
+7. Last AI model used will be saved for next sessions
+8. GPT wide script support for better experience with two monitors
+9. Attach current code file to GPT/Claude/Deepseek
 
 ## Demo
 
@@ -42,28 +44,28 @@ Also integrates with **Anthropic Claude AI** Opus, Sonnet and FREE Haiku.
 
 - Use CTRL+mouse scroll to zoom in or out in the extension for better layout of the web site.
 
-- The "VS.NET to GPT/Gemini/Claude" button copies the selected code from VS.NET to the GPT/Gemini/Claude prompt area, preserving any existing data.
+- The "VS.NET to GPT/Gemini/Claude/Deepseek" button copies the selected code from VS.NET to the GPT/Gemini/Claude/Deepseek prompt area, preserving any existing data.
 
-- The "Fix Code in GPT/Gemini/Claude" button copies the selected code from VS.NET to the GPT/Gemini/Claude prompt area and asks AI to fix it.
+- The "Fix Code in GPT/Gemini/Claude/Deepseek" button copies the selected code from VS.NET to the GPT/Gemini/Claude/Deepseek prompt area and asks AI to fix it.
 
-- The "Improve Code in GPT/Gemini/Claude" button copies the selected code from VS.NET to the GPT/Gemini/Claude prompt area and asks AI to improve it.
+- The "Improve Code in GPT/Gemini/Claude/Deepseek" button copies the selected code from VS.NET to the GPT/Gemini/Claude/Deepseek prompt area and asks AI to improve it.
 
-- The "GPT/Gemini/Claude to VS.NET" button copies the selected text from GPT/Gemini/Claude and sends it to VS.NET.
+- The "GPT/Gemini/Claude/Deepseek to VS.NET" button copies the selected text from GPT/Gemini/Claude/Deepseek and sends it to VS.NET.
 
-- The "Attach Current File" button will attach current code file open in VS.NET to Claude or GPT.
+- The "Attach Current File" button will attach current code file open in VS.NET to Claude, GPT or Deepseek.
   Make sure to hit enter after file is added in dialog because of security constraints
 
-- The "Complete Code" button asks GPT/Gemini/Claude to show full complete code when it is showing partial code only.
+- The "Complete Code" button asks GPT/Gemini/Claude/Deepseek to show full complete code when it is showing partial code only.
 
 - The "New File" button will retrieve the selected code from the page and asks for filename to add a new file with code in the project.
 
-- The "Continue Code" button will ask the GPT/Gemini/Claude to continue the code generation when code is too long for single answer.
+- The "Continue Code" button will ask the GPT/Gemini/Claude/Deepseek to continue the code generation when code is too long for single answer.
 
-- The "Enable Copy Code" switch, when enabled, automatically sends the code to VS.NET when the "Copy code" button in GPT/Gemini/Claude is clicked.
+- The "Enable Copy Code" switch, when enabled, automatically sends the code to VS.NET when the "Copy code" button in GPT/Gemini/Claude/Deepseek is clicked.
 
-- The "Arrow" button opens a submenu with other code operations that GPT/Gemini/Claude can perform.
+- The "Arrow" button opens a submenu with other code operations that GPT/Gemini/Claude/Deepseek can perform.
 
-- The "Reload Chat GPT/Gemini/Claude..." submenu reloads GPT/Gemini/Claude in the internal browser.
+- The "Reload Chat GPT/Gemini/Claude/Deepseek..." submenu reloads GPT/Gemini/Claude/Deepseek in the internal browser.
 
 - The "Configure extension..." submenu opens the screen to configure the code action operations.
 
@@ -75,9 +77,18 @@ Also integrates with **Anthropic Claude AI** Opus, Sonnet and FREE Haiku.
 
 - The "Use Claude" submenu will configure the extension to use Anthropic Claude AI.
 
+- The "Use Deepseek" submenu will configure the extension to use Hangzhou Deepseek AI.
 
 
 ## What's New
+
+- 6.1 - Added Hangzhou Deepseek AI integration
+
+- 6.0 - Fix integration with Claude
+
+- 5.9 - Compiled as x64 to fix issues not loading in latest VS.NET 2022
+
+- 5.8 - Fixed attach file in GPT
 
 - 5.7 - Fix selectors local cache issues
 
