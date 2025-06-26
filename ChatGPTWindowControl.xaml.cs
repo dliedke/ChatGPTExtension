@@ -10,27 +10,26 @@
  *           
  * *******************************************************************************************************************/
 
-using System;
-using System.IO;
-using System.Linq;
-using System.Windows;
-using System.Diagnostics;
-using System.Windows.Input;
-using System.Threading.Tasks;
-using System.Windows.Controls;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
-
 using EnvDTE;
 using EnvDTE80;
-using Newtonsoft.Json;
-using Microsoft.Win32;
-using Microsoft.Web.WebView2.Core;
 using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Threading;
+using Microsoft.Web.WebView2.Core;
+using Microsoft.Win32;
+using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Threading;
 using Window = System.Windows.Window;
-using Microsoft.VisualStudio.Shell.Interop;
 
 namespace ChatGPTExtension
 {
@@ -1052,6 +1051,7 @@ namespace ChatGPTExtension
                 useGptMenuItem.IsChecked = true;
                 useGeminiMenuItem.IsChecked = false;
                 useClaudeMenuItem.IsChecked = false;
+                useDeepSeekMenuItem.IsChecked = false;
                 reloadMenuItem.Header = "Reload Chat GPT...";
                 _parentToolWindow.Caption = "Chat GPT Extension";
                 UpdateButtonContentAndTooltip();
@@ -1064,9 +1064,10 @@ namespace ChatGPTExtension
             useGeminiMenuItem.Click += (sender, e) =>
             {
                 _aiModelType = AIModelType.Gemini;
-                useGeminiMenuItem.IsChecked = true;
                 useGptMenuItem.IsChecked = false;
+                useGeminiMenuItem.IsChecked = true;
                 useClaudeMenuItem.IsChecked = false;
+                useDeepSeekMenuItem.IsChecked = false;
                 reloadMenuItem.Header = "Reload Gemini...";
                 _parentToolWindow.Caption = "Gemini Extension";
                 UpdateButtonContentAndTooltip();
@@ -1079,9 +1080,10 @@ namespace ChatGPTExtension
             useClaudeMenuItem.Click += (sender, e) =>
             {
                 _aiModelType = AIModelType.Claude;
-                useGeminiMenuItem.IsChecked = false;
                 useGptMenuItem.IsChecked = false;
+                useGeminiMenuItem.IsChecked = false;
                 useClaudeMenuItem.IsChecked = true;
+                useDeepSeekMenuItem.IsChecked = false;
                 reloadMenuItem.Header = "Reload Claude...";
                 _parentToolWindow.Caption = "Claude Extension";
                 UpdateButtonContentAndTooltip();
