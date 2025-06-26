@@ -82,12 +82,10 @@ namespace ChatGPTExtension
 
         public string GetSubmitPromptScript()
         {
-            return @"
-    // Find the send message button by its distinctive attributes and structure
-    var sendButton = document.querySelector('button.inline-flex[aria-label]');
-    if (sendButton && sendButton.querySelector('svg path[d=""M208.49,120.49a12,12,0,0,1-17,0L140,69V216a12,12,0,0,1-24,0V69L64.49,120.49a12,12,0,0,1-17-17l72-72a12,12,0,0,1,17,0l72,72A12,12,0,0,1,208.49,120.49Z""]')) {
-        sendButton.click();
-    }";
+            return @"var svg = document.querySelector('svg[viewBox=""0 0 256 256""] path[d=""M208.49,120.49a12,12,0,0,1-17,0L140,69V216a12,12,0,0,1-24,0V69L64.49,120.49a12,12,0,0,1-17-17l72-72a12,12,0,0,1,17,0l72,72A12,12,0,0,1,208.49,120.49Z""]');
+                    if (svg) {
+                        svg.closest('button').click();
+                    }";
         }
 
         public string GetAttachFileScript()

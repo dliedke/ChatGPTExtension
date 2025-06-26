@@ -653,9 +653,12 @@ namespace ChatGPTExtension
 
                 switch (webMessage)
                 {
-                    // Handle enter key to send the prompt to GPT
+                    // Handle enter key to send the prompt to AI except for Gemini
                     case "EnterPressed":
-                        await SubmitPromptAIAsync();
+                        if (_aiModelType != AIModelType.Gemini)
+                        {
+                            await SubmitPromptAIAsync();
+                        }
                         break;
                 }
 
