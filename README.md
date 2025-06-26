@@ -82,6 +82,8 @@ Also integrates with **Hangzhou Deepseek**.
 
 ## What's New
 
+- 6.2 - Fix user reported issue "BUG: Gemini, You paused this reply". Fixed enter key and auto send prompt not working with Claude
+
 - 6.1 - Added Hangzhou Deepseek AI integration
 
 - 6.0 - Fix integration with Claude
