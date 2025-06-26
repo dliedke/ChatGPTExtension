@@ -82,6 +82,8 @@ Also integrates with **Hangzhou Deepseek**.
 
 ## What's New
 
+- 6.3 - Fix by m1001111: If DeepSeek was enabled and then switched to GPT, Gemini, or Claude, the DeepSeek checkbox would still be selected.
+ 
 - 6.2 - Fix user reported issue "BUG: Gemini, You paused this reply". Fixed enter key and auto send prompt not working with Claude
 
 - 6.1 - Added Hangzhou Deepseek AI integration
