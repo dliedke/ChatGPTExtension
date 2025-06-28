@@ -1048,6 +1048,7 @@ namespace ChatGPTExtension
             useGptMenuItem.Click += (sender, e) =>
             {
                 _aiModelType = AIModelType.GPT;
+                btnAttachFile.Visibility = Visibility.Visible;
                 useGptMenuItem.IsChecked = true;
                 useGeminiMenuItem.IsChecked = false;
                 useClaudeMenuItem.IsChecked = false;
@@ -1064,6 +1065,7 @@ namespace ChatGPTExtension
             useGeminiMenuItem.Click += (sender, e) =>
             {
                 _aiModelType = AIModelType.Gemini;
+                btnAttachFile.Visibility = Visibility.Hidden;
                 useGptMenuItem.IsChecked = false;
                 useGeminiMenuItem.IsChecked = true;
                 useClaudeMenuItem.IsChecked = false;
@@ -1080,6 +1082,7 @@ namespace ChatGPTExtension
             useClaudeMenuItem.Click += (sender, e) =>
             {
                 _aiModelType = AIModelType.Claude;
+                btnAttachFile.Visibility = Visibility.Visible;
                 useGptMenuItem.IsChecked = false;
                 useGeminiMenuItem.IsChecked = false;
                 useClaudeMenuItem.IsChecked = true;
@@ -1096,6 +1099,7 @@ namespace ChatGPTExtension
             useDeepSeekMenuItem.Click += (sender, e) =>
             {
                 _aiModelType = AIModelType.DeepSeek;
+                btnAttachFile.Visibility = Visibility.Visible;
                 useGptMenuItem.IsChecked = false;
                 useGeminiMenuItem.IsChecked = false;
                 useClaudeMenuItem.IsChecked = false;
@@ -1123,10 +1127,16 @@ namespace ChatGPTExtension
             }
             if (_aiModelType == AIModelType.Gemini)
             {
+                btnAttachFile.Visibility = Visibility.Hidden;
                 reloadMenuItem.Header = "Reload Gemini...";
                 _parentToolWindow.Caption = "Gemini Extension";
                 UpdateButtonContentAndTooltip();
             }
+            else
+            {
+                btnAttachFile.Visibility = Visibility.Visible;
+            }
+
             if (_aiModelType == AIModelType.Claude)
             {
                 reloadMenuItem.Header = "Reload Claude...";
