@@ -43,6 +43,7 @@ namespace ChatGPTExtension
         private bool _enableCopyCode = true;
         private readonly IServiceProvider _serviceProvider;
         private ConfigurationWindow _configWindow = new ConfigurationWindow();
+        private ButtonLabelsConfiguration _buttonLabels = ButtonLabelsConfiguration.Load();
         private AIModelType _aiModelType = AIModelType.GPT;
         private ChatGPTToolWindow _parentToolWindow;
 
@@ -998,6 +999,15 @@ namespace ChatGPTExtension
             LoadContextMenuActions();
         }
 
+        private void ConfigureLabelsMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            var window = new ButtonsConfigWindow(_buttonLabels);
+            if (window.ShowDialog() == true)
+            {
+                UpdateButtonContentAndTooltip();
+            }
+        }
+
         private void LoadContextMenuActions()
         {
             var actions = _configWindow.ActionItems;
@@ -1035,6 +1045,11 @@ namespace ChatGPTExtension
             var configureMenuItem = new MenuItem { Header = "Configure extension..." };
             configureMenuItem.Click += ConfigureExtensionMenuItem_Click;
             CodeActionsContextMenu.Items.Add(configureMenuItem);
+
+            // Add Configure button labels... menu item
+            var configureLabelsMenuItem = new MenuItem { Header = "Configure button labels..." };
+            configureLabelsMenuItem.Click += ConfigureLabelsMenuItem_Click;
+            CodeActionsContextMenu.Items.Add(configureLabelsMenuItem);
 
             // Add another separator before the new options
             CodeActionsContextMenu.Items.Add(new Separator());
@@ -1159,30 +1174,33 @@ namespace ChatGPTExtension
             string aiTechnology = _aiModelType.ToString();
 
             // Update the content and tooltip for the buttons
-            btnVSNETToAI.Content = $"VS.NET to {aiTechnology} ➡️";
+            btnVSNETToAI.Content = _buttonLabels.VSNETToAI.Replace("{AI}", aiTechnology);
             btnVSNETToAI.ToolTip = $"Transfer selected code from VS.NET to {aiTechnology}";
 
-            btnFixCodeInAI.Content = $"Fix Code in {aiTechnology} ➡️";
+            btnFixCodeInAI.Content = _buttonLabels.FixCode.Replace("{AI}", aiTechnology);
             btnFixCodeInAI.ToolTip = $"Fix bugs in VS.NET selected code using {aiTechnology}";
 
-            btnImproveCodeInAI.Content = $"Improve Code in {aiTechnology} ➡️";
+            btnImproveCodeInAI.Content = _buttonLabels.ImproveCode.Replace("{AI}", aiTechnology);
             btnImproveCodeInAI.ToolTip = $"Refactor selected code from VS.NET in {aiTechnology}";
 
 
-            btnAIToVSNET.Content = $"⬅️ {aiTechnology} to VS.NET";
+            btnAIToVSNET.Content = _buttonLabels.AIToVSNET.Replace("{AI}", aiTechnology);
             btnAIToVSNET.ToolTip = $"Transfer selected code from {aiTechnology} to VS.NET";
 
-            btnAttachFile.Content = $"Attach Open File to {aiTechnology}📎";
+            btnAttachFile.Content = _buttonLabels.AttachFile.Replace("{AI}", aiTechnology);
             btnAttachFile.ToolTip = $"Attach VS.NET file open to {aiTechnology}";
 
-            btnCompleteCodeInAI.Content = $"Complete Code in {aiTechnology} ✅";
+            btnCompleteCodeInAI.Content = _buttonLabels.CompleteCode.Replace("{ai}", aiTechnology);
             btnCompleteCodeInAI.ToolTip = $"Ask {aiTechnology} to generate complete code";
 
 
+            btnNewFile.Content = _buttonLabels.NewFile.Replace("{ai}", aiTechnology);
             btnNewFile.ToolTip = $"Select code in {aiTechnology} to create a new file in VS.NET";
 
-            btnContinueCode.Content = $"Continue Code in {aiTechnology} ⏩";
+            btnContinueCode.Content = _buttonLabels.ContinueCode.Replace("{ai}", aiTechnology);
             btnContinueCode.ToolTip = $"Ask {aiTechnology} to continue the code generation";
+
+            EnableCopyCodeCheckBox.Content = _buttonLabels.EnableCopyCode.Replace("{ai}", aiTechnology);
 
             EnableCopyCodeCheckBox.ToolTip = $"Enable sending code from {aiTechnology} to VS.NET when Copy code button is clicked in {aiTechnology}";
         }
@@ -1278,11 +1296,8 @@ namespace ChatGPTExtension
                                 }
                                 else if (_aiModelType == AIModelType.GPT)
                                 {
-                                    string clickButtonScript = GPTConfiguration.Instance.GetAttachFileButtonClickScript();
+                                    string clickButtonScript = GPTConfiguration.Instance.GetFileInputClickScript();
                                     await webView.CoreWebView2.ExecuteScriptAsync(clickButtonScript);
-
-                                    string clickMenuItemScript = GPTConfiguration.Instance.GetAttachFileMenuItemClickScript();
-                                    await webView.CoreWebView2.ExecuteScriptAsync(clickMenuItemScript);
                                 }
                                 else if (_aiModelType == AIModelType.DeepSeek)
                                 {

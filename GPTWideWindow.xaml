@@ -1,36 +1,62 @@
 ﻿<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vsshell="clr-namespace:Microsoft.VisualStudio.Shell;assembly=Microsoft.VisualStudio.Shell.15.0"
         xmlns:av="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="av" x:Class="ChatGPTExtension.GPTWideWindow"
         Title="Script Configuration - Wide GPT Responses"
         Height="700"
         Width="900"
         WindowStartupLocation="CenterScreen"
-        Background="#343541"
-        Foreground="White"
+        Background="{DynamicResource {x:Static vsshell:VsBrushes.WindowKey}}"
+        Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"
         Loaded="Window_Loaded">
-
 
     <Window.Resources>
         <!-- Style for TextBox -->
         <Style TargetType="{x:Type TextBox}">
-            <Setter Property="Background" Value="#343541"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowBackgroundKey}}"/>
+            <Setter Property="Foreground" Value="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowTextKey}}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowBorderKey}}"/>
             <Setter Property="Padding" Value="5"/>
             <Setter Property="Margin" Value="0"/>
-            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="HorizontalAlignment" Value="Stretch"/>
             <Setter Property="VerticalAlignment" Value="Stretch"/>
-            <Setter Property="CaretBrush" Value="White"/>
-            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowTextKey}}"/>
         </Style>
 
         <!-- Style for Button -->
         <Style TargetType="{x:Type Button}">
-            <Setter Property="Background" Value="#343541"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowBackgroundKey}}"/>
+            <Setter Property="Foreground" Value="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowTextKey}}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowBorderKey}}"/>
+            <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Margin" Value="5"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarHoverOverSelectedKey}}"/>
+                                <Setter Property="Cursor" Value="Hand"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
+        <!-- Style for Label -->
+        <Style TargetType="{x:Type Label}">
+            <Setter Property="Foreground" Value="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"/>
+        </Style>
+
+        <!-- Style for Hyperlink -->
+        <Style TargetType="{x:Type Hyperlink}">
+            <Setter Property="Foreground" Value="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowTextKey}}"/>
+        </Style>
     </Window.Resources>
 
     <Grid>
@@ -45,26 +71,25 @@
         </Grid.RowDefinitions>
 
         <!-- Label at the top -->
-        <Label Grid.Row="0" Foreground="White" Padding="10" HorizontalAlignment="Center">
+        <Label Grid.Row="0" Padding="10" HorizontalAlignment="Center">
             <TextBlock TextWrapping="Wrap">
         This is the script to wide GPT responses for wide screen monitors (code is not validated). Delete script to disable it.<LineBreak/><LineBreak/>
-        This script is from <Hyperlink Foreground="LightYellow" NavigateUri="https://gist.github.com/alexchexes/d2ff0b9137aa3ac9de8b0448138125ce" RequestNavigate="Hyperlink_RequestNavigate">https://gist.github.com/alexchexes/d2ff0b9137aa3ac9de8b0448138125ce</Hyperlink>
+        This script is from <Hyperlink NavigateUri="https://gist.github.com/alexchexes/d2ff0b9137aa3ac9de8b0448138125ce" RequestNavigate="Hyperlink_RequestNavigate">https://gist.github.com/alexchexes/d2ff0b9137aa3ac9de8b0448138125ce</Hyperlink>
             </TextBlock>
         </Label>
 
         <!-- Large TextArea -->
-        <TextBox Grid.Row="1" Style="{StaticResource {x:Type TextBox}}"
+        <TextBox Grid.Row="1"
                  x:Name="txtScriptGPTWide"
                  AcceptsReturn="True" AcceptsTab="True"
                  TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
                  Margin="10"
-                 BorderThickness="1"
                  />
 
         <!-- Save and Cancel buttons at the bottom -->
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Grid.Row="2" Margin="0,20">
-            <Button Content="Save" Width="100" Style="{StaticResource {x:Type Button}}" Margin="5" Click="SaveButton_Click"/>
-            <Button Content="Cancel" Width="100" Style="{StaticResource {x:Type Button}}" Margin="5" Click="CancelButton_Click"/>
+            <Button Content="Save" Width="100" Margin="5" Click="SaveButton_Click"/>
+            <Button Content="Cancel" Width="100" Margin="5" Click="CancelButton_Click"/>
         </StackPanel>
     </Grid>
 

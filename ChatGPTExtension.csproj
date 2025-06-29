@@ -72,6 +72,10 @@
     <Compile Include="ChatGPTWindowControl.xaml.cs">
       <DependentUpon>ChatGPTWindowControl.xaml</DependentUpon>
     </Compile>
+    <Compile Include="ButtonsConfigWindow.xaml.cs">
+      <DependentUpon>ButtonsConfigWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="ButtonLabelsConfiguration.cs" />
     <Compile Include="AIConfigurations\ClaudeConfiguration.cs" />
     <Compile Include="Configuration.cs" />
     <Compile Include="AIConfigurations\GeminiConfiguration.cs" />
@@ -140,6 +144,10 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="ConfigurationWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="ButtonsConfigWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
