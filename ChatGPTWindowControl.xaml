@@ -81,7 +81,7 @@
                                 </Border>
 
                                 <!-- Text part -->
-                                <TextBlock Grid.Column="1" Text="Enable Copy Code" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowTextKey}}"/>
+                                <TextBlock Grid.Column="1" Text="{TemplateBinding Content}" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowTextKey}}"/>
                             </Grid>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsChecked" Value="True">
@@ -96,68 +96,45 @@
         </Grid.Resources>
 
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
 
-        <!-- Context Menu Button -->
-        <Button Grid.Row="2" Grid.Column="3" Margin="0,-1,0,0" Content="▼" Height="26" Width="26" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}">
-            <Button.ContextMenu>
-                <ContextMenu x:Name="CodeActionsContextMenu" FontSize="15">
-                </ContextMenu>
-            </Button.ContextMenu>
-            <Button.Triggers>
-                <EventTrigger RoutedEvent="Button.Click">
-                    <BeginStoryboard>
-                        <Storyboard>
-                            <BooleanAnimationUsingKeyFrames Storyboard.TargetProperty="ContextMenu.IsOpen">
-                                <DiscreteBooleanKeyFrame KeyTime="0:0:0" Value="True"/>
-                            </BooleanAnimationUsingKeyFrames>
-                        </Storyboard>
-                    </BeginStoryboard>
-                </EventTrigger>
-            </Button.Triggers>
-        </Button>
-
-        <!-- VS.NET to GPT Button -->
-        <Button Grid.Row="0" Grid.Column="0" Name="btnVSNETToAI" Margin="0,-1,0,0" Content="VS.NET to GPT ➡️" Click="OnSendCodeButtonClick" Tag="btnVSNETToAI" Height="26" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}" ToolTip="Transfer selected code from VS.NET to GPT"/>
-
-        <!-- Fix Code in GPT Button -->
-        <Button Grid.Row="0" Grid.Column="1" Name="btnFixCodeInAI" Content="Fix Code in GPT ➡️" Click="OnSendCodeButtonClick" Tag="Fix {languageCode} code below:" Height="26" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}" ToolTip="Transfer selected code from GPT to VS.NET"/>
-
-        <!-- Improve Code in GPT Button -->
-        <Button Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="2" Name="btnImproveCodeInAI" Content="Improve Code in GPT ➡️" Click="OnSendCodeButtonClick" Tag="Improve {languageCode} code below:" Height="26" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}" ToolTip="Refactor selected code from VS.NET in GPT" />
-
-        <!-- GPT to VS.NET Button -->
-        <Button Grid.Row="1" Grid.Column="0" Name="btnAIToVSNET" Margin="0,-1,0,0" Content="⬅️ GPT to VS.NET" Click="OnReceiveCodeButtonClick" Height="26" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}" ToolTip="Transfer selected code from GPT to VS.NET"/>
-        
-        <!-- New Continue Code Button -->
-        <Button Grid.Row="1" Grid.Column="1" Name="btnContinueCode" Content="Continue Code ⏩" Click="OnContinueCodeButtonClick" Height="26" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}" ToolTip="Continue code generation"/>
-
-        <!-- Complete Code Button -->
-        <Button Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2" Name="btnCompleteCodeInAI" Content="Complete Code ✅" Click="OnCompleteCodeButtonClick" Height="26" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}" ToolTip="Ask GPT to provide full complete code"/>
-
-        <!-- New File Button -->
-        <Button Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="1" Name="btnNewFile" Margin="0,-1,0,0" Content="📄 New File" Style="{StaticResource CustomButtonStyle}" Click="OnNewFileButtonClick" ToolTip="Create a new file from GPT content" />
-        
-        <!-- Attach Current File Button -->
-        <Button Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="1" Name="btnAttachFile" Content="Attach Current VS File📎" Click="OnAttachFileButtonClick" Height="26" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}" ToolTip="Attach currently selected file to AI (hit Enter after file is set in dialog)"/>
-
-        <!-- Enable Copy Code Checkbox -->
-        <Border Grid.Row="2" Grid.Column="2" Background="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowBackgroundKey}}">
-            <CheckBox Style="{StaticResource CustomCheckBoxStyle}" HorizontalAlignment="Center" Name="EnableCopyCodeCheckBox" Click="EnableCopyCodeCheckBox_Click" IsChecked="True" ToolTip="Enable sending code from GPT to VS.NET when Copy code button is clicked in GPT" />
-        </Border>
-
         <!-- WebView2 Control -->
-        <controls:WebView2 Grid.Row="4" Grid.ColumnSpan="4" Name="webView" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+        <controls:WebView2 Grid.Row="0" Grid.Column="0" Name="webView" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,5">
+            <Button Name="btnVSNETToAI" Content="VS.NET to GPT ➡️" Click="OnSendCodeButtonClick" Tag="btnVSNETToAI" Style="{StaticResource CustomButtonStyle}"/>
+            <Button Name="btnFixCodeInAI" Content="Fix Code in GPT ➡️" Click="OnSendCodeButtonClick" Tag="Fix {languageCode} code below:" Style="{StaticResource CustomButtonStyle}"/>
+            <Button Name="btnImproveCodeInAI" Content="Improve Code in GPT ➡️" Click="OnSendCodeButtonClick" Tag="Improve {languageCode} code below:" Style="{StaticResource CustomButtonStyle}"/>
+            <Button Name="btnAIToVSNET" Content="⬅️ GPT to VS.NET" Click="OnReceiveCodeButtonClick" Style="{StaticResource CustomButtonStyle}"/>
+            <Button Name="btnContinueCode" Content="Continue Code ⏩" Click="OnContinueCodeButtonClick" Style="{StaticResource CustomButtonStyle}"/>
+            <Button Name="btnCompleteCodeInAI" Content="Complete Code ✅" Click="OnCompleteCodeButtonClick" Style="{StaticResource CustomButtonStyle}"/>
+            <Button Name="btnNewFile" Content="📄 New File" Style="{StaticResource CustomButtonStyle}" Click="OnNewFileButtonClick"/>
+            <Button Name="btnAttachFile" Content="Attach Current VS File📎" Click="OnAttachFileButtonClick" Style="{StaticResource CustomButtonStyle}"/>
+            <Border Background="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowBackgroundKey}}" Margin="0">
+                <CheckBox Style="{StaticResource CustomCheckBoxStyle}" HorizontalAlignment="Center" Name="EnableCopyCodeCheckBox" Click="EnableCopyCodeCheckBox_Click" IsChecked="True" />
+            </Border>
+            <Button Content="▼" Width="26" Style="{StaticResource CustomButtonStyle}">
+                <Button.ContextMenu>
+                    <ContextMenu x:Name="CodeActionsContextMenu" FontSize="15" />
+                </Button.ContextMenu>
+                <Button.Triggers>
+                    <EventTrigger RoutedEvent="Button.Click">
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <BooleanAnimationUsingKeyFrames Storyboard.TargetProperty="ContextMenu.IsOpen">
+                                    <DiscreteBooleanKeyFrame KeyTime="0:0:0" Value="True" />
+                                </BooleanAnimationUsingKeyFrames>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </EventTrigger>
+                </Button.Triggers>
+            </Button>
+        </StackPanel>
     </Grid>
 </UserControl>
