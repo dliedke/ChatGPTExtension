@@ -82,6 +82,8 @@ Also integrates with **Hangzhou Deepseek**.
 
 ## What's New
 
+- 7.0 - With the help of m1001111, Codex and Claude: Dark/light theme support according to VS.NET. Buttons now in the bottom closer to mouse. Fixed GPT attach file menu. Configurable button texts.
+
 - 6.3 - Fix by m1001111: If DeepSeek was enabled and then switched to GPT, Gemini, or Claude, the DeepSeek checkbox would still be selected.
  
 - 6.2 - Fix user reported issue "BUG: Gemini, You paused this reply". Fixed enter key and auto send prompt not working with Claude
