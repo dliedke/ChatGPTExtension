@@ -125,6 +125,7 @@
             <Button x:Name="SaveButton" Content="Save" Click="OnSaveClick" Width="100" Background="#343541" Foreground="White" Padding="10,5" Margin="5" ToolTip="Save all actions" />
             <Button x:Name="CancelButton" Content="Cancel" Click="OnCancelClick" Width="100" Background="#343541" Foreground="White" Padding="10,5" Margin="5" ToolTip="Cancel changes" />
             <Button x:Name="ConfigureGPTWideButton" Content="GPT Wide" Click="ConfigureGPTWideButton_Click"  Width="100" Background="#343541" Foreground="White" Padding="10,5" Margin="25,5,5,5" ToolTip="Configure GPT Wide" />
+            <Button x:Name="EditButtonNamesButton" Content="Edit Button Names" Click="EditButtonNamesButton_Click" Width="130" Background="#343541" Foreground="White" Padding="10,5" Margin="5" ToolTip="Edit labels of main buttons" />
         </StackPanel>
     </Grid>
 </Window>

@@ -112,7 +112,7 @@
         <!-- Context Menu Button -->
         <Button Grid.Row="2" Grid.Column="3" Margin="0,-1,0,0" Content="▼" Height="26" Width="26" FontFamily="Segoe UI Emoji" Style="{StaticResource CustomButtonStyle}">
             <Button.ContextMenu>
-                <ContextMenu x:Name="CodeActionsContextMenu" FontSize="15">
+                <ContextMenu x:Name="CodeActionsContextMenu" FontSize="15" Placement="MousePoint">
                 </ContextMenu>
             </Button.ContextMenu>
             <Button.Triggers>

@@ -41,13 +41,15 @@ namespace ChatGPTExtension
         /// List of actions to be displayed and manipulated on the UI.
         /// </summary>
         public ObservableCollection<ActionItem> ActionItems { get; set; } = new ObservableCollection<ActionItem>();
+        public ButtonNames ButtonNames { get; set; }
 
         #endregion
 
         #region Constructor
 
-        public ConfigurationWindow()
+        public ConfigurationWindow(ButtonNames buttonNames)
         {
+            ButtonNames = buttonNames;
             InitializeComponent();
             DataContext = this;
             LoadConfiguration();
@@ -304,6 +306,20 @@ namespace ChatGPTExtension
                 Owner = this
             };
             gptWideWindow.ShowDialog();
+        }
+
+        private void EditButtonNamesButton_Click(object sender, RoutedEventArgs e)
+        {
+            var window = new ButtonNamesWindow(ButtonNames)
+            {
+                Owner = this
+            };
+
+            if (window.ShowDialog() == true)
+            {
+                ButtonNames = window.EditedNames;
+                _dataChanged = true;
+            }
         }
 
         #endregion
