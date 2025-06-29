@@ -1,9 +1,53 @@
 <Window x:Class="ChatGPTExtension.ButtonsConfigWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Configure Button Labels" Height="400" Width="400"
+        xmlns:vsshell="clr-namespace:Microsoft.VisualStudio.Shell;assembly=Microsoft.VisualStudio.Shell.15.0"
+        Title="Configure Button Labels" Height="466" Width="400"
         WindowStartupLocation="CenterScreen"
-        Background="#343541" Foreground="White">
+        Background="{DynamicResource {x:Static vsshell:VsBrushes.WindowKey}}" 
+        Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}">
+
+    <Window.Resources>
+        <!-- Style for TextBox -->
+        <Style TargetType="{x:Type TextBox}">
+            <Setter Property="Background" Value="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowBackgroundKey}}"/>
+            <Setter Property="Foreground" Value="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowTextKey}}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowBorderKey}}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="5"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowTextKey}}"/>
+        </Style>
+
+        <!-- Style for Button -->
+        <Style TargetType="{x:Type Button}">
+            <Setter Property="Background" Value="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowBackgroundKey}}"/>
+            <Setter Property="Foreground" Value="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowTextKey}}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowBorderKey}}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarHoverOverSelectedKey}}"/>
+                                <Setter Property="Cursor" Value="Hand"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Style for Label -->
+        <Style TargetType="{x:Type Label}">
+            <Setter Property="Foreground" Value="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"/>
+        </Style>
+    </Window.Resources>
+
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
@@ -12,39 +56,39 @@
 
         <StackPanel Grid.Row="0" VerticalAlignment="Top" >
             <StackPanel Orientation="Horizontal" Margin="0,5">
-                <Label Content="VS.NET to AI" Width="150" Foreground="White"/>
+                <Label Content="VS.NET to AI" Width="150"/>
                 <TextBox x:Name="VSNETToAITxt" Width="200"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,5">
-                <Label Content="Fix Code" Width="150" Foreground="White"/>
+                <Label Content="Fix Code" Width="150"/>
                 <TextBox x:Name="FixCodeTxt" Width="200"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,5">
-                <Label Content="Improve Code" Width="150" Foreground="White"/>
+                <Label Content="Improve Code" Width="150"/>
                 <TextBox x:Name="ImproveCodeTxt" Width="200"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,5">
-                <Label Content="AI to VS.NET" Width="150" Foreground="White"/>
+                <Label Content="AI to VS.NET" Width="150"/>
                 <TextBox x:Name="AIToVSNETTxt" Width="200"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,5">
-                <Label Content="Continue Code" Width="150" Foreground="White"/>
+                <Label Content="Continue Code" Width="150"/>
                 <TextBox x:Name="ContinueCodeTxt" Width="200"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,5">
-                <Label Content="Complete Code" Width="150" Foreground="White"/>
+                <Label Content="Complete Code" Width="150"/>
                 <TextBox x:Name="CompleteCodeTxt" Width="200"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,5">
-                <Label Content="New File" Width="150" Foreground="White"/>
+                <Label Content="New File" Width="150"/>
                 <TextBox x:Name="NewFileTxt" Width="200"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,5">
-                <Label Content="Attach File" Width="150" Foreground="White"/>
+                <Label Content="Attach File" Width="150"/>
                 <TextBox x:Name="AttachFileTxt" Width="200"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,5">
-                <Label Content="Enable Copy Code" Width="150" Foreground="White"/>
+                <Label Content="Enable Copy Code" Width="150"/>
                 <TextBox x:Name="EnableCopyCodeTxt" Width="200"/>
             </StackPanel>
         </StackPanel>

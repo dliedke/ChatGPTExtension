@@ -2,9 +2,11 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:ChatGPTExtension"
+        xmlns:vsshell="clr-namespace:Microsoft.VisualStudio.Shell;assembly=Microsoft.VisualStudio.Shell.15.0"
         xmlns:av="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="av" x:Class="ChatGPTExtension.ConfigurationWindow"
         Title="Chat GPT Extension - Configuration"
-        Foreground="White"
+        Background="{DynamicResource {x:Static vsshell:VsBrushes.WindowKey}}"
+        Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"
         Height="700"
         Width="900"
         WindowStartupLocation="CenterScreen"
@@ -14,38 +16,58 @@
 
         <!-- Style for TextBox -->
         <Style TargetType="{x:Type TextBox}">
-            <Setter Property="Background" Value="#343541"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowBackgroundKey}}"/>
+            <Setter Property="Foreground" Value="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowTextKey}}"/>
             <Setter Property="Padding" Value="5"/>
             <Setter Property="Margin" Value="0"/>
-            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowBorderKey}}"/>
             <Setter Property="HorizontalAlignment" Value="Stretch"/>
             <Setter Property="VerticalAlignment" Value="Stretch"/>
-            <Setter Property="CaretBrush" Value="White"/>
-            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowTextKey}}"/>
         </Style>
 
         <!-- Style for Button -->
         <Style TargetType="{x:Type Button}">
-            <Setter Property="Background" Value="#343541"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowBackgroundKey}}"/>
+            <Setter Property="Foreground" Value="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowTextKey}}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowBorderKey}}"/>
+            <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Margin" Value="5"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarHoverOverSelectedKey}}"/>
+                                <Setter Property="Cursor" Value="Hand"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <!-- Style for GridViewColumnHeader -->
         <Style TargetType="{x:Type GridViewColumnHeader}">
-            <Setter Property="Background" Value="#343541"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowBackgroundKey}}"/>
+            <Setter Property="Foreground" Value="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowTextKey}}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowBorderKey}}"/>
         </Style>
 
         <Style TargetType="{x:Type ListViewItem}">
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
             <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowTextKey}}"/>
         </Style>
 
     </Window.Resources>
 
-    <Grid Background="#343541">
+    <Grid Background="{DynamicResource {x:Static vsshell:VsBrushes.WindowKey}}">
         <!-- Define rows in the grid. The first row takes up the majority of space; the second row is for the buttons. -->
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
@@ -55,8 +77,8 @@
         <ListView x:Name="ActionListView" 
           ItemsSource="{Binding Path=DataContext.ActionItems, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type Window}}}" 
           Margin="10"  
-          Background="#343541"
-          Foreground="White">
+          Background="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowBackgroundKey}}"
+          Foreground="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowTextKey}}">
 
             <ListView.ItemContainerStyle>
                 <Style TargetType="{x:Type ListViewItem}">
@@ -82,7 +104,7 @@
                         <GridViewColumn.CellTemplate>
                             <DataTemplate>
                                 <!-- The TextBlock here acts as a "handle" for dragging. -->
-                                <TextBlock Text="≡" FontSize="32" Cursor="SizeAll"  HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" ToolTip="Reorder Action"/>
+                                <TextBlock Text="≡" FontSize="32" Cursor="SizeAll"  HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowTextKey}}" ToolTip="Reorder Action"/>
                             </DataTemplate>
                         </GridViewColumn.CellTemplate>
                     </GridViewColumn>
@@ -110,7 +132,7 @@
                     <GridViewColumn Width="50">
                         <GridViewColumn.CellTemplate>
                             <DataTemplate>
-                                <Button Content="❌" FontSize="14" Click="DeleteButton_Click" Background="#343541" ToolTip="Delete Action"/>
+                                <Button Content="❌" FontSize="14" Click="DeleteButton_Click" ToolTip="Delete Action"/>
                             </DataTemplate>
                         </GridViewColumn.CellTemplate>
                     </GridViewColumn>
@@ -120,11 +142,11 @@
 
         <!-- Save and Cancel buttons at the bottom, placed in the second row -->
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,20" Grid.Row="1">
-            <Button Content="Add Action" Click="AddButton_Click" Background="#343541" Width="100" Foreground="White" Padding="10,5" Margin="5,5,25,5" ToolTip="Add new action" />
+            <Button Content="Add Action" Click="AddButton_Click" Width="100" Padding="10,5" Margin="5,5,25,5" ToolTip="Add new action" />
 
-            <Button x:Name="SaveButton" Content="Save" Click="OnSaveClick" Width="100" Background="#343541" Foreground="White" Padding="10,5" Margin="5" ToolTip="Save all actions" />
-            <Button x:Name="CancelButton" Content="Cancel" Click="OnCancelClick" Width="100" Background="#343541" Foreground="White" Padding="10,5" Margin="5" ToolTip="Cancel changes" />
-            <Button x:Name="ConfigureGPTWideButton" Content="GPT Wide" Click="ConfigureGPTWideButton_Click"  Width="100" Background="#343541" Foreground="White" Padding="10,5" Margin="25,5,5,5" ToolTip="Configure GPT Wide" />
+            <Button x:Name="SaveButton" Content="Save" Click="OnSaveClick" Width="100" Padding="10,5" Margin="5" ToolTip="Save all actions" />
+            <Button x:Name="CancelButton" Content="Cancel" Click="OnCancelClick" Width="100" Padding="10,5" Margin="5" ToolTip="Cancel changes" />
+            <Button x:Name="ConfigureGPTWideButton" Content="GPT Wide" Click="ConfigureGPTWideButton_Click"  Width="100" Padding="10,5" Margin="25,5,5,5" ToolTip="Configure GPT Wide" />
         </StackPanel>
     </Grid>
 </Window>

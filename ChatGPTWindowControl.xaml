@@ -15,34 +15,19 @@
     <Grid>
         <!-- Define styles for buttons and checkbox -->
         <Grid.Resources>
-            <!--
-                <Setter Property="Background" Value="#343541"/>
-                <Setter Property="Foreground" Value="White"/>
-                <Setter Property="Background" Value="{DynamicResource {x:Static vsshell:VsBrushes.ButtonBackgroundKey}}"/>
-                ButtonMouseOverBackgroundKey
-                <Setter Property="Foreground" Value="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowTextKey}}"/>
-            -->
-
             <!-- Style for the buttons -->
             <Style TargetType="Button" x:Key="CustomButtonStyle">
-
                 <Setter Property="Background" Value="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowBackgroundKey}}"/>
                 <Setter Property="Foreground" Value="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowTextKey}}"/>
                 <Setter Property="Height" Value="26"/>
-                
+
                 <!-- Important Margin -->
                 <Setter Property="Margin" Value="-1,-1,0,0"/>
                 <!-- /Important Margin -->
-                
+
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
-                            <!---
-                            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1">
-                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                            CommandBarMouseOverBackgroundMiddle1Key
-                            -->
                             <Border Background="{TemplateBinding Background}" BorderBrush="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowBorderKey}}" BorderThickness="1">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
@@ -107,34 +92,61 @@
         <!-- WebView2 Control -->
         <controls:WebView2 Grid.Row="0" Grid.Column="0" Name="webView" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
 
-        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,5">
-            <Button Name="btnVSNETToAI" Content="VS.NET to GPT ➡️" Click="OnSendCodeButtonClick" Tag="btnVSNETToAI" Style="{StaticResource CustomButtonStyle}"/>
-            <Button Name="btnFixCodeInAI" Content="Fix Code in GPT ➡️" Click="OnSendCodeButtonClick" Tag="Fix {languageCode} code below:" Style="{StaticResource CustomButtonStyle}"/>
-            <Button Name="btnImproveCodeInAI" Content="Improve Code in GPT ➡️" Click="OnSendCodeButtonClick" Tag="Improve {languageCode} code below:" Style="{StaticResource CustomButtonStyle}"/>
-            <Button Name="btnAIToVSNET" Content="⬅️ GPT to VS.NET" Click="OnReceiveCodeButtonClick" Style="{StaticResource CustomButtonStyle}"/>
-            <Button Name="btnContinueCode" Content="Continue Code ⏩" Click="OnContinueCodeButtonClick" Style="{StaticResource CustomButtonStyle}"/>
-            <Button Name="btnCompleteCodeInAI" Content="Complete Code ✅" Click="OnCompleteCodeButtonClick" Style="{StaticResource CustomButtonStyle}"/>
-            <Button Name="btnNewFile" Content="📄 New File" Style="{StaticResource CustomButtonStyle}" Click="OnNewFileButtonClick"/>
-            <Button Name="btnAttachFile" Content="Attach Current VS File📎" Click="OnAttachFileButtonClick" Style="{StaticResource CustomButtonStyle}"/>
-            <Border Background="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowBackgroundKey}}" Margin="0">
-                <CheckBox Style="{StaticResource CustomCheckBoxStyle}" HorizontalAlignment="Center" Name="EnableCopyCodeCheckBox" Click="EnableCopyCodeCheckBox_Click" IsChecked="True" />
-            </Border>
-            <Button Content="▼" Width="26" Style="{StaticResource CustomButtonStyle}">
-                <Button.ContextMenu>
-                    <ContextMenu x:Name="CodeActionsContextMenu" FontSize="15" />
-                </Button.ContextMenu>
-                <Button.Triggers>
-                    <EventTrigger RoutedEvent="Button.Click">
-                        <BeginStoryboard>
-                            <Storyboard>
-                                <BooleanAnimationUsingKeyFrames Storyboard.TargetProperty="ContextMenu.IsOpen">
-                                    <DiscreteBooleanKeyFrame KeyTime="0:0:0" Value="True" />
-                                </BooleanAnimationUsingKeyFrames>
-                            </Storyboard>
-                        </BeginStoryboard>
-                    </EventTrigger>
-                </Button.Triggers>
-            </Button>
-        </StackPanel>
+        <!-- Button Grid with 3 rows -->
+        <Grid Grid.Row="1" Margin="0,5">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Row 1 -->
+            <Button Grid.Row="0" Grid.Column="0" Name="btnVSNETToAI" Content="VS.NET to Claude ➡️" Click="OnSendCodeButtonClick" Tag="btnVSNETToAI" Style="{StaticResource CustomButtonStyle}"/>
+            <Button Grid.Row="0" Grid.Column="1" Name="btnFixCodeInAI" Content="Fix Code in Claude ➡️" Click="OnSendCodeButtonClick" Tag="Fix {languageCode} code below:" Style="{StaticResource CustomButtonStyle}"/>
+            <Button Grid.Row="0" Grid.Column="2" Name="btnImproveCodeInAI" Content="Improve Code in Claude ➡️" Click="OnSendCodeButtonClick" Tag="Improve {languageCode} code below:" Style="{StaticResource CustomButtonStyle}"/>
+
+            <!-- Row 2 -->
+            <Button Grid.Row="1" Grid.Column="0" Name="btnAIToVSNET" Content="⬅️ Claude to VS.NET" Click="OnReceiveCodeButtonClick" Style="{StaticResource CustomButtonStyle}"/>
+            <Button Grid.Row="1" Grid.Column="1" Name="btnAttachFile" Content="Attach Open File to Claude📎" Click="OnAttachFileButtonClick" Style="{StaticResource CustomButtonStyle}"/>
+            <Button Grid.Row="1" Grid.Column="2" Name="btnCompleteCodeInAI" Content="Complete Code in Claude ✅" Click="OnCompleteCodeButtonClick" Style="{StaticResource CustomButtonStyle}"/>
+
+            <!-- Row 3 -->
+            <Button Grid.Row="2" Grid.Column="0" Name="btnNewFile" Content="📄 New File" Style="{StaticResource CustomButtonStyle}" Click="OnNewFileButtonClick"/>
+            <Button Grid.Row="2" Grid.Column="1" Name="btnContinueCode" Content="Continue Code in Claude ⏩" Click="OnContinueCodeButtonClick" Style="{StaticResource CustomButtonStyle}"/>
+
+            <!-- Row 3 Column 2: Enable Copy Code checkbox and dropdown button -->
+            <Grid Grid.Row="2" Grid.Column="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Background="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowBackgroundKey}}" Margin="0">
+                    <CheckBox Style="{StaticResource CustomCheckBoxStyle}" HorizontalAlignment="Center" Name="EnableCopyCodeCheckBox" Click="EnableCopyCodeCheckBox_Click" IsChecked="True" Content="Enable Copy Code" />
+                </Border>
+
+                <Button Grid.Column="1" Content="▼" Width="26" Style="{StaticResource CustomButtonStyle}" Margin="5,0,0,0">
+                    <Button.ContextMenu>
+                        <ContextMenu x:Name="CodeActionsContextMenu" FontSize="15" />
+                    </Button.ContextMenu>
+                    <Button.Triggers>
+                        <EventTrigger RoutedEvent="Button.Click">
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <BooleanAnimationUsingKeyFrames Storyboard.TargetProperty="ContextMenu.IsOpen">
+                                        <DiscreteBooleanKeyFrame KeyTime="0:0:0" Value="True" />
+                                    </BooleanAnimationUsingKeyFrames>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                    </Button.Triggers>
+                </Button>
+            </Grid>
+        </Grid>
     </Grid>
 </UserControl>

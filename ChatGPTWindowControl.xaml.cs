@@ -1174,20 +1174,20 @@ namespace ChatGPTExtension
             string aiTechnology = _aiModelType.ToString();
 
             // Update the content and tooltip for the buttons
-            btnVSNETToAI.Content = _buttonLabels.VSNETToAI.Replace("{ai}", aiTechnology);
+            btnVSNETToAI.Content = _buttonLabels.VSNETToAI.Replace("{AI}", aiTechnology);
             btnVSNETToAI.ToolTip = $"Transfer selected code from VS.NET to {aiTechnology}";
 
-            btnFixCodeInAI.Content = _buttonLabels.FixCode.Replace("{ai}", aiTechnology);
+            btnFixCodeInAI.Content = _buttonLabels.FixCode.Replace("{AI}", aiTechnology);
             btnFixCodeInAI.ToolTip = $"Fix bugs in VS.NET selected code using {aiTechnology}";
 
-            btnImproveCodeInAI.Content = _buttonLabels.ImproveCode.Replace("{ai}", aiTechnology);
+            btnImproveCodeInAI.Content = _buttonLabels.ImproveCode.Replace("{AI}", aiTechnology);
             btnImproveCodeInAI.ToolTip = $"Refactor selected code from VS.NET in {aiTechnology}";
 
 
-            btnAIToVSNET.Content = _buttonLabels.AIToVSNET.Replace("{ai}", aiTechnology);
+            btnAIToVSNET.Content = _buttonLabels.AIToVSNET.Replace("{AI}", aiTechnology);
             btnAIToVSNET.ToolTip = $"Transfer selected code from {aiTechnology} to VS.NET";
 
-            btnAttachFile.Content = _buttonLabels.AttachFile.Replace("{ai}", aiTechnology);
+            btnAttachFile.Content = _buttonLabels.AttachFile.Replace("{AI}", aiTechnology);
             btnAttachFile.ToolTip = $"Attach VS.NET file open to {aiTechnology}";
 
             btnCompleteCodeInAI.Content = _buttonLabels.CompleteCode.Replace("{ai}", aiTechnology);
@@ -1296,11 +1296,8 @@ namespace ChatGPTExtension
                                 }
                                 else if (_aiModelType == AIModelType.GPT)
                                 {
-                                    string clickButtonScript = GPTConfiguration.Instance.GetAttachFileButtonClickScript();
+                                    string clickButtonScript = GPTConfiguration.Instance.GetFileInputClickScript();
                                     await webView.CoreWebView2.ExecuteScriptAsync(clickButtonScript);
-
-                                    string clickMenuItemScript = GPTConfiguration.Instance.GetAttachFileMenuItemClickScript();
-                                    await webView.CoreWebView2.ExecuteScriptAsync(clickMenuItemScript);
                                 }
                                 else if (_aiModelType == AIModelType.DeepSeek)
                                 {

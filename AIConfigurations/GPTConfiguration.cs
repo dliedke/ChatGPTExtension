@@ -89,30 +89,36 @@ namespace ChatGPTExtension
         public string GetScrollToBottomScript()
         {
             return @"
-        var button = document.querySelector('button.absolute[class*=""bottom-5""] svg.icon-md');
-        if (button) {
-            button.parentElement.click();
-        }";
+            var button = document.querySelector('button.cursor-pointer.absolute.z-10.bottom-\\[calc\\(var\\(--composer-overlap-px\\)\\+--spacing\\(6\\)\\)\\]');
+            if (button) {
+                button.click();
+            }";
         }
 
-        public string GetAttachFileButtonClickScript()
+
+        public string GetFileInputClickScript()
         {
-            return @"document
-                  .querySelector('button svg path[d=""M12 3C12.5523 3 13 3.44772 13 4L13 11H20C20.5523 11 21 11.4477 21 12C21 12.5523 20.5523 13 20 13L13 13L13 20C13 20.5523 12.5523 21 12 21C11.4477 21 11 20.5523 11 20L11 13L4 13C3.44772 13 3 12.5523 3 12C3 11.4477 3.44772 11 4 11L11 11L11 4C11 3.44772 11.4477 3 12 3Z""]')
-                  ?.closest('button')
-                  ?.click();";
+            return @"
+            var input = document.querySelector('input[type=""file""][multiple].hidden');
+            if (input) {
+                input.click();
+            }";
         }
 
         public string GetAttachFileMenuItemClickScript()
         {
             return @"
-        setTimeout(() => {
-            const menuItems = document.querySelectorAll('div[role=""menuitem""]');
-            if (menuItems?.length > 0) {
-                menuItems[menuItems.length - 1]?.click();
-            }
-        }, 800);";
+setTimeout(() => {
+    const menuItems = document.querySelectorAll('div[role=""menuitem""]');
+    menuItems.forEach(item => {
+        const svgPath = item.querySelector('svg path[d*=""M14.3352 17.5003V15.6654H12.5002""]');
+        if (svgPath) {
+            item.click();
         }
+    });
+}, 800);";
+        }
+
 
         public string GetIsFileAttachedScript()
         {

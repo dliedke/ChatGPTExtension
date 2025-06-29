@@ -6,10 +6,10 @@ namespace ChatGPTExtension
 {
     public class ButtonLabelsConfiguration
     {
-        public string VSNETToAI { get; set; } = "VS.NET to AI ➡️";
-        public string FixCode { get; set; } = "Fix Code in AI ➡️";
-        public string ImproveCode { get; set; } = "Improve Code in AI ➡️";
-        public string AIToVSNET { get; set; } = "⬅️ AI to VS.NET";
+        public string VSNETToAI { get; set; } = "VS.NET to {AI} ➡️";
+        public string FixCode { get; set; } = "Fix Code in {AI} ➡️";
+        public string ImproveCode { get; set; } = "Improve Code in {AI} ➡️";
+        public string AIToVSNET { get; set; } = "⬅️ {AI} to VS.NET";
         public string ContinueCode { get; set; } = "Continue Code ⏩";
         public string CompleteCode { get; set; } = "Complete Code ✅";
         public string NewFile { get; set; } = "📄 New File";

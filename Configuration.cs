@@ -14,6 +14,7 @@ namespace ChatGPTExtension
 {
     public class Configuration
     {
-        public int GptConfigured { get; set; }
+        public int GptConfigured { get; set; } = 1; // Default to GPT
+        public bool ButtonsAtTop { get; set; } = false; // Default to bottom
     }
 }
