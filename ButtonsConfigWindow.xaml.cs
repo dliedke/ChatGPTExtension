@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 
 namespace ChatGPTExtension
 {
@@ -38,6 +38,31 @@ namespace ChatGPTExtension
             _config.EnableCopyCode = EnableCopyCodeTxt.Text;
             _config.Save();
             DialogResult = true;
+        }
+
+        private void Reset_Click(object sender, RoutedEventArgs e)
+        {
+            // Neue Instanz mit Standardwerten erstellen
+            ButtonLabelsConfiguration defaultValues = new ButtonLabelsConfiguration();
+
+            // Die Textfelder mit den Standardwerten aktualisieren
+            VSNETToAITxt.Text = defaultValues.VSNETToAI;
+            FixCodeTxt.Text = defaultValues.FixCode;
+            ImproveCodeTxt.Text = defaultValues.ImproveCode;
+            AIToVSNETTxt.Text = defaultValues.AIToVSNET;
+            ContinueCodeTxt.Text = defaultValues.ContinueCode;
+            CompleteCodeTxt.Text = defaultValues.CompleteCode;
+            NewFileTxt.Text = defaultValues.NewFile;
+            AttachFileTxt.Text = defaultValues.AttachFile;
+            EnableCopyCodeTxt.Text = defaultValues.EnableCopyCode;
+
+            // Optional: Wenn du die Reset-Werte auch speichern möchtest, kannst du das hier tun
+            // _config.VSNETToAI = defaultValues.VSNETToAI;
+            // ... und so weiter für alle Properties
+            // _config.Save();
+
+            // Wenn das Fenster geschlossen werden soll, nachdem die Werte zurückgesetzt wurden
+            // DialogResult = true;             
         }
 
         private void Cancel_Click(object sender, RoutedEventArgs e)

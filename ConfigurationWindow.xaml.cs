@@ -10,17 +10,16 @@
  *           
  * *******************************************************************************************************************/
 
+using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Windows;
-using System.Windows.Media;
-using System.ComponentModel;
 using System.Windows.Controls;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-
-using Newtonsoft.Json;
+using System.Windows.Media;
 
 namespace ChatGPTExtension
 {
@@ -147,6 +146,28 @@ namespace ChatGPTExtension
             SaveConfiguration();
             DialogResult = true;
             Close();
+        }
+
+        private void OnResetClick(object sender, RoutedEventArgs e)
+        {
+            // 1. Die Standardaktionen abrufen
+            List<ActionItem> defaultActions = GetDefaultActions();
+
+            // 2. Die aktuelle ActionItems-Collection leeren
+            ActionItems.Clear();
+
+            // 3. Die Standardaktionen der Collection hinzufügen
+            foreach (var action in defaultActions)
+            {
+                AddActionItem(action); // Nutzt deine bestehende Methode zum Hinzufügen
+            }
+
+            // 4. Den _dataChanged-Flag setzen, da sich die Daten geändert haben
+            _dataChanged = true;
+
+            // Optional: Wenn du das Fenster nach dem Reset schließen möchtest, aktiviere die nächste Zeile
+            // DialogResult = true;
+            // Close();
         }
 
         private void OnCancelClick(object sender, RoutedEventArgs e)

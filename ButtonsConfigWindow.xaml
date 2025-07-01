@@ -1,4 +1,4 @@
-<Window x:Class="ChatGPTExtension.ButtonsConfigWindow"
+﻿<Window x:Class="ChatGPTExtension.ButtonsConfigWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vsshell="clr-namespace:Microsoft.VisualStudio.Shell;assembly=Microsoft.VisualStudio.Shell.15.0"
@@ -95,6 +95,7 @@
 
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0">
             <Button Content="Save" Width="80" Margin="5" Click="Save_Click"/>
+            <Button Content="Reset" Width="80" Margin="5" Click="Reset_Click" ToolTip="Reset to Defaults" />
             <Button Content="Cancel" Width="80" Margin="5" Click="Cancel_Click"/>
         </StackPanel>
     </Grid>
