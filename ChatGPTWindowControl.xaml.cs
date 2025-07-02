@@ -754,26 +754,31 @@ namespace ChatGPTExtension
 
             string projectKind = project.Kind;
 
+            //Write text file in c:\temp with project kind guid for debugging
+            //File.WriteAllText("c:\\temp\\projectkind.txt", projectKind);
+            
             switch (projectKind)
             {
-                case "{F184B08F-C81C-45F6-A57F-5ABD9991F28F}":
+                case "{F184B08F-C81C-45F6-A57F-5ABD9991F28F}": // Visual Basic Project
                     return ".vb";
-                case "{E6FDF86B-F3D1-11D4-8576-0002A516ECE8}":
+                case "{E6FDF86B-F3D1-11D4-8576-0002A516ECE8}": // JavaScript Project
                     return ".js";
-                case "{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}":
+                case "{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}": // C++ Project
                     return ".cpp";
                 case "{A1591282-1198-4647-A2B1-27E5FF5F6F3B}": // TypeScript Project
                     return ".ts";
                 case "{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}": // C# Project
                     return ".cs";
+                case "{888888a0-9f3d-457c-b088-3a5042f75d52}": // Python Tools for Visual Studio
+                    return ".py";
                 default:
-                    return ".txt"; // Default to .txt if project type is unknown
+                    return ""; // Default to empty if project type is unknown
             }
         }
 
         private string PromptForFileName(string defaultExtension)
         {
-            var inputDialog = new InputDialog("New File", "Enter new file name", $"NewFile{defaultExtension}");
+            var inputDialog = new InputDialog("New File", "Enter new file name", $"{defaultExtension}");
             if (inputDialog.ShowDialog() == true)
             {
                 string fileName = inputDialog.ResponseText.Trim();
