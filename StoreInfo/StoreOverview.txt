@@ -82,7 +82,7 @@ Also integrates with **Hangzhou Deepseek**.
 
 ## What's New
 
-- 7.1 - Added Python project support for New File button and default extension when project type not detected to blank
+- 7.1 - Added Python project support for New File button and no extension when project type is not detected 
 
 - 7.0 - With the help of m1001111, Codex and Claude: Dark/light theme support according to VS.NET. Buttons now in the bottom closer to mouse. Fixed GPT attach file menu. Configurable button texts.
 
