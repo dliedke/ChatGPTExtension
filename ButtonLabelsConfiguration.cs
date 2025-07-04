@@ -1,20 +1,20 @@
+﻿using Newtonsoft.Json;
 using System;
 using System.IO;
-using Newtonsoft.Json;
 
 namespace ChatGPTExtension
 {
     public class ButtonLabelsConfiguration
     {
-        public string VSNETToAI { get; set; } = "VS.NET to {AI} ➡️";
-        public string FixCode { get; set; } = "Fix Code in {AI} ➡️";
-        public string ImproveCode { get; set; } = "Improve Code in {AI} ➡️";
-        public string AIToVSNET { get; set; } = "⬅️ {AI} to VS.NET";
-        public string ContinueCode { get; set; } = "Continue Code ⏩";
-        public string CompleteCode { get; set; } = "Complete Code ✅";
+        public string VSNETToAI { get; set; } = "Editor to {AI}";
+        public string FixCode { get; set; } = "Fix Code";
+        public string ImproveCode { get; set; } = "Improve Code";
+        public string AIToVSNET { get; set; } = "{AI} to Editor";
+        public string ContinueCode { get; set; } = "Continue Code";
+        public string CompleteCode { get; set; } = "Complete Code";
         public string NewFile { get; set; } = "📄 New File";
-        public string AttachFile { get; set; } = "Attach Current VS File📎";
-        public string EnableCopyCode { get; set; } = "Enable Copy Code";
+        public string AttachFile { get; set; } = "Attach File";
+        public string EnableCopyCode { get; set; } = "Copy Code";
 
         private const string FileName = "buttonlabels.json";
 

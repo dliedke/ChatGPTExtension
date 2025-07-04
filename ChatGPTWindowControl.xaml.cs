@@ -70,7 +70,10 @@ namespace ChatGPTExtension
             webView.Loaded += WebView_Loaded;
 
             _aiModelType = LoadConfiguration();
+
             LoadContextMenuActions();
+            LoadComboBoxItemsKi();
+
             _parentToolWindow = parent;
 
             AddMinimizeRestoreMenuItem();
@@ -178,6 +181,7 @@ namespace ChatGPTExtension
                 Debug.WriteLine("Error in InitializeAsync(): " + ex.Message);
             }
         }
+
 
         private void OnControlUnloaded(object sender, RoutedEventArgs e)
         {
@@ -756,7 +760,7 @@ namespace ChatGPTExtension
 
             //Write text file in c:\temp with project kind guid for debugging
             //File.WriteAllText("c:\\temp\\projectkind.txt", projectKind);
-            
+
             switch (projectKind)
             {
                 case "{F184B08F-C81C-45F6-A57F-5ABD9991F28F}": // Visual Basic Project
@@ -1013,6 +1017,127 @@ namespace ChatGPTExtension
             }
         }
 
+        private void LoadComboBoxItemsKi()
+        {
+            pulldownKi.Items.Clear();
+
+            int index = 0;
+            foreach (AIModelType option in Enum.GetValues(typeof(AIModelType)))
+            {
+                string displayString = option.ToString();
+                pulldownKi.Items.Add(displayString);
+
+                if (_aiModelType == option)
+                {
+                    pulldownKi.SelectedIndex = index;
+                }
+                ++index;
+            }
+
+            try
+            {
+                switch (_aiModelType)
+                {
+                    case AIModelType.Claude:
+
+                        break;
+                    case AIModelType.Gemini:
+
+                        break;
+                    case AIModelType.GPT:
+
+                        break;
+                    case AIModelType.DeepSeek:
+
+                        break;
+                    default:
+                        throw new InvalidOperationException(string.Format("The aiModelType {0} was not implemented", _aiModelType));
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error in LoadComboBoxItemsKi(): {ex.Message}");
+            }
+        }
+
+        private void pulldownKI_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            ComboBox comboBox = sender as ComboBox;
+
+            if (null == comboBox)
+            {
+                return;
+            }
+            if (null == comboBox.SelectedItem)
+            {
+                return;
+            }
+
+            string selectedItemString = comboBox.SelectedItem.ToString();
+
+            if (!Enum.TryParse(selectedItemString, out AIModelType selectedAIModelType))
+            {
+                System.Diagnostics.Debug.WriteLine($"Error: Could not convert '{selectedItemString}' to AIModelType.");
+            }
+
+            bool isSwitch;
+
+            switch (selectedAIModelType)
+            {
+                case AIModelType.Claude:
+                    isSwitch = true;
+                    break;
+                case AIModelType.Gemini:
+                    btnAttachFile.Visibility = Visibility.Hidden;
+                    isSwitch = true;
+                    break;
+                case AIModelType.GPT:
+                    btnAttachFile.Visibility = Visibility.Visible;
+                    isSwitch = true;
+                    break;
+                case AIModelType.DeepSeek:
+                    btnAttachFile.Visibility = Visibility.Visible;
+                    isSwitch = true;
+                    break;
+                default:
+                    System.Diagnostics.Debug.WriteLine($"Unbekannter AIModelType ausgewählt: {selectedAIModelType}");
+                    isSwitch = false;
+                    break;
+            }
+
+            if (isSwitch)
+            {
+                _aiModelType = selectedAIModelType;
+                _parentToolWindow.Caption = string.Format("Chat {0} Extension", selectedAIModelType);
+                UpdateButtonContentAndTooltip();
+                OnReloadAIItemClick(null, null);
+                SaveConfiguration();
+
+                if (null != CodeActionsContextMenu && 0 < CodeActionsContextMenu.Items.Count)
+                {
+
+                    foreach (var item in CodeActionsContextMenu.Items)
+                    {
+                        if (typeof(MenuItem) != item.GetType())
+                        {
+                            continue;
+                        }
+
+                        MenuItem _item = (MenuItem)item;
+
+                        if (!_item.Header.ToString().StartsWith("Reload"))
+                        {
+                            continue;
+                        }
+
+                        _item.Header = string.Format("Reload {0}", selectedAIModelType);
+                    }
+                }
+            }
+            StopTimer();
+        }
+
+
         private void LoadContextMenuActions()
         {
             var actions = _configWindow.ActionItems;
@@ -1042,7 +1167,7 @@ namespace ChatGPTExtension
             CodeActionsContextMenu.Items.Add(new Separator());
 
             // Add Reload Chat GPT menu item
-            var reloadMenuItem = new MenuItem { Header = "Reload Chat GPT..." };
+            var reloadMenuItem = new MenuItem { Header = "Reload GPT" };
             reloadMenuItem.Click += OnReloadAIItemClick;
             CodeActionsContextMenu.Items.Add(reloadMenuItem);
 
@@ -1056,6 +1181,8 @@ namespace ChatGPTExtension
             configureLabelsMenuItem.Click += ConfigureLabelsMenuItem_Click;
             CodeActionsContextMenu.Items.Add(configureLabelsMenuItem);
 
+
+            /*
             // Add another separator before the new options
             CodeActionsContextMenu.Items.Add(new Separator());
 
@@ -1169,6 +1296,7 @@ namespace ChatGPTExtension
                 _parentToolWindow.Caption = "DeepSeek Extension";
                 UpdateButtonContentAndTooltip();
             }
+            */
 
             StopTimer();
         }
@@ -1180,20 +1308,20 @@ namespace ChatGPTExtension
 
             // Update the content and tooltip for the buttons
             btnVSNETToAI.Content = _buttonLabels.VSNETToAI.Replace("{AI}", aiTechnology);
-            btnVSNETToAI.ToolTip = $"Transfer selected code from VS.NET to {aiTechnology}";
+            btnVSNETToAI.ToolTip = $"Transfer selected code from Editor to {aiTechnology}";
 
             btnFixCodeInAI.Content = _buttonLabels.FixCode.Replace("{AI}", aiTechnology);
-            btnFixCodeInAI.ToolTip = $"Fix bugs in VS.NET selected code using {aiTechnology}";
+            btnFixCodeInAI.ToolTip = $"Fix bugs in Editor selected code using {aiTechnology}";
 
             btnImproveCodeInAI.Content = _buttonLabels.ImproveCode.Replace("{AI}", aiTechnology);
-            btnImproveCodeInAI.ToolTip = $"Refactor selected code from VS.NET in {aiTechnology}";
+            btnImproveCodeInAI.ToolTip = $"Refactor selected code from Editor in {aiTechnology}";
 
 
             btnAIToVSNET.Content = _buttonLabels.AIToVSNET.Replace("{AI}", aiTechnology);
-            btnAIToVSNET.ToolTip = $"Transfer selected code from {aiTechnology} to VS.NET";
+            btnAIToVSNET.ToolTip = $"Transfer selected code from {aiTechnology} to Editor";
 
             btnAttachFile.Content = _buttonLabels.AttachFile.Replace("{AI}", aiTechnology);
-            btnAttachFile.ToolTip = $"Attach VS.NET file open to {aiTechnology}";
+            btnAttachFile.ToolTip = $"Attach Editor file open to {aiTechnology}";
 
             btnCompleteCodeInAI.Content = _buttonLabels.CompleteCode.Replace("{ai}", aiTechnology);
             btnCompleteCodeInAI.ToolTip = $"Ask {aiTechnology} to generate complete code";
@@ -1207,7 +1335,7 @@ namespace ChatGPTExtension
 
             EnableCopyCodeCheckBox.Content = _buttonLabels.EnableCopyCode.Replace("{ai}", aiTechnology);
 
-            EnableCopyCodeCheckBox.ToolTip = $"Enable sending code from {aiTechnology} to VS.NET when Copy code button is clicked in {aiTechnology}";
+            EnableCopyCodeCheckBox.ToolTip = $"Enable sending code from {aiTechnology} to Editor when Copy code button is clicked in {aiTechnology}";
         }
 
         #endregion

@@ -56,7 +56,7 @@
 
         <StackPanel Grid.Row="0" VerticalAlignment="Top" >
             <StackPanel Orientation="Horizontal" Margin="0,5">
-                <Label Content="VS.NET to AI" Width="150"/>
+                <Label Content="Editor to AI" Width="150"/>
                 <TextBox x:Name="VSNETToAITxt" Width="200"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,5">
@@ -68,7 +68,7 @@
                 <TextBox x:Name="ImproveCodeTxt" Width="200"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,5">
-                <Label Content="AI to VS.NET" Width="150"/>
+                <Label Content="AI to Editor" Width="150"/>
                 <TextBox x:Name="AIToVSNETTxt" Width="200"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,5">
@@ -88,7 +88,7 @@
                 <TextBox x:Name="AttachFileTxt" Width="200"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,5">
-                <Label Content="Enable Copy Code" Width="150"/>
+                <Label Content="Copy Code" Width="150"/>
                 <TextBox x:Name="EnableCopyCodeTxt" Width="200"/>
             </StackPanel>
         </StackPanel>
