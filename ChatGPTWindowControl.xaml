@@ -112,12 +112,14 @@
 
             <!-- Row 1 -->
             <Button Grid.Row="0" Grid.Column="0" Name="btnVSNETToAI" Content="Editor to Claude ➡️" Click="OnSendCodeButtonClick" Tag="btnVSNETToAI" Style="{StaticResource CustomButtonStyle}"/>
-            <Button Grid.Row="0" Grid.Column="1" Name="btnFixCodeInAI" Content="Fix Code" Click="OnSendCodeButtonClick" Tag="Fix {languageCode} code below:" Style="{StaticResource CustomButtonStyle}"/>
-            <Button Grid.Row="0" Grid.Column="2" Name="btnImproveCodeInAI" Content="Improve Code" Click="OnSendCodeButtonClick" Tag="Improve {languageCode} code below:" Style="{StaticResource CustomButtonStyle}"/>
+
+            <!--Fix {languageCode} code below:-->
+            <Button Grid.Row="0" Grid.Column="1" Name="btnFixCodeInAI" Content="Fix Code" Click="OnSendCodeButtonClick" Tag="" Style="{StaticResource CustomButtonStyle}"/>
+            <Button Grid.Row="0" Grid.Column="2" Name="btnImproveCodeInAI" Content="Improve Code" Click="OnSendCodeButtonClick" Tag="" Style="{StaticResource CustomButtonStyle}"/>
             <Button Grid.Row="0" Grid.Column="3" Name="btnCompleteCodeInAI" Margin="-1,-1,-1,0" Content="Complete Code" Click="OnCompleteCodeButtonClick" Style="{StaticResource CustomButtonStyle}"/>
 
             <!-- Row 2 -->
-            <Button Grid.Row="1" Grid.Column="0" Name="btnAIToVSNET" Content="⬅️ Claude to Editor" Click="OnReceiveCodeButtonClick" Style="{StaticResource CustomButtonStyle}"/>
+            <Button Grid.Row="1" Grid.Column="0" Name="btnAIToVSNET" Content="Claude to Editor" Click="OnReceiveCodeButtonClick" Style="{StaticResource CustomButtonStyle}"/>
             <Button Grid.Row="1" Grid.Column="1" Name="btnContinueCode" Content="Continue Code" Click="OnContinueCodeButtonClick" Style="{StaticResource CustomButtonStyle}"/>
             <Button Grid.Row="1" Grid.Column="2" Name="btnNewFile" Content="📄 New File" Style="{StaticResource CustomButtonStyle}" Click="OnNewFileButtonClick"/>
             <Button Grid.Row="1" Grid.Column="3" Name="btnAttachFile" Margin="-1,-1,-1,0" Content="Attach File" Click="OnAttachFileButtonClick" Style="{StaticResource CustomButtonStyle}"/>

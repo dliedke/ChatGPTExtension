@@ -868,7 +868,8 @@ namespace ChatGPTExtension
         {
             try
             {
-                string promptCompleteCode = "Please show new full complete code without explanations with complete methods implementation for the provided code without any placeholders like ... or assuming code segments. Do not create methods you dont know. Keep all original comments.\r\n\r\n";
+                // string promptCompleteCode = "Please show new full complete code without explanations with complete methods implementation for the provided code without any placeholders like ... or assuming code segments. Do not create methods you dont know. Keep all original comments.\r\n\r\n";
+                string promptCompleteCode = string.Format("{0}\r\n\r\n", _buttonLabels.CompleteCodePromt);
 
                 string script = string.Empty;
 
@@ -1177,7 +1178,7 @@ namespace ChatGPTExtension
             CodeActionsContextMenu.Items.Add(configureMenuItem);
 
             // Add Configure button labels... menu item
-            var configureLabelsMenuItem = new MenuItem { Header = "Configure button labels..." };
+            var configureLabelsMenuItem = new MenuItem { Header = "Configure buttons" };
             configureLabelsMenuItem.Click += ConfigureLabelsMenuItem_Click;
             CodeActionsContextMenu.Items.Add(configureLabelsMenuItem);
 
@@ -1311,11 +1312,12 @@ namespace ChatGPTExtension
             btnVSNETToAI.ToolTip = $"Transfer selected code from Editor to {aiTechnology}";
 
             btnFixCodeInAI.Content = _buttonLabels.FixCode.Replace("{AI}", aiTechnology);
+            btnFixCodeInAI.Tag = _buttonLabels.FixCodePromt;
             btnFixCodeInAI.ToolTip = $"Fix bugs in Editor selected code using {aiTechnology}";
 
             btnImproveCodeInAI.Content = _buttonLabels.ImproveCode.Replace("{AI}", aiTechnology);
+            btnImproveCodeInAI.Tag = _buttonLabels.ImproveCodePromt;
             btnImproveCodeInAI.ToolTip = $"Refactor selected code from Editor in {aiTechnology}";
-
 
             btnAIToVSNET.Content = _buttonLabels.AIToVSNET.Replace("{AI}", aiTechnology);
             btnAIToVSNET.ToolTip = $"Transfer selected code from {aiTechnology} to Editor";
@@ -1489,7 +1491,8 @@ namespace ChatGPTExtension
         {
             try
             {
-                string promptContinueCode = "Continue code generation\r\n\r\n";
+                // string promptContinueCode = "Continue code generation\r\n\r\n";
+                string promptContinueCode = string.Format("{0}\r\n\r\n", _buttonLabels.ContinueCodePromt);
                 string script = string.Empty;
 
                 switch (_aiModelType)

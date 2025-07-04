@@ -8,12 +8,23 @@ namespace ChatGPTExtension
     {
         public string VSNETToAI { get; set; } = "Editor to {AI}";
         public string FixCode { get; set; } = "Fix Code";
+        public string FixCodePromt { get; set; } = "Fix {languageCode} code below:";
+
         public string ImproveCode { get; set; } = "Improve Code";
-        public string AIToVSNET { get; set; } = "{AI} to Editor";
-        public string ContinueCode { get; set; } = "Continue Code";
+        public string ImproveCodePromt { get; set; } = "Improve {languageCode} code below:";
+
         public string CompleteCode { get; set; } = "Complete Code";
+        public string CompleteCodePromt { get; set; } = "Please show new full complete code without explanations with complete methods implementation for the provided code without any placeholders like ... or assuming code segments. Do not create methods you dont know. Keep all original comments.";
+
+        public string ContinueCode { get; set; } = "Continue Code";
+        public string ContinueCodePromt { get; set; } = "Continue code generation";
+
+        public string AIToVSNET { get; set; } = "{AI} to Editor";
+
         public string NewFile { get; set; } = "📄 New File";
+
         public string AttachFile { get; set; } = "Attach File";
+
         public string EnableCopyCode { get; set; } = "Copy Code";
 
         private const string FileName = "buttonlabels.json";
