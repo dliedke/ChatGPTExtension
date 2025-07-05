@@ -17,16 +17,16 @@ namespace ChatGPTExtension
             VSNETToAITxt.Text = _config.VSNETToAI;
 
             FixCodeTxt.Text = _config.FixCode;
-            FixCodePromtTxt.Text = _config.FixCodePromt;
+            FixCodePromptTxt.Text = _config.FixCodePrompt;
 
             ImproveCodeTxt.Text = _config.ImproveCode;
-            ImproveCodePromtTxt.Text = _config.ImproveCodePromt;
+            ImproveCodePromptTxt.Text = _config.ImproveCodePrompt;
 
             CompleteCodeTxt.Text = _config.CompleteCode;
-            CompleteCodePromtTxt.Text = _config.CompleteCodePromt;
+            CompleteCodePromptTxt.Text = _config.CompleteCodePrompt;
 
             ContinueCodeTxt.Text = _config.ContinueCode;
-            ContinueCodePromtTxt.Text = _config.ContinueCodePromt;
+            ContinueCodePromptTxt.Text = _config.ContinueCodePrompt;
 
             AIToVSNETTxt.Text = _config.AIToVSNET;
 
@@ -40,16 +40,16 @@ namespace ChatGPTExtension
             _config.VSNETToAI = VSNETToAITxt.Text;
 
             _config.FixCode = FixCodeTxt.Text;
-            _config.FixCodePromt = FixCodePromtTxt.Text;
+            _config.FixCodePrompt = FixCodePromptTxt.Text;
 
             _config.ImproveCode = ImproveCodeTxt.Text;
-            _config.ImproveCodePromt = ImproveCodePromtTxt.Text;
+            _config.ImproveCodePrompt = ImproveCodePromptTxt.Text;
 
             _config.CompleteCode = CompleteCodeTxt.Text;
-            _config.CompleteCodePromt = CompleteCodePromtTxt.Text;
+            _config.CompleteCodePrompt = CompleteCodePromptTxt.Text;
 
             _config.ContinueCode = ContinueCodeTxt.Text;
-            _config.ContinueCodePromt = ContinueCodePromtTxt.Text;
+            _config.ContinueCodePrompt = ContinueCodePromptTxt.Text;
 
             _config.AIToVSNET = AIToVSNETTxt.Text;
             _config.NewFile = NewFileTxt.Text;
@@ -68,16 +68,16 @@ namespace ChatGPTExtension
             VSNETToAITxt.Text = defaultValues.VSNETToAI;
 
             FixCodeTxt.Text = defaultValues.FixCode;
-            FixCodePromtTxt.Text = defaultValues.FixCodePromt;
+            FixCodePromptTxt.Text = defaultValues.FixCodePrompt;
 
             ImproveCodeTxt.Text = defaultValues.ImproveCode;
-            ImproveCodePromtTxt.Text = defaultValues.ImproveCodePromt;
+            ImproveCodePromptTxt.Text = defaultValues.ImproveCodePrompt;
 
             CompleteCodeTxt.Text = defaultValues.CompleteCode;
-            CompleteCodePromtTxt.Text = defaultValues.CompleteCodePromt;
+            CompleteCodePromptTxt.Text = defaultValues.CompleteCodePrompt;
 
             ContinueCodeTxt.Text = defaultValues.ContinueCode;
-            ContinueCodePromtTxt.Text = defaultValues.ContinueCodePromt;
+            ContinueCodePromptTxt.Text = defaultValues.ContinueCodePrompt;
 
             AIToVSNETTxt.Text = defaultValues.AIToVSNET;
             NewFileTxt.Text = defaultValues.NewFile;

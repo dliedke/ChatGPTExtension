@@ -65,7 +65,7 @@
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,5">
                 <Label Content="Fix Code (Prompt)" Width="150"/>
-                <TextBox x:Name="FixCodePromtTxt" Width="800"/>
+                <TextBox x:Name="FixCodePromptTxt" Width="800"/>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="0,5">
@@ -74,8 +74,8 @@
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="0,5">
-                <Label Content="Improve Code (Promt)" Width="150"/>
-                <TextBox x:Name="ImproveCodePromtTxt" Width="800"/>
+                <Label Content="Improve Code (Prompt)" Width="150"/>
+                <TextBox x:Name="ImproveCodePromptTxt" Width="800"/>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="0,5">
@@ -84,8 +84,8 @@
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="0,5">
-                <Label Content="Complete Code (Promt)" Width="150"/>
-                <TextBox x:Name="CompleteCodePromtTxt" Width="800"/>
+                <Label Content="Complete Code (Prompt)" Width="150"/>
+                <TextBox x:Name="CompleteCodePromptTxt" Width="800"/>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="0,5">
@@ -94,8 +94,8 @@
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="0,5">
-                <Label Content="Continue Code (Promt)" Width="150"/>
-                <TextBox x:Name="ContinueCodePromtTxt" Width="800"/>
+                <Label Content="Continue Code (Prompt)" Width="150"/>
+                <TextBox x:Name="ContinueCodePromptTxt" Width="800"/>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="0,5">

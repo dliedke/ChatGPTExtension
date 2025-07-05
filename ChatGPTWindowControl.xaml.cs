@@ -16,7 +16,6 @@ using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Threading;
 using Microsoft.Web.WebView2.Core;
-using Microsoft.Win32;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -66,8 +65,11 @@ namespace ChatGPTExtension
 
             InitializeComponent();
 
-            // Add Loaded event handler to WebView
-            webView.Loaded += WebView_Loaded;
+            // Run sync InitializeAsync() using _joinableTaskFactory
+            _joinableTaskFactory.RunAsync(async () =>
+            {
+                await InitializeAsync();
+            }).FileAndForget("InitializeAsync");
 
             _aiModelType = LoadConfiguration();
 
@@ -79,33 +81,17 @@ namespace ChatGPTExtension
             AddMinimizeRestoreMenuItem();
 
             // Initialize WindowHelper
+            ThreadHelper.ThrowIfNotOnUIThread(); 
             var dte = serviceProvider.GetService(typeof(DTE)) as DTE2;
             _windowHelper = new WindowHelper(dte);
 
             // Set up a timer to periodically check the window state
-            _updateTimer = new DispatcherTimer();
-            _updateTimer.Interval = TimeSpan.FromMilliseconds(500);
+            _updateTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(500)
+            };
             _updateTimer.Tick += UpdateTimer_Tick;
             _updateTimer.Start();
-        }
-
-#pragma warning disable VSTHRD100 // Avoid async void methods
-        private async void WebView_Loaded(object sender, RoutedEventArgs e)
-#pragma warning restore VSTHRD100 // Avoid async void methods
-        {
-            try
-            {
-                webView.Loaded -= WebView_Loaded; // Remove handler to prevent multiple initializations
-                await InitializeAsync();
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error in WebView_Loaded: {ex.Message}");
-                MessageBox.Show($"Failed to initialize WebView2. Error: {ex.Message}\n\nPlease ensure WebView2 Runtime is installed and try restarting Visual Studio.",
-                    "WebView2 Initialization Error",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error);
-            }
         }
 
         public async Task InitializeConfigurationAsync()
@@ -120,10 +106,24 @@ namespace ChatGPTExtension
             }
         }
 
+        private bool _isWebViewInitialized = false;
+        private readonly object _initializationLock = new object();
+
         private async Task InitializeAsync()
         {
             try
             {
+                // Usa lock para evitar múltiplas inicializações simultâneas
+                lock (_initializationLock)
+                {
+                    if (_isWebViewInitialized || webView.CoreWebView2 != null)
+                    {
+                        Debug.WriteLine("WebView2 already initialized, skipping initialization");
+                        return;
+                    }
+                    _isWebViewInitialized = true; // Marca imediatamente para evitar reentrada
+                }
+
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
                 // Initialize the configuration first
@@ -136,15 +136,32 @@ namespace ChatGPTExtension
                     _windowEvents = _events.WindowEvents;
                 }
 
-                string userDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ChatGPTExtension", "WebView2");
+                // Check if the process was started with /rootsuffix Exp to determine if it's a debug instance
+                bool isDebugInstance = Environment.GetCommandLineArgs().Any(arg =>
+                    arg.ToLowerInvariant().Contains("/rootsuffix") ||
+                    arg.ToLowerInvariant().Contains("exp"));
+
+                // Add debug suffix to the user data folder if in debug mode
+                string folderSuffix = isDebugInstance ? "_Debug" : "";
+
+                string userDataPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "ChatGPTExtension",
+                    $"WebView2{folderSuffix}");
+
                 if (!Directory.Exists(userDataPath))
                 {
                     Directory.CreateDirectory(userDataPath);
                 }
 
                 string edgeWebView2Path = GetEdgeWebView2Path();
+                Debug.WriteLine($"EdgeWebView2Path: {edgeWebView2Path ?? "null"}");
+                Debug.WriteLine($"UserDataPath: {userDataPath}");
 
-                CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(edgeWebView2Path, userDataPath);
+                CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(
+                    browserExecutableFolder: edgeWebView2Path,
+                    userDataFolder: userDataPath);
+
                 await webView.EnsureCoreWebView2Async(environment);
 
                 switch (_aiModelType)
@@ -178,9 +195,70 @@ namespace ChatGPTExtension
             }
             catch (Exception ex)
             {
+                // Em caso de erro, marca como não inicializado
+                lock (_initializationLock)
+                {
+                    _isWebViewInitialized = false;
+                }
+
                 Debug.WriteLine("Error in InitializeAsync(): " + ex.Message);
+                Debug.WriteLine($"Stack Trace: {ex.StackTrace}");
+
+                // Se falhar criar o WebView2, mostra uma mensagem mais específica
+                if (ex.Message.Contains("WebView2") || ex.Message.Contains("directory"))
+                {
+                    MessageBox.Show(
+                        $"Erro ao inicializar WebView2.\n\nDetalhes: {ex.Message}\n\nVerifique se o WebView2 Runtime está instalado e tente reiniciar o Visual Studio.",
+                        "Erro de Inicialização",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                }
             }
         }
+
+        public string GetEdgeWebView2Path()
+        {
+            // First, try to find WebView2 Runtime
+            string[] possiblePaths = {
+        @"C:\Program Files (x86)\Microsoft\EdgeWebView\Application",
+        @"C:\Program Files\Microsoft\EdgeWebView\Application",
+        Environment.ExpandEnvironmentVariables(@"%ProgramFiles(x86)%\Microsoft\EdgeWebView\Application"),
+        Environment.ExpandEnvironmentVariables(@"%ProgramFiles%\Microsoft\EdgeWebView\Application")
+    };
+
+            foreach (var basePath in possiblePaths)
+            {
+                if (Directory.Exists(basePath))
+                {
+                    var versionDirs = Directory.GetDirectories(basePath);
+                    if (versionDirs.Length > 0)
+                    {
+                        // Return the first version directory found
+                        Debug.WriteLine($"WebView2 found at: {versionDirs[0]}");
+                        return versionDirs[0];
+                    }
+                }
+            }
+
+            // If WebView2 Runtime not found, try Edge browser paths
+            string[] edgePaths = {
+        @"C:\Program Files (x86)\Microsoft\Edge\Application",
+        @"C:\Program Files\Microsoft\Edge\Application"
+    };
+
+            foreach (var path in edgePaths)
+            {
+                if (Directory.Exists(path))
+                {
+                    Debug.WriteLine($"Edge browser found at: {path}");
+                    return path;
+                }
+            }
+
+            Debug.WriteLine("WebView2/Edge path not found, returning null");
+            return null;
+        }
+
 
 
         private void OnControlUnloaded(object sender, RoutedEventArgs e)
@@ -199,24 +277,6 @@ namespace ChatGPTExtension
                 _events = null;
                 _dte = null;
             }
-        }
-
-        public string GetEdgeWebView2Path()
-        {
-            // Retrieve the Edge WebView2 path from registry
-            string keyPath = @"SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{2CD8A007-E189-409D-A2C8-9AF4EF3C72AA}";
-            using (RegistryKey key = Registry.LocalMachine.OpenSubKey(keyPath))
-            {
-                if (key != null)
-                {
-                    object pathObject = key.GetValue("pv");
-                    if (pathObject != null)
-                    {
-                        return pathObject.ToString();
-                    }
-                }
-            }
-            return null;
         }
 
         private async Task WaitForElementByIdAsync(string elementId)
@@ -869,7 +929,7 @@ namespace ChatGPTExtension
             try
             {
                 // string promptCompleteCode = "Please show new full complete code without explanations with complete methods implementation for the provided code without any placeholders like ... or assuming code segments. Do not create methods you dont know. Keep all original comments.\r\n\r\n";
-                string promptCompleteCode = string.Format("{0}\r\n\r\n", _buttonLabels.CompleteCodePromt);
+                string promptCompleteCode = string.Format("{0}\r\n\r\n", _buttonLabels.CompleteCodePrompt);
 
                 string script = string.Empty;
 
@@ -1312,11 +1372,11 @@ namespace ChatGPTExtension
             btnVSNETToAI.ToolTip = $"Transfer selected code from Editor to {aiTechnology}";
 
             btnFixCodeInAI.Content = _buttonLabels.FixCode.Replace("{AI}", aiTechnology);
-            btnFixCodeInAI.Tag = _buttonLabels.FixCodePromt;
+            btnFixCodeInAI.Tag = _buttonLabels.FixCodePrompt;
             btnFixCodeInAI.ToolTip = $"Fix bugs in Editor selected code using {aiTechnology}";
 
             btnImproveCodeInAI.Content = _buttonLabels.ImproveCode.Replace("{AI}", aiTechnology);
-            btnImproveCodeInAI.Tag = _buttonLabels.ImproveCodePromt;
+            btnImproveCodeInAI.Tag = _buttonLabels.ImproveCodePrompt;
             btnImproveCodeInAI.ToolTip = $"Refactor selected code from Editor in {aiTechnology}";
 
             btnAIToVSNET.Content = _buttonLabels.AIToVSNET.Replace("{AI}", aiTechnology);
@@ -1492,7 +1552,7 @@ namespace ChatGPTExtension
             try
             {
                 // string promptContinueCode = "Continue code generation\r\n\r\n";
-                string promptContinueCode = string.Format("{0}\r\n\r\n", _buttonLabels.ContinueCodePromt);
+                string promptContinueCode = string.Format("{0}\r\n\r\n", _buttonLabels.ContinueCodePrompt);
                 string script = string.Empty;
 
                 switch (_aiModelType)
