@@ -35,7 +35,7 @@ namespace ChatGPTExtension
         /// </summary>
         public ChatGPTToolWindow() : base(null)
         {
-            this.Caption = "Chat GPT Extension";
+            this.Caption = "GPT Extension";
 
             // Pass this package (which is an IServiceProvider) to the user control.
             // Also the full ToolWindow as second parameter

@@ -1146,6 +1146,7 @@ namespace ChatGPTExtension
             switch (selectedAIModelType)
             {
                 case AIModelType.Claude:
+                    btnAttachFile.Visibility = Visibility.Visible;
                     isSwitch = true;
                     break;
                 case AIModelType.Gemini:
@@ -1161,7 +1162,6 @@ namespace ChatGPTExtension
                     isSwitch = true;
                     break;
                 default:
-                    System.Diagnostics.Debug.WriteLine($"Unbekannter AIModelType ausgewählt: {selectedAIModelType}");
                     isSwitch = false;
                     break;
             }
@@ -1169,7 +1169,7 @@ namespace ChatGPTExtension
             if (isSwitch)
             {
                 _aiModelType = selectedAIModelType;
-                _parentToolWindow.Caption = string.Format("Chat {0} Extension", selectedAIModelType);
+                _parentToolWindow.Caption = string.Format("{0} Extension", selectedAIModelType);
                 UpdateButtonContentAndTooltip();
                 OnReloadAIItemClick(null, null);
                 SaveConfiguration();
