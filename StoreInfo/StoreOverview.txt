@@ -82,6 +82,8 @@ Also integrates with **Hangzhou Deepseek**.
 
 ## What's New
 
+- 7.3 - Fix issues with attach code button not displaying for Claude after Gemini selection. Removed word "Chat" from some titles
+
 - 7.2 - With the great help of m1001111: Better AI model selector, configurable button texts and actions so you may localize the extension for your own native language. Internal changes for better debugging.
 
 - 7.1 - Added Python project support for New File button and no extension when project type is not detected 
