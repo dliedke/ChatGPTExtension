@@ -120,7 +120,7 @@
             <Button Grid.Row="1" Grid.Column="2" Name="btnNewFile" Content="📄 New File" Style="{StaticResource CustomButtonStyle}" Click="OnNewFileButtonClick" Margin="-1,-1,-1,0"/>
 
             <!-- Row 3 - Using a separate grid with 4 columns for this row -->
-            <Grid Grid.Row="2" Grid.ColumnSpan="3">
+            <Grid Grid.Row="2" Grid.ColumnSpan="3" Margin="0,0,0,-1">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="*" />
@@ -186,7 +186,7 @@
                     </ComboBox.Style>
                 </ComboBox>
 
-                <Button Grid.Column="1" Name="btnCompleteCodeInAI" Content="Complete Code" Click="OnCompleteCodeButtonClick" Style="{StaticResource CustomButtonStyle}"/>
+                <Button Grid.Column="1" Name="btnCompleteCodeInAI" Content="Complete Code" Click="OnCompleteCodeButtonClick"  Style="{StaticResource CustomButtonStyle}"/>
                 <Button Grid.Column="2" Name="btnContinueCode" Content="Continue Code" Click="OnContinueCodeButtonClick" Style="{StaticResource CustomButtonStyle}"/>
 
                 <!-- Column 3: Enable Copy Code checkbox and dropdown button -->
@@ -200,7 +200,7 @@
                         <CheckBox Style="{StaticResource CustomCheckBoxStyle}" HorizontalAlignment="Center" Name="EnableCopyCodeCheckBox" Click="EnableCopyCodeCheckBox_Click" IsChecked="True" Content="Enable Copy Code" />
                     </Border>
 
-                    <Button Grid.Column="1" Content="▼" Width="26" Style="{StaticResource CustomButtonStyle}" Margin="5,-1,-1,-1">
+                    <Button Grid.Column="1" Content="▼" Width="26" Style="{StaticResource CustomButtonStyle}" Margin="5,-2,-1,0">
                         <Button.ContextMenu>
                             <ContextMenu x:Name="CodeActionsContextMenu" FontSize="15" />
                         </Button.ContextMenu>
