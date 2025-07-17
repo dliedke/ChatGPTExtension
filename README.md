@@ -82,6 +82,9 @@ Also integrates with **Hangzhou Deepseek**.
 
 ## What's New
 
+- 7.5 - m1001111 feat: Make settings prompts more flexible and fix display errors
+Prompt in Settings Button can be set line by line Prompt in Settings Extensions can be set line by line Fixed border display bug
+
 - 7.4 - Fix attach file not working for GPT
 
 - 7.3 - Fix issues with attach code button not displaying for Claude after Gemini selection. Removed word "Chat" from some titles
