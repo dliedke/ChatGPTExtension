@@ -54,8 +54,9 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" VerticalAlignment="Top" >
-            <StackPanel Orientation="Horizontal" Margin="0,5">
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+            <StackPanel VerticalAlignment="Top" >
+                <StackPanel Orientation="Horizontal" Margin="0,5">
                 <Label Content="Editor to AI" Width="150"/>
                 <TextBox x:Name="VSNETToAITxt" Width="200"/>
             </StackPanel>
@@ -65,17 +66,17 @@
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,5">
                 <Label Content="Fix Code (Prompt)" Width="150"/>
-                <TextBox x:Name="FixCodePromptTxt" Width="800"/>
+                <TextBox x:Name="FixCodePromptTxt" Width="800" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="0,5">
                 <Label Content="Improve Code" Width="150"/>
-                <TextBox x:Name="ImproveCodeTxt" Width="200"/>
+                <TextBox x:Name="ImproveCodeTxt" Width="200" />
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="0,5">
                 <Label Content="Improve Code (Prompt)" Width="150"/>
-                <TextBox x:Name="ImproveCodePromptTxt" Width="800"/>
+                <TextBox x:Name="ImproveCodePromptTxt" Width="800" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="0,5">
@@ -85,7 +86,7 @@
 
             <StackPanel Orientation="Horizontal" Margin="0,5">
                 <Label Content="Complete Code (Prompt)" Width="150"/>
-                <TextBox x:Name="CompleteCodePromptTxt" Width="800"/>
+                <TextBox x:Name="CompleteCodePromptTxt" Width="800" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="0,5">
@@ -95,7 +96,7 @@
 
             <StackPanel Orientation="Horizontal" Margin="0,5">
                 <Label Content="Continue Code (Prompt)" Width="150"/>
-                <TextBox x:Name="ContinueCodePromptTxt" Width="800"/>
+                <TextBox x:Name="ContinueCodePromptTxt" Width="800" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="0,5">
@@ -115,7 +116,8 @@
                 <Label Content="Copy Code" Width="150"/>
                 <TextBox x:Name="EnableCopyCodeTxt" Width="200"/>
             </StackPanel>
-        </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
 
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0">
             <Button Content="Save" Width="80" Margin="5" Click="Save_Click"/>
