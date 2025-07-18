@@ -65,33 +65,47 @@ namespace ChatGPTExtension
 
             InitializeComponent();
 
-            // Run sync InitializeAsync() using _joinableTaskFactory
-            _joinableTaskFactory.RunAsync(async () =>
-            {
-                await InitializeAsync();
-            }).FileAndForget("InitializeAsync");
-
-            _aiModelType = LoadConfiguration();
-
-            LoadContextMenuActions();
-            LoadComboBoxItemsKi();
-
-            _parentToolWindow = parent;
-
-            AddMinimizeRestoreMenuItem();
-
             // Initialize WindowHelper
-            ThreadHelper.ThrowIfNotOnUIThread(); 
+            ThreadHelper.ThrowIfNotOnUIThread();
             var dte = serviceProvider.GetService(typeof(DTE)) as DTE2;
             _windowHelper = new WindowHelper(dte);
+        }
 
-            // Set up a timer to periodically check the window state
-            _updateTimer = new DispatcherTimer
+        bool _initialized = false;
+
+        private void ChatGPTWindowControl_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (_initialized)
+                return;
+
+            if (this.IsVisible)
             {
-                Interval = TimeSpan.FromMilliseconds(500)
-            };
-            _updateTimer.Tick += UpdateTimer_Tick;
-            _updateTimer.Start();
+                // Initialize the JoinableTaskFactory
+                _joinableTaskFactory = ThreadHelper.JoinableTaskFactory;
+
+                // Run sync InitializeAsync() using _joinableTaskFactory
+                _joinableTaskFactory.RunAsync(async () =>
+                {
+                    await InitializeAsync();
+                }).FileAndForget("InitializeAsync");
+
+                _aiModelType = LoadConfiguration();
+
+                LoadContextMenuActions();
+                LoadComboBoxItemsKi();
+
+                AddMinimizeRestoreMenuItem();
+
+                // Set up a timer to periodically check the window state
+                _updateTimer = new DispatcherTimer
+                {
+                    Interval = TimeSpan.FromMilliseconds(500)
+                };
+                _updateTimer.Tick += UpdateTimer_Tick;
+                _updateTimer.Start();
+
+                _initialized = true; // Mark as initialized
+            }
         }
 
         public async Task InitializeConfigurationAsync()
@@ -1242,122 +1256,17 @@ namespace ChatGPTExtension
             configureLabelsMenuItem.Click += ConfigureLabelsMenuItem_Click;
             CodeActionsContextMenu.Items.Add(configureLabelsMenuItem);
 
-
-            /*
             // Add another separator before the new options
             CodeActionsContextMenu.Items.Add(new Separator());
 
-            var useGeminiMenuItem = new MenuItem { Header = "Use Gemini", IsCheckable = true };
-            var useGptMenuItem = new MenuItem { Header = "Use GPT", IsCheckable = true };
-            var useClaudeMenuItem = new MenuItem { Header = "Use Claude", IsCheckable = true };
-            var useDeepSeekMenuItem = new MenuItem { Header = "Use DeepSeek", IsCheckable = true };
-
-            // Configure "Use GPT" menu item
-            useGptMenuItem.Click += (sender, e) =>
+            // Add menu About...  showing message box with app version with major and minor version
+            var aboutMenuItem = new MenuItem { Header = "About..." };
+            aboutMenuItem.Click += (s, e) =>
             {
-                _aiModelType = AIModelType.GPT;
-                btnAttachFile.Visibility = Visibility.Visible;
-                useGptMenuItem.IsChecked = true;
-                useGeminiMenuItem.IsChecked = false;
-                useClaudeMenuItem.IsChecked = false;
-                useDeepSeekMenuItem.IsChecked = false;
-                reloadMenuItem.Header = "Reload Chat GPT...";
-                _parentToolWindow.Caption = "Chat GPT Extension";
-                UpdateButtonContentAndTooltip();
-                OnReloadAIItemClick(null, null);
-                SaveConfiguration();
+                string version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString(2);
+                MessageBox.Show($"ChatGPT Extension Version: {version}", "About ChatGPT Extension", MessageBoxButton.OK, MessageBoxImage.Information);
             };
-            CodeActionsContextMenu.Items.Add(useGptMenuItem);
-
-            // Configure "Use Gemini" menu item
-            useGeminiMenuItem.Click += (sender, e) =>
-            {
-                _aiModelType = AIModelType.Gemini;
-                btnAttachFile.Visibility = Visibility.Hidden;
-                useGptMenuItem.IsChecked = false;
-                useGeminiMenuItem.IsChecked = true;
-                useClaudeMenuItem.IsChecked = false;
-                useDeepSeekMenuItem.IsChecked = false;
-                reloadMenuItem.Header = "Reload Gemini...";
-                _parentToolWindow.Caption = "Gemini Extension";
-                UpdateButtonContentAndTooltip();
-                OnReloadAIItemClick(null, null);
-                SaveConfiguration();
-            };
-            CodeActionsContextMenu.Items.Add(useGeminiMenuItem);
-
-            // Configure "Use Claude" menu item
-            useClaudeMenuItem.Click += (sender, e) =>
-            {
-                _aiModelType = AIModelType.Claude;
-                btnAttachFile.Visibility = Visibility.Visible;
-                useGptMenuItem.IsChecked = false;
-                useGeminiMenuItem.IsChecked = false;
-                useClaudeMenuItem.IsChecked = true;
-                useDeepSeekMenuItem.IsChecked = false;
-                reloadMenuItem.Header = "Reload Claude...";
-                _parentToolWindow.Caption = "Claude Extension";
-                UpdateButtonContentAndTooltip();
-                OnReloadAIItemClick(null, null);
-                SaveConfiguration();
-            };
-            CodeActionsContextMenu.Items.Add(useClaudeMenuItem);
-
-            // Configure "Use DeepSeek" menu item
-            useDeepSeekMenuItem.Click += (sender, e) =>
-            {
-                _aiModelType = AIModelType.DeepSeek;
-                btnAttachFile.Visibility = Visibility.Visible;
-                useGptMenuItem.IsChecked = false;
-                useGeminiMenuItem.IsChecked = false;
-                useClaudeMenuItem.IsChecked = false;
-                useDeepSeekMenuItem.IsChecked = true;
-                reloadMenuItem.Header = "Reload DeepSeek...";
-                _parentToolWindow.Caption = "DeepSeek Extension";
-                UpdateButtonContentAndTooltip();
-                OnReloadAIItemClick(null, null);
-                SaveConfiguration();
-            };
-            CodeActionsContextMenu.Items.Add(useDeepSeekMenuItem);
-
-            // Set the initial state based on _gptConfigured
-            useGptMenuItem.IsChecked = (_aiModelType == AIModelType.GPT);
-            useGeminiMenuItem.IsChecked = (_aiModelType == AIModelType.Gemini);
-            useClaudeMenuItem.IsChecked = (_aiModelType == AIModelType.Claude);
-            useDeepSeekMenuItem.IsChecked = (_aiModelType == AIModelType.DeepSeek);
-
-            // Set all the user interface according to the AI model selected
-            if (_aiModelType == AIModelType.GPT)
-            {
-                reloadMenuItem.Header = "Reload Chat GPT...";
-                _parentToolWindow.Caption = "Chat GPT Extension";
-                UpdateButtonContentAndTooltip();
-            }
-            if (_aiModelType == AIModelType.Gemini)
-            {
-                btnAttachFile.Visibility = Visibility.Hidden;
-                reloadMenuItem.Header = "Reload Gemini...";
-                _parentToolWindow.Caption = "Gemini Extension";
-                UpdateButtonContentAndTooltip();
-            }
-            else
-            {
-                btnAttachFile.Visibility = Visibility.Visible;
-            }
-
-            if (_aiModelType == AIModelType.Claude)
-            {
-                reloadMenuItem.Header = "Reload Claude...";
-                _parentToolWindow.Caption = "Claude Extension";
-                UpdateButtonContentAndTooltip();
-            }
-            if (_aiModelType == AIModelType.DeepSeek)
-            {
-                reloadMenuItem.Header = "Reload DeepSeek...";
-                _parentToolWindow.Caption = "DeepSeek Extension";
-                UpdateButtonContentAndTooltip();
-            }
-            */
+            CodeActionsContextMenu.Items.Add(aboutMenuItem);
 
             StopTimer();
         }
@@ -1741,7 +1650,10 @@ namespace ChatGPTExtension
             _minimizeRestoreMenuItem.Header = _isMinimized ? "Restore" : "Minimize";
         }
 
+
         #endregion
+
+
     }
 
     public class WindowHelper
