@@ -16,7 +16,6 @@ using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Threading;
 using Microsoft.Web.WebView2.Core;
-using Microsoft.Win32;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -66,42 +65,46 @@ namespace ChatGPTExtension
 
             InitializeComponent();
 
-            // Add Loaded event handler to WebView
-            webView.Loaded += WebView_Loaded;
-
-            _aiModelType = LoadConfiguration();
-            LoadContextMenuActions();
-            _parentToolWindow = parent;
-
-            AddMinimizeRestoreMenuItem();
-
             // Initialize WindowHelper
+            ThreadHelper.ThrowIfNotOnUIThread();
             var dte = serviceProvider.GetService(typeof(DTE)) as DTE2;
             _windowHelper = new WindowHelper(dte);
-
-            // Set up a timer to periodically check the window state
-            _updateTimer = new DispatcherTimer();
-            _updateTimer.Interval = TimeSpan.FromMilliseconds(500);
-            _updateTimer.Tick += UpdateTimer_Tick;
-            _updateTimer.Start();
         }
 
-#pragma warning disable VSTHRD100 // Avoid async void methods
-        private async void WebView_Loaded(object sender, RoutedEventArgs e)
-#pragma warning restore VSTHRD100 // Avoid async void methods
+        bool _initialized = false;
+
+        private void ChatGPTWindowControl_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
-            try
+            if (_initialized)
+                return;
+
+            if (this.IsVisible)
             {
-                webView.Loaded -= WebView_Loaded; // Remove handler to prevent multiple initializations
-                await InitializeAsync();
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error in WebView_Loaded: {ex.Message}");
-                MessageBox.Show($"Failed to initialize WebView2. Error: {ex.Message}\n\nPlease ensure WebView2 Runtime is installed and try restarting Visual Studio.",
-                    "WebView2 Initialization Error",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error);
+                // Initialize the JoinableTaskFactory
+                _joinableTaskFactory = ThreadHelper.JoinableTaskFactory;
+
+                // Run sync InitializeAsync() using _joinableTaskFactory
+                _joinableTaskFactory.RunAsync(async () =>
+                {
+                    await InitializeAsync();
+                }).FileAndForget("InitializeAsync");
+
+                _aiModelType = LoadConfiguration();
+
+                LoadContextMenuActions();
+                LoadComboBoxItemsKi();
+
+                AddMinimizeRestoreMenuItem();
+
+                // Set up a timer to periodically check the window state
+                _updateTimer = new DispatcherTimer
+                {
+                    Interval = TimeSpan.FromMilliseconds(500)
+                };
+                _updateTimer.Tick += UpdateTimer_Tick;
+                _updateTimer.Start();
+
+                _initialized = true; // Mark as initialized
             }
         }
 
@@ -117,10 +120,24 @@ namespace ChatGPTExtension
             }
         }
 
+        private bool _isWebViewInitialized = false;
+        private readonly object _initializationLock = new object();
+
         private async Task InitializeAsync()
         {
             try
             {
+                // Usa lock para evitar múltiplas inicializações simultâneas
+                lock (_initializationLock)
+                {
+                    if (_isWebViewInitialized || webView.CoreWebView2 != null)
+                    {
+                        Debug.WriteLine("WebView2 already initialized, skipping initialization");
+                        return;
+                    }
+                    _isWebViewInitialized = true; // Marca imediatamente para evitar reentrada
+                }
+
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
                 // Initialize the configuration first
@@ -133,15 +150,32 @@ namespace ChatGPTExtension
                     _windowEvents = _events.WindowEvents;
                 }
 
-                string userDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ChatGPTExtension", "WebView2");
+                // Check if the process was started with /rootsuffix Exp to determine if it's a debug instance
+                bool isDebugInstance = Environment.GetCommandLineArgs().Any(arg =>
+                    arg.ToLowerInvariant().Contains("/rootsuffix") ||
+                    arg.ToLowerInvariant().Contains("exp"));
+
+                // Add debug suffix to the user data folder if in debug mode
+                string folderSuffix = isDebugInstance ? "_Debug" : "";
+
+                string userDataPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "ChatGPTExtension",
+                    $"WebView2{folderSuffix}");
+
                 if (!Directory.Exists(userDataPath))
                 {
                     Directory.CreateDirectory(userDataPath);
                 }
 
                 string edgeWebView2Path = GetEdgeWebView2Path();
+                Debug.WriteLine($"EdgeWebView2Path: {edgeWebView2Path ?? "null"}");
+                Debug.WriteLine($"UserDataPath: {userDataPath}");
 
-                CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(edgeWebView2Path, userDataPath);
+                CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(
+                    browserExecutableFolder: edgeWebView2Path,
+                    userDataFolder: userDataPath);
+
                 await webView.EnsureCoreWebView2Async(environment);
 
                 switch (_aiModelType)
@@ -175,9 +209,71 @@ namespace ChatGPTExtension
             }
             catch (Exception ex)
             {
+                // Em caso de erro, marca como não inicializado
+                lock (_initializationLock)
+                {
+                    _isWebViewInitialized = false;
+                }
+
                 Debug.WriteLine("Error in InitializeAsync(): " + ex.Message);
+                Debug.WriteLine($"Stack Trace: {ex.StackTrace}");
+
+                // Se falhar criar o WebView2, mostra uma mensagem mais específica
+                if (ex.Message.Contains("WebView2") || ex.Message.Contains("directory"))
+                {
+                    MessageBox.Show(
+                        $"Erro ao inicializar WebView2.\n\nDetalhes: {ex.Message}\n\nVerifique se o WebView2 Runtime está instalado e tente reiniciar o Visual Studio.",
+                        "Erro de Inicialização",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                }
             }
         }
+
+        public string GetEdgeWebView2Path()
+        {
+            // First, try to find WebView2 Runtime
+            string[] possiblePaths = {
+        @"C:\Program Files (x86)\Microsoft\EdgeWebView\Application",
+        @"C:\Program Files\Microsoft\EdgeWebView\Application",
+        Environment.ExpandEnvironmentVariables(@"%ProgramFiles(x86)%\Microsoft\EdgeWebView\Application"),
+        Environment.ExpandEnvironmentVariables(@"%ProgramFiles%\Microsoft\EdgeWebView\Application")
+    };
+
+            foreach (var basePath in possiblePaths)
+            {
+                if (Directory.Exists(basePath))
+                {
+                    var versionDirs = Directory.GetDirectories(basePath);
+                    if (versionDirs.Length > 0)
+                    {
+                        // Return the first version directory found
+                        Debug.WriteLine($"WebView2 found at: {versionDirs[0]}");
+                        return versionDirs[0];
+                    }
+                }
+            }
+
+            // If WebView2 Runtime not found, try Edge browser paths
+            string[] edgePaths = {
+        @"C:\Program Files (x86)\Microsoft\Edge\Application",
+        @"C:\Program Files\Microsoft\Edge\Application"
+    };
+
+            foreach (var path in edgePaths)
+            {
+                if (Directory.Exists(path))
+                {
+                    Debug.WriteLine($"Edge browser found at: {path}");
+                    return path;
+                }
+            }
+
+            Debug.WriteLine("WebView2/Edge path not found, returning null");
+            return null;
+        }
+
+
 
         private void OnControlUnloaded(object sender, RoutedEventArgs e)
         {
@@ -195,24 +291,6 @@ namespace ChatGPTExtension
                 _events = null;
                 _dte = null;
             }
-        }
-
-        public string GetEdgeWebView2Path()
-        {
-            // Retrieve the Edge WebView2 path from registry
-            string keyPath = @"SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{2CD8A007-E189-409D-A2C8-9AF4EF3C72AA}";
-            using (RegistryKey key = Registry.LocalMachine.OpenSubKey(keyPath))
-            {
-                if (key != null)
-                {
-                    object pathObject = key.GetValue("pv");
-                    if (pathObject != null)
-                    {
-                        return pathObject.ToString();
-                    }
-                }
-            }
-            return null;
         }
 
         private async Task WaitForElementByIdAsync(string elementId)
@@ -756,7 +834,7 @@ namespace ChatGPTExtension
 
             //Write text file in c:\temp with project kind guid for debugging
             //File.WriteAllText("c:\\temp\\projectkind.txt", projectKind);
-            
+
             switch (projectKind)
             {
                 case "{F184B08F-C81C-45F6-A57F-5ABD9991F28F}": // Visual Basic Project
@@ -864,7 +942,8 @@ namespace ChatGPTExtension
         {
             try
             {
-                string promptCompleteCode = "Please show new full complete code without explanations with complete methods implementation for the provided code without any placeholders like ... or assuming code segments. Do not create methods you dont know. Keep all original comments.\r\n\r\n";
+                // string promptCompleteCode = "Please show new full complete code without explanations with complete methods implementation for the provided code without any placeholders like ... or assuming code segments. Do not create methods you dont know. Keep all original comments.\r\n\r\n";
+                string promptCompleteCode = string.Format("{0}\r\n\r\n", _buttonLabels.CompleteCodePrompt);
 
                 string script = string.Empty;
 
@@ -1013,6 +1092,127 @@ namespace ChatGPTExtension
             }
         }
 
+        private void LoadComboBoxItemsKi()
+        {
+            pulldownKi.Items.Clear();
+
+            int index = 0;
+            foreach (AIModelType option in Enum.GetValues(typeof(AIModelType)))
+            {
+                string displayString = option.ToString();
+                pulldownKi.Items.Add(displayString);
+
+                if (_aiModelType == option)
+                {
+                    pulldownKi.SelectedIndex = index;
+                }
+                ++index;
+            }
+
+            try
+            {
+                switch (_aiModelType)
+                {
+                    case AIModelType.Claude:
+
+                        break;
+                    case AIModelType.Gemini:
+
+                        break;
+                    case AIModelType.GPT:
+
+                        break;
+                    case AIModelType.DeepSeek:
+
+                        break;
+                    default:
+                        throw new InvalidOperationException(string.Format("The aiModelType {0} was not implemented", _aiModelType));
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error in LoadComboBoxItemsKi(): {ex.Message}");
+            }
+        }
+
+        private void pulldownKI_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            ComboBox comboBox = sender as ComboBox;
+
+            if (null == comboBox)
+            {
+                return;
+            }
+            if (null == comboBox.SelectedItem)
+            {
+                return;
+            }
+
+            string selectedItemString = comboBox.SelectedItem.ToString();
+
+            if (!Enum.TryParse(selectedItemString, out AIModelType selectedAIModelType))
+            {
+                System.Diagnostics.Debug.WriteLine($"Error: Could not convert '{selectedItemString}' to AIModelType.");
+            }
+
+            bool isSwitch;
+
+            switch (selectedAIModelType)
+            {
+                case AIModelType.Claude:
+                    btnAttachFile.Visibility = Visibility.Visible;
+                    isSwitch = true;
+                    break;
+                case AIModelType.Gemini:
+                    btnAttachFile.Visibility = Visibility.Hidden;
+                    isSwitch = true;
+                    break;
+                case AIModelType.GPT:
+                    btnAttachFile.Visibility = Visibility.Visible;
+                    isSwitch = true;
+                    break;
+                case AIModelType.DeepSeek:
+                    btnAttachFile.Visibility = Visibility.Visible;
+                    isSwitch = true;
+                    break;
+                default:
+                    isSwitch = false;
+                    break;
+            }
+
+            if (isSwitch)
+            {
+                _aiModelType = selectedAIModelType;
+                _parentToolWindow.Caption = string.Format("{0} Extension", selectedAIModelType);
+                UpdateButtonContentAndTooltip();
+                OnReloadAIItemClick(null, null);
+                SaveConfiguration();
+
+                if (null != CodeActionsContextMenu && 0 < CodeActionsContextMenu.Items.Count)
+                {
+
+                    foreach (var item in CodeActionsContextMenu.Items)
+                    {
+                        if (typeof(MenuItem) != item.GetType())
+                        {
+                            continue;
+                        }
+
+                        MenuItem _item = (MenuItem)item;
+
+                        if (!_item.Header.ToString().StartsWith("Reload"))
+                        {
+                            continue;
+                        }
+
+                        _item.Header = string.Format("Reload {0}", selectedAIModelType);
+                    }
+                }
+            }
+            StopTimer();
+        }
+
+
         private void LoadContextMenuActions()
         {
             var actions = _configWindow.ActionItems;
@@ -1042,7 +1242,7 @@ namespace ChatGPTExtension
             CodeActionsContextMenu.Items.Add(new Separator());
 
             // Add Reload Chat GPT menu item
-            var reloadMenuItem = new MenuItem { Header = "Reload Chat GPT..." };
+            var reloadMenuItem = new MenuItem { Header = "Reload GPT" };
             reloadMenuItem.Click += OnReloadAIItemClick;
             CodeActionsContextMenu.Items.Add(reloadMenuItem);
 
@@ -1052,123 +1252,21 @@ namespace ChatGPTExtension
             CodeActionsContextMenu.Items.Add(configureMenuItem);
 
             // Add Configure button labels... menu item
-            var configureLabelsMenuItem = new MenuItem { Header = "Configure button labels..." };
+            var configureLabelsMenuItem = new MenuItem { Header = "Configure buttons" };
             configureLabelsMenuItem.Click += ConfigureLabelsMenuItem_Click;
             CodeActionsContextMenu.Items.Add(configureLabelsMenuItem);
 
             // Add another separator before the new options
             CodeActionsContextMenu.Items.Add(new Separator());
 
-            var useGeminiMenuItem = new MenuItem { Header = "Use Gemini", IsCheckable = true };
-            var useGptMenuItem = new MenuItem { Header = "Use GPT", IsCheckable = true };
-            var useClaudeMenuItem = new MenuItem { Header = "Use Claude", IsCheckable = true };
-            var useDeepSeekMenuItem = new MenuItem { Header = "Use DeepSeek", IsCheckable = true };
-
-            // Configure "Use GPT" menu item
-            useGptMenuItem.Click += (sender, e) =>
+            // Add menu About...  showing message box with app version with major and minor version
+            var aboutMenuItem = new MenuItem { Header = "About..." };
+            aboutMenuItem.Click += (s, e) =>
             {
-                _aiModelType = AIModelType.GPT;
-                btnAttachFile.Visibility = Visibility.Visible;
-                useGptMenuItem.IsChecked = true;
-                useGeminiMenuItem.IsChecked = false;
-                useClaudeMenuItem.IsChecked = false;
-                useDeepSeekMenuItem.IsChecked = false;
-                reloadMenuItem.Header = "Reload Chat GPT...";
-                _parentToolWindow.Caption = "Chat GPT Extension";
-                UpdateButtonContentAndTooltip();
-                OnReloadAIItemClick(null, null);
-                SaveConfiguration();
+                string version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString(2);
+                MessageBox.Show($"ChatGPT Extension Version: {version}", "About ChatGPT Extension", MessageBoxButton.OK, MessageBoxImage.Information);
             };
-            CodeActionsContextMenu.Items.Add(useGptMenuItem);
-
-            // Configure "Use Gemini" menu item
-            useGeminiMenuItem.Click += (sender, e) =>
-            {
-                _aiModelType = AIModelType.Gemini;
-                btnAttachFile.Visibility = Visibility.Hidden;
-                useGptMenuItem.IsChecked = false;
-                useGeminiMenuItem.IsChecked = true;
-                useClaudeMenuItem.IsChecked = false;
-                useDeepSeekMenuItem.IsChecked = false;
-                reloadMenuItem.Header = "Reload Gemini...";
-                _parentToolWindow.Caption = "Gemini Extension";
-                UpdateButtonContentAndTooltip();
-                OnReloadAIItemClick(null, null);
-                SaveConfiguration();
-            };
-            CodeActionsContextMenu.Items.Add(useGeminiMenuItem);
-
-            // Configure "Use Claude" menu item
-            useClaudeMenuItem.Click += (sender, e) =>
-            {
-                _aiModelType = AIModelType.Claude;
-                btnAttachFile.Visibility = Visibility.Visible;
-                useGptMenuItem.IsChecked = false;
-                useGeminiMenuItem.IsChecked = false;
-                useClaudeMenuItem.IsChecked = true;
-                useDeepSeekMenuItem.IsChecked = false;
-                reloadMenuItem.Header = "Reload Claude...";
-                _parentToolWindow.Caption = "Claude Extension";
-                UpdateButtonContentAndTooltip();
-                OnReloadAIItemClick(null, null);
-                SaveConfiguration();
-            };
-            CodeActionsContextMenu.Items.Add(useClaudeMenuItem);
-
-            // Configure "Use DeepSeek" menu item
-            useDeepSeekMenuItem.Click += (sender, e) =>
-            {
-                _aiModelType = AIModelType.DeepSeek;
-                btnAttachFile.Visibility = Visibility.Visible;
-                useGptMenuItem.IsChecked = false;
-                useGeminiMenuItem.IsChecked = false;
-                useClaudeMenuItem.IsChecked = false;
-                useDeepSeekMenuItem.IsChecked = true;
-                reloadMenuItem.Header = "Reload DeepSeek...";
-                _parentToolWindow.Caption = "DeepSeek Extension";
-                UpdateButtonContentAndTooltip();
-                OnReloadAIItemClick(null, null);
-                SaveConfiguration();
-            };
-            CodeActionsContextMenu.Items.Add(useDeepSeekMenuItem);
-
-            // Set the initial state based on _gptConfigured
-            useGptMenuItem.IsChecked = (_aiModelType == AIModelType.GPT);
-            useGeminiMenuItem.IsChecked = (_aiModelType == AIModelType.Gemini);
-            useClaudeMenuItem.IsChecked = (_aiModelType == AIModelType.Claude);
-            useDeepSeekMenuItem.IsChecked = (_aiModelType == AIModelType.DeepSeek);
-
-            // Set all the user interface according to the AI model selected
-            if (_aiModelType == AIModelType.GPT)
-            {
-                reloadMenuItem.Header = "Reload Chat GPT...";
-                _parentToolWindow.Caption = "Chat GPT Extension";
-                UpdateButtonContentAndTooltip();
-            }
-            if (_aiModelType == AIModelType.Gemini)
-            {
-                btnAttachFile.Visibility = Visibility.Hidden;
-                reloadMenuItem.Header = "Reload Gemini...";
-                _parentToolWindow.Caption = "Gemini Extension";
-                UpdateButtonContentAndTooltip();
-            }
-            else
-            {
-                btnAttachFile.Visibility = Visibility.Visible;
-            }
-
-            if (_aiModelType == AIModelType.Claude)
-            {
-                reloadMenuItem.Header = "Reload Claude...";
-                _parentToolWindow.Caption = "Claude Extension";
-                UpdateButtonContentAndTooltip();
-            }
-            if (_aiModelType == AIModelType.DeepSeek)
-            {
-                reloadMenuItem.Header = "Reload DeepSeek...";
-                _parentToolWindow.Caption = "DeepSeek Extension";
-                UpdateButtonContentAndTooltip();
-            }
+            CodeActionsContextMenu.Items.Add(aboutMenuItem);
 
             StopTimer();
         }
@@ -1180,20 +1278,21 @@ namespace ChatGPTExtension
 
             // Update the content and tooltip for the buttons
             btnVSNETToAI.Content = _buttonLabels.VSNETToAI.Replace("{AI}", aiTechnology);
-            btnVSNETToAI.ToolTip = $"Transfer selected code from VS.NET to {aiTechnology}";
+            btnVSNETToAI.ToolTip = $"Transfer selected code from Editor to {aiTechnology}";
 
             btnFixCodeInAI.Content = _buttonLabels.FixCode.Replace("{AI}", aiTechnology);
-            btnFixCodeInAI.ToolTip = $"Fix bugs in VS.NET selected code using {aiTechnology}";
+            btnFixCodeInAI.Tag = _buttonLabels.FixCodePrompt;
+            btnFixCodeInAI.ToolTip = $"Fix bugs in Editor selected code using {aiTechnology}";
 
             btnImproveCodeInAI.Content = _buttonLabels.ImproveCode.Replace("{AI}", aiTechnology);
-            btnImproveCodeInAI.ToolTip = $"Refactor selected code from VS.NET in {aiTechnology}";
-
+            btnImproveCodeInAI.Tag = _buttonLabels.ImproveCodePrompt;
+            btnImproveCodeInAI.ToolTip = $"Refactor selected code from Editor in {aiTechnology}";
 
             btnAIToVSNET.Content = _buttonLabels.AIToVSNET.Replace("{AI}", aiTechnology);
-            btnAIToVSNET.ToolTip = $"Transfer selected code from {aiTechnology} to VS.NET";
+            btnAIToVSNET.ToolTip = $"Transfer selected code from {aiTechnology} to Editor";
 
             btnAttachFile.Content = _buttonLabels.AttachFile.Replace("{AI}", aiTechnology);
-            btnAttachFile.ToolTip = $"Attach VS.NET file open to {aiTechnology}";
+            btnAttachFile.ToolTip = $"Attach Editor file open to {aiTechnology}";
 
             btnCompleteCodeInAI.Content = _buttonLabels.CompleteCode.Replace("{ai}", aiTechnology);
             btnCompleteCodeInAI.ToolTip = $"Ask {aiTechnology} to generate complete code";
@@ -1207,7 +1306,7 @@ namespace ChatGPTExtension
 
             EnableCopyCodeCheckBox.Content = _buttonLabels.EnableCopyCode.Replace("{ai}", aiTechnology);
 
-            EnableCopyCodeCheckBox.ToolTip = $"Enable sending code from {aiTechnology} to VS.NET when Copy code button is clicked in {aiTechnology}";
+            EnableCopyCodeCheckBox.ToolTip = $"Enable sending code from {aiTechnology} to Editor when Copy code button is clicked in {aiTechnology}";
         }
 
         #endregion
@@ -1361,7 +1460,8 @@ namespace ChatGPTExtension
         {
             try
             {
-                string promptContinueCode = "Continue code generation\r\n\r\n";
+                // string promptContinueCode = "Continue code generation\r\n\r\n";
+                string promptContinueCode = string.Format("{0}\r\n\r\n", _buttonLabels.ContinueCodePrompt);
                 string script = string.Empty;
 
                 switch (_aiModelType)
@@ -1550,7 +1650,10 @@ namespace ChatGPTExtension
             _minimizeRestoreMenuItem.Header = _isMinimized ? "Restore" : "Minimize";
         }
 
+
         #endregion
+
+
     }
 
     public class WindowHelper

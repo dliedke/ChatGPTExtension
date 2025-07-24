@@ -82,6 +82,17 @@ Also integrates with **Hangzhou Deepseek**.
 
 ## What's New
 
+- 7.6 - Fix for "Error: We couldn't create the data directory #12". Also added "About..." dialog to show app version
+
+- 7.5 - m1001111 feat: Make settings prompts more flexible and fix display errors
+Prompt in Settings Button can be set line by line Prompt in Settings Extensions can be set line by line Fixed border display bug
+
+- 7.4 - Fix attach file not working for GPT
+
+- 7.3 - Fix issues with attach code button not displaying for Claude after Gemini selection. Removed word "Chat" from some titles
+
+- 7.2 - With the great help of m1001111: Better AI model selector, configurable button texts and actions so you may localize the extension for your own native language. Internal changes for better debugging.
+
 - 7.1 - Added Python project support for New File button and no extension when project type is not detected 
 
 - 7.0 - With the help of m1001111, Codex and Claude: Dark/light theme support according to VS.NET. Buttons now in the bottom closer to mouse. Fixed GPT attach file menu. Configurable button texts.

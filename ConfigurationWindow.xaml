@@ -125,7 +125,8 @@
                                 <TextBox 
                         Text="{Binding Prompt, UpdateSourceTrigger=PropertyChanged}" 
                         TextChanged="ActionTextBox_TextChanged" 
-                        Width="550"/>
+                        Width="550"
+                        TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" />
                             </DataTemplate>
                         </GridViewColumn.CellTemplate>
                     </GridViewColumn>

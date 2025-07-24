@@ -99,7 +99,7 @@ namespace ChatGPTExtension
         public string GetFileInputClickScript()
         {
             return @"
-            var input = document.querySelector('input[type=""file""][multiple].hidden');
+            var input = document.querySelector('input[type=""file""][multiple]');
             if (input) {
                 input.click();
             }";

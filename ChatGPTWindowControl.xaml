@@ -10,6 +10,7 @@
              mc:Ignorable="d"
              d:DesignHeight="300" d:DesignWidth="400"
              PreviewKeyDown="UserControl_PreviewKeyDown"
+             IsVisibleChanged="ChatGPTWindowControl_IsVisibleChanged"
              Name="ChatGPTWindowControl">
 
     <Grid>
@@ -44,9 +45,10 @@
 
             <!-- ToggleSwitch Style for CheckBox -->
             <Style TargetType="CheckBox" x:Key="CustomCheckBoxStyle">
-                <Setter Property="Margin" Value="0,2,0,2"/>
+                <Setter Property="Margin" Value="0,0,0,0"/>
                 <Setter Property="Foreground" Value="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowTextKey}}"/>
-                <Setter Property="FontSize" Value="12"/>
+                <!-- <Setter Property="FontSize" Value="11"/> -->
+                <Setter Property="FontSize" Value="10"/>
                 <Setter Property="Cursor" Value="Hand"/>
                 <Setter Property="Template">
                     <Setter.Value>
@@ -58,15 +60,15 @@
                                 </Grid.ColumnDefinitions>
 
                                 <!-- Toggle switch part -->
-                                <Border Grid.Column="0" Background="#343541" BorderBrush="#343541" BorderThickness="1" CornerRadius="8" Height="18" Width="36" VerticalAlignment="Center">
+                                <Border Grid.Column="0" Background="#343541" BorderBrush="#343541" BorderThickness="1" CornerRadius="7" Height="14" Width="26" VerticalAlignment="Center">
                                     <Grid>
-                                        <Rectangle x:Name="BackgroundRect" Fill="#343541" RadiusX="8" RadiusY="8" />
-                                        <Ellipse x:Name="SwitchCircle" Fill="White" Width="16" Height="16" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="1"/>
+                                        <Rectangle x:Name="BackgroundRect" Fill="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowBorderKey}}" RadiusX="7" RadiusY="7" />
+                                        <Ellipse x:Name="SwitchCircle" Fill="White" Width="12" Height="12" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="1"/>
                                     </Grid>
                                 </Border>
 
                                 <!-- Text part -->
-                                <TextBlock Grid.Column="1" Text="{TemplateBinding Content}" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowTextKey}}"/>
+                                <TextBlock Grid.Column="1" Text="{TemplateBinding Content}" VerticalAlignment="Center" Margin="8,0,0,0" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowTextKey}}"/>
                             </Grid>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsChecked" Value="True">
@@ -93,7 +95,8 @@
         <controls:WebView2 Grid.Row="0" Grid.Column="0" Name="webView" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
 
         <!-- Button Grid with 3 rows -->
-        <Grid Grid.Row="1" Margin="0,5">
+        <!-- <Grid Grid.Row="1" Margin="0,5"> -->
+        <Grid Grid.Row="1" Margin="0,1,0,0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -105,47 +108,116 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <!-- Row 1 -->
-            <Button Grid.Row="0" Grid.Column="0" Name="btnVSNETToAI" Content="VS.NET to Claude ➡️" Click="OnSendCodeButtonClick" Tag="btnVSNETToAI" Style="{StaticResource CustomButtonStyle}"/>
-            <Button Grid.Row="0" Grid.Column="1" Name="btnFixCodeInAI" Content="Fix Code in Claude ➡️" Click="OnSendCodeButtonClick" Tag="Fix {languageCode} code below:" Style="{StaticResource CustomButtonStyle}"/>
-            <Button Grid.Row="0" Grid.Column="2" Name="btnImproveCodeInAI" Content="Improve Code in Claude ➡️" Click="OnSendCodeButtonClick" Tag="Improve {languageCode} code below:" Style="{StaticResource CustomButtonStyle}"/>
+            <!--Margin="-1,-1,-1,0" Margin from the button on the right side -->
 
-            <!-- Row 2 -->
-            <Button Grid.Row="1" Grid.Column="0" Name="btnAIToVSNET" Content="⬅️ Claude to VS.NET" Click="OnReceiveCodeButtonClick" Style="{StaticResource CustomButtonStyle}"/>
-            <Button Grid.Row="1" Grid.Column="1" Name="btnAttachFile" Content="Attach Open File to Claude📎" Click="OnAttachFileButtonClick" Style="{StaticResource CustomButtonStyle}"/>
-            <Button Grid.Row="1" Grid.Column="2" Name="btnCompleteCodeInAI" Content="Complete Code in Claude ✅" Click="OnCompleteCodeButtonClick" Style="{StaticResource CustomButtonStyle}"/>
+            <!-- Row 1 - 3 buttons using all space -->
+            <Button Grid.Row="0" Grid.Column="0" Name="btnVSNETToAI" Content="Editor to Claude" Click="OnSendCodeButtonClick" Tag="btnVSNETToAI" Style="{StaticResource CustomButtonStyle}"/>
+            <Button Grid.Row="0" Grid.Column="1" Name="btnFixCodeInAI" Content="Fix Code" Click="OnSendCodeButtonClick" Tag="" Style="{StaticResource CustomButtonStyle}"/>
+            <Button Grid.Row="0" Grid.Column="2" Name="btnImproveCodeInAI" Content="Improve Code" Click="OnSendCodeButtonClick" Tag="" Style="{StaticResource CustomButtonStyle}" Margin="-1,-1,-1,0"/>
 
-            <!-- Row 3 -->
-            <Button Grid.Row="2" Grid.Column="0" Name="btnNewFile" Content="📄 New File" Style="{StaticResource CustomButtonStyle}" Click="OnNewFileButtonClick"/>
-            <Button Grid.Row="2" Grid.Column="1" Name="btnContinueCode" Content="Continue Code in Claude ⏩" Click="OnContinueCodeButtonClick" Style="{StaticResource CustomButtonStyle}"/>
+            <!-- Row 2 - 3 buttons using all space -->
+            <Button Grid.Row="1" Grid.Column="0" Name="btnAIToVSNET" Content="Claude to Editor" Click="OnReceiveCodeButtonClick" Style="{StaticResource CustomButtonStyle}"/>
+            <Button Grid.Row="1" Grid.Column="1" Name="btnAttachFile" Content="📎Attach File" Click="OnAttachFileButtonClick" Style="{StaticResource CustomButtonStyle}"/>
+            <Button Grid.Row="1" Grid.Column="2" Name="btnNewFile" Content="📄 New File" Style="{StaticResource CustomButtonStyle}" Click="OnNewFileButtonClick" Margin="-1,-1,-1,0"/>
 
-            <!-- Row 3 Column 2: Enable Copy Code checkbox and dropdown button -->
-            <Grid Grid.Row="2" Grid.Column="2">
+            <!-- Row 3 - Using a separate grid with 4 columns for this row -->
+            <Grid Grid.Row="2" Grid.ColumnSpan="3" Margin="0,0,0,-1">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
-                <Border Grid.Column="0" Background="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowBackgroundKey}}" Margin="0">
-                    <CheckBox Style="{StaticResource CustomCheckBoxStyle}" HorizontalAlignment="Center" Name="EnableCopyCodeCheckBox" Click="EnableCopyCodeCheckBox_Click" IsChecked="True" Content="Enable Copy Code" />
-                </Border>
+                <!-- AI Selector dropdown -->
+                <ComboBox Grid.Column="0" x:Name="pulldownKi" Cursor="Hand" Foreground="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowTextKey}}" 
+                          Background="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowBackgroundKey}}" BorderThickness="0" HorizontalAlignment="Center" VerticalAlignment="Center"
+                          SelectionChanged="pulldownKI_SelectionChanged" Margin="-1,-1,0,0">
+                    <ComboBox.Resources>
+                        <Style TargetType="ComboBoxItem">
+                            <Setter Property="Background" Value="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarHoverOverSelectedKey}}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowTextKey}}"/>
+                            <Setter Property="Padding" Value="10,4"/>
+                            <Setter Property="BorderThickness" Value="0"/>
+                            <Setter Property="BorderBrush" Value="Transparent"/>
+                            <Setter Property="Cursor" Value="Hand"/>
+                        </Style>
+                        <Style x:Key="ComboBoxToggleButtonStyle" TargetType="ToggleButton">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"/>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ComboBox.Resources>
 
-                <Button Grid.Column="1" Content="▼" Width="26" Style="{StaticResource CustomButtonStyle}" Margin="5,0,0,0">
-                    <Button.ContextMenu>
-                        <ContextMenu x:Name="CodeActionsContextMenu" FontSize="15" />
-                    </Button.ContextMenu>
-                    <Button.Triggers>
-                        <EventTrigger RoutedEvent="Button.Click">
-                            <BeginStoryboard>
-                                <Storyboard>
-                                    <BooleanAnimationUsingKeyFrames Storyboard.TargetProperty="ContextMenu.IsOpen">
-                                        <DiscreteBooleanKeyFrame KeyTime="0:0:0" Value="True" />
-                                    </BooleanAnimationUsingKeyFrames>
-                                </Storyboard>
-                            </BeginStoryboard>
-                        </EventTrigger>
-                    </Button.Triggers>
-                </Button>
+                    <ComboBox.Style>
+                        <Style TargetType="ComboBox">
+                            <Setter Property="Background" Value="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowBackgroundKey}}"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ComboBox">
+                                        <Border x:Name="MainBorder" Background="{TemplateBinding Background}" BorderThickness="0">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="20"/>
+                                                </Grid.ColumnDefinitions>
+                                                <ToggleButton Grid.Column="0" Grid.ColumnSpan="2" IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" 
+                                                              Style="{StaticResource ComboBoxToggleButtonStyle}" Background="{TemplateBinding Background}" 
+                                                              BorderThickness="0"/>
+
+                                                <ContentPresenter Grid.Column="0" Content="{TemplateBinding SelectionBoxItem}" Margin="5,0" IsHitTestVisible="False" VerticalAlignment="Center"/>
+                                                <Path Grid.Column="1" Data="M 0 0 L 4 4 L 8 0 Z" Fill="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowTextKey}}" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                                                <Popup Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom">
+                                                    <Border Background="{DynamicResource {x:Static vsshell:VsBrushes.ComboBoxMouseOverBackgroundMiddle1Key}}" BorderThickness="0">
+                                                        <ScrollViewer MaxHeight="200">
+                                                            <ItemsPresenter/>
+                                                        </ScrollViewer>
+                                                    </Border>
+                                                </Popup>
+                                            </Grid>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ComboBox.Style>
+                </ComboBox>
+
+                <Button Grid.Column="1" Name="btnCompleteCodeInAI" Content="Complete Code" Click="OnCompleteCodeButtonClick"  Style="{StaticResource CustomButtonStyle}"/>
+                <Button Grid.Column="2" Name="btnContinueCode" Content="Continue Code" Click="OnContinueCodeButtonClick" Style="{StaticResource CustomButtonStyle}"/>
+
+                <!-- Column 3: Enable Copy Code checkbox and dropdown button -->
+                <Grid Grid.Column="3">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Background="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowBackgroundKey}}" Margin="0">
+                        <CheckBox Style="{StaticResource CustomCheckBoxStyle}" HorizontalAlignment="Center" Name="EnableCopyCodeCheckBox" Click="EnableCopyCodeCheckBox_Click" IsChecked="True" Content="Enable Copy Code" />
+                    </Border>
+
+                    <Button Grid.Column="1" Content="▼" Width="26" Style="{StaticResource CustomButtonStyle}" Margin="5,-2,-1,0">
+                        <Button.ContextMenu>
+                            <ContextMenu x:Name="CodeActionsContextMenu" FontSize="15" />
+                        </Button.ContextMenu>
+                        <Button.Triggers>
+                            <EventTrigger RoutedEvent="Button.Click">
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <BooleanAnimationUsingKeyFrames Storyboard.TargetProperty="ContextMenu.IsOpen">
+                                            <DiscreteBooleanKeyFrame KeyTime="0:0:0" Value="True" />
+                                        </BooleanAnimationUsingKeyFrames>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                        </Button.Triggers>
+                    </Button>
+                </Grid>
             </Grid>
         </Grid>
     </Grid>
