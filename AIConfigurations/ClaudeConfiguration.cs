@@ -110,45 +110,45 @@ namespace ChatGPTExtension
         public string GetAddEventListenersScript()
         {
             return @"
-    function addClickListener(button, message)
+function addClickListener(button, message)
+{
+    if (!button.hasAttribute('data-listener-added'))
     {
-        if (!button.hasAttribute('data-listener-added'))
-        {
-            button.addEventListener('click', function() {
-                window.chrome.webview.postMessage(message);
-            });
-            button.setAttribute('data-listener-added', 'true');
-        }
+        button.addEventListener('click', function() {
+            window.chrome.webview.postMessage(message);
+        });
+        button.setAttribute('data-listener-added', 'true');
     }
+}
 
-    // Find all copy buttons by the specific SVG path
-    var allButtons = document.querySelectorAll('button[data-state=""closed""]');
-    allButtons.forEach(function(button) {
-        var path = button.querySelector('svg path[d=""M200,32H163.74a47.92,47.92,0,0,0-71.48,0H56A16,16,0,0,0,40,48V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V48A16,16,0,0,0,200,32Zm-72,0a32,32,0,0,1,32,32H96A32,32,0,0,1,128,32Zm72,184H56V48H82.75A47.93,47.93,0,0,0,80,64v8a8,8,0,0,0,8,8h80a8,8,0,0,0,8-8V64a47.93,47.93,0,0,0-2.75-16H200Z""]');
-        if (path) {
-            addClickListener(button, 'CopyCodeButtonClicked');
-        }
-    });
+// Updated selector using SVG path starting with 'M10 1.5C11.1097'
+var updatedButtons = document.querySelectorAll('button[data-state=""closed""] svg[viewBox=""0 0 20 20""] path[d^=""M10 1.5C11.1097""]');
+updatedButtons.forEach(function(path) {
+    var button = path.closest('button[data-state=""closed""]');
+    if (button) {
+        addClickListener(button, 'CopyCodeButtonClicked');
+    }
+});
 
-    // Additional selector for the project copy code button
-    var projectCopyButtons = document.querySelectorAll('button.flex.flex-row.items-center.gap-1\\.5.rounded-md[data-state=""closed""]');
-    projectCopyButtons.forEach(function(button) {
-        var path = button.querySelector('svg path[d=""M200,32H163.74a47.92,47.92,0,0,0-71.48,0H56A16,16,0,0,0,40,48V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V48A16,16,0,0,0,200,32Zm-72,0a32,32,0,0,1,32,32H96A32,32,0,0,1,128,32Zm72,184H56V48H82.75A47.93,47.93,0,0,0,80,64v8a8,8,0,0,0,8,8h80a8,8,0,0,0,8-8V64a47.93,47.93,0,0,0-2.75-16H200Z""]');
-        if (path) {
-            addClickListener(button, 'CopyCodeButtonClicked');
-        }
-    });
+// Additional selector for the project copy code button (legacy)
+var projectCopyButtons = document.querySelectorAll('button.flex.flex-row.items-center.gap-1\\.5.rounded-md[data-state=""closed""]');
+projectCopyButtons.forEach(function(button) {
+    var path = button.querySelector('svg path[d=""M200,32H163.74a47.92,47.92,0,0,0-71.48,0H56A16,16,0,0,0,40,48V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V48A16,16,0,0,0,200,32Zm-72,0a32,32,0,0,1,32,32H96A32,32,0,0,1,128,32Zm72,184H56V48H82.75A47.93,47.93,0,0,0,80,64v8a8,8,0,0,0,8,8h80a8,8,0,0,0,8-8V64a47.93,47.93,0,0,0-2.75-16H200Z""]');
+    if (path) {
+        addClickListener(button, 'CopyCodeButtonClicked');
+    }
+});
 
-    // New format border copy buttons
-    var borderCopyButtons = document.querySelectorAll('button.py-1.px-2.border-r.border-border-300.hover\\:bg-bg-200');
-    borderCopyButtons.forEach(function(button) {
-        var divWithText = button.querySelector('div div');
-        if (divWithText) {
-            // This will match regardless of language as long as the structure is the same
-            addClickListener(button, 'CopyCodeButtonClicked');
+// New format border copy buttons
+var borderCopyButtons = document.querySelectorAll('button.py-1.px-2.border-r.border-border-300.hover\\:bg-bg-200');
+borderCopyButtons.forEach(function(button) {
+    var divWithText = button.querySelector('div div');
+    if (divWithText) {
+        addClickListener(button, 'CopyCodeButtonClicked');
+    }
+});";
         }
-    });";
-        }
+
 
         public string GetHomeEndKeyScript(string key, bool shiftPressed)
         {

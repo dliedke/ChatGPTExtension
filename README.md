@@ -82,6 +82,8 @@ Also integrates with **Hangzhou Deepseek**.
 
 ## What's New
 
+- 7.7 - Fix Claude copy code
+
 - 7.6 - Fix for "Error: We couldn't create the data directory #12". Also added "About..." dialog to show app version
 
 - 7.5 - m1001111 feat: Make settings prompts more flexible and fix display errors
