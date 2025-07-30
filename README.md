@@ -82,6 +82,8 @@ Also integrates with **Hangzhou Deepseek**.
 
 ## What's New
 
+- 7.8 - Fix random error initializing extension after first VS.NET initialization after boot
+
 - 7.7 - Fix Claude copy code
 
 - 7.6 - Fix for "Error: We couldn't create the data directory #12". Also added "About..." dialog to show app version

@@ -63,6 +63,15 @@ namespace ChatGPTExtension
             // Initialize the JoinableTaskFactory
             _joinableTaskFactory = ThreadHelper.JoinableTaskFactory;
 
+            // IMPORTANT: Set environment variables before InitializeComponent
+            // This prevents WebView2 from auto-initializing with default settings
+            Environment.SetEnvironmentVariable("WEBVIEW2_USER_DATA_FOLDER",
+                Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "ChatGPTExtension",
+                    "WebView2"
+                ));
+
             InitializeComponent();
 
             // Initialize WindowHelper
@@ -83,9 +92,11 @@ namespace ChatGPTExtension
                 // Initialize the JoinableTaskFactory
                 _joinableTaskFactory = ThreadHelper.JoinableTaskFactory;
 
-                // Run sync InitializeAsync() using _joinableTaskFactory
+                // Add a small delay on first initialization to avoid conflicts
                 _joinableTaskFactory.RunAsync(async () =>
                 {
+                    // Small delay to let VS.NET fully initialize
+                    //await Task.Delay(500);
                     await InitializeAsync();
                 }).FileAndForget("InitializeAsync");
 
@@ -104,7 +115,7 @@ namespace ChatGPTExtension
                 _updateTimer.Tick += UpdateTimer_Tick;
                 _updateTimer.Start();
 
-                _initialized = true; // Mark as initialized
+                _initialized = true;
             }
         }
 
@@ -122,25 +133,32 @@ namespace ChatGPTExtension
 
         private bool _isWebViewInitialized = false;
         private readonly object _initializationLock = new object();
+        private Microsoft.Web.WebView2.Wpf.WebView2 webView;
 
         private async Task InitializeAsync()
         {
             try
             {
-                // Usa lock para evitar múltiplas inicializações simultâneas
                 lock (_initializationLock)
                 {
-                    if (_isWebViewInitialized || webView.CoreWebView2 != null)
+                    if (_isWebViewInitialized)
                     {
-                        Debug.WriteLine("WebView2 already initialized, skipping initialization");
+                        Debug.WriteLine("WebView2 initialization already attempted, skipping");
                         return;
                     }
-                    _isWebViewInitialized = true; // Marca imediatamente para evitar reentrada
+                    _isWebViewInitialized = true;
                 }
 
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-                // Initialize the configuration first
+                // Create WebView2 programmatically to control initialization
+                if (webView == null)
+                {
+                    webView = new Microsoft.Web.WebView2.Wpf.WebView2();
+                    webViewContainer.Content = webView;
+                }
+
+                // Initialize the configuration
                 await InitializeConfigurationAsync();
 
                 _dte = Package.GetGlobalService(typeof(DTE)) as DTE2;
@@ -150,14 +168,12 @@ namespace ChatGPTExtension
                     _windowEvents = _events.WindowEvents;
                 }
 
-                // Check if the process was started with /rootsuffix Exp to determine if it's a debug instance
+                // Set up user data path
                 bool isDebugInstance = Environment.GetCommandLineArgs().Any(arg =>
                     arg.ToLowerInvariant().Contains("/rootsuffix") ||
                     arg.ToLowerInvariant().Contains("exp"));
 
-                // Add debug suffix to the user data folder if in debug mode
                 string folderSuffix = isDebugInstance ? "_Debug" : "";
-
                 string userDataPath = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     "ChatGPTExtension",
@@ -168,65 +184,66 @@ namespace ChatGPTExtension
                     Directory.CreateDirectory(userDataPath);
                 }
 
-                string edgeWebView2Path = GetEdgeWebView2Path();
-                Debug.WriteLine($"EdgeWebView2Path: {edgeWebView2Path ?? "null"}");
                 Debug.WriteLine($"UserDataPath: {userDataPath}");
 
+                // Create environment
                 CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(
-                    browserExecutableFolder: edgeWebView2Path,
+                    browserExecutableFolder: null,
                     userDataFolder: userDataPath);
 
+                // Initialize WebView2
                 await webView.EnsureCoreWebView2Async(environment);
 
-                switch (_aiModelType)
-                {
-                    case AIModelType.GPT:
-                        webView.Source = new Uri(AIConfiguration.GPTUrl);
-                        await WaitForElementByIdAsync(AIConfiguration.GPTPromptTextAreaId);
-                        break;
-                    case AIModelType.Gemini:
-                        webView.Source = new Uri(AIConfiguration.GeminiUrl);
-                        await WaitForElementByClassAsync(AIConfiguration.GeminiPromptClass);
-                        break;
-                    case AIModelType.Claude:
-                        webView.Source = new Uri(AIConfiguration.ClaudeUrl);
-                        await WaitForElementByClassAsync(AIConfiguration.ClaudePromptClass);
-                        break;
-                    case AIModelType.DeepSeek:
-                        webView.Source = new Uri(AIConfiguration.DeepSeekUrl);
-                        await WaitForElementByIdAsync(AIConfiguration.DeepSeekPromptId);
-                        break;
-                }
+                // Navigate to AI service
+                await NavigateToAIServiceAsync();
 
                 webView.WebMessageReceived += WebView_WebMessageReceived;
 
-                await _joinableTaskFactory.SwitchToMainThreadAsync();
                 await StartTimerAsync();
-
                 _ = CheckTimerStatusAsync();
 
                 Unloaded += OnControlUnloaded;
             }
             catch (Exception ex)
             {
-                // Em caso de erro, marca como não inicializado
                 lock (_initializationLock)
                 {
                     _isWebViewInitialized = false;
                 }
 
-                Debug.WriteLine("Error in InitializeAsync(): " + ex.Message);
+                Debug.WriteLine($"Error in InitializeAsync(): {ex.Message}");
                 Debug.WriteLine($"Stack Trace: {ex.StackTrace}");
 
-                // Se falhar criar o WebView2, mostra uma mensagem mais específica
-                if (ex.Message.Contains("WebView2") || ex.Message.Contains("directory"))
-                {
-                    MessageBox.Show(
-                        $"Erro ao inicializar WebView2.\n\nDetalhes: {ex.Message}\n\nVerifique se o WebView2 Runtime está instalado e tente reiniciar o Visual Studio.",
-                        "Erro de Inicialização",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Error);
-                }
+                MessageBox.Show(
+                    $"Error initializing WebView2.\n\nDetails: {ex.Message}\n\nPlease restart Visual Studio.",
+                    "Initialization Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
+
+
+        // New helper method to handle navigation
+        private async Task NavigateToAIServiceAsync()
+        {
+            switch (_aiModelType)
+            {
+                case AIModelType.GPT:
+                    webView.Source = new Uri(AIConfiguration.GPTUrl);
+                    await WaitForElementByIdAsync(AIConfiguration.GPTPromptTextAreaId);
+                    break;
+                case AIModelType.Gemini:
+                    webView.Source = new Uri(AIConfiguration.GeminiUrl);
+                    await WaitForElementByClassAsync(AIConfiguration.GeminiPromptClass);
+                    break;
+                case AIModelType.Claude:
+                    webView.Source = new Uri(AIConfiguration.ClaudeUrl);
+                    await WaitForElementByClassAsync(AIConfiguration.ClaudePromptClass);
+                    break;
+                case AIModelType.DeepSeek:
+                    webView.Source = new Uri(AIConfiguration.DeepSeekUrl);
+                    await WaitForElementByIdAsync(AIConfiguration.DeepSeekPromptId);
+                    break;
             }
         }
 
