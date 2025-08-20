@@ -16,6 +16,7 @@ using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Threading;
 using Microsoft.Web.WebView2.Core;
+using Microsoft.Web.WebView2.Wpf;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -23,11 +24,13 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
+using Directory = System.IO.Directory;
 using Window = System.Windows.Window;
 
 namespace ChatGPTExtension
@@ -45,6 +48,9 @@ namespace ChatGPTExtension
         private ButtonLabelsConfiguration _buttonLabels = ButtonLabelsConfiguration.Load();
         private AIModelType _aiModelType = AIModelType.GPT;
         private ChatGPTToolWindow _parentToolWindow;
+        private readonly SemaphoreSlim _initGate = new SemaphoreSlim(1, 1);
+        private string _userDataPath;
+        private string _browserPath;
 
         public enum AIModelType : int
         {
@@ -60,25 +66,18 @@ namespace ChatGPTExtension
             _parentToolWindow = parent;
             _serviceProvider = serviceProvider;
 
-            // Initialize the JoinableTaskFactory
             _joinableTaskFactory = ThreadHelper.JoinableTaskFactory;
-
-            // IMPORTANT: Set environment variables before InitializeComponent
-            // This prevents WebView2 from auto-initializing with default settings
-            Environment.SetEnvironmentVariable("WEBVIEW2_USER_DATA_FOLDER",
-                Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "ChatGPTExtension",
-                    "WebView2"
-                ));
 
             InitializeComponent();
 
-            // Initialize WindowHelper
             ThreadHelper.ThrowIfNotOnUIThread();
             var dte = serviceProvider.GetService(typeof(DTE)) as DTE2;
             _windowHelper = new WindowHelper(dte);
+
+            // Initialize when the visual tree is ready
+            this.Loaded += async (_, __) => await InitializeAsync();
         }
+
 
         bool _initialized = false;
 
@@ -137,30 +136,43 @@ namespace ChatGPTExtension
 
         private async Task InitializeAsync()
         {
+            await _initGate.WaitAsync();
             try
             {
-                lock (_initializationLock)
-                {
-                    if (_isWebViewInitialized)
-                    {
-                        Debug.WriteLine("WebView2 initialization already attempted, skipping");
-                        return;
-                    }
-                    _isWebViewInitialized = true;
-                }
-
+                if (_isWebViewInitialized) return;
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-                // Create WebView2 programmatically to control initialization
+                // Build a single, consistent user-data path per hive
+                bool isDebugInstance = Environment.GetCommandLineArgs().Any(arg =>
+                    arg.Contains("/rootsuffix") ||
+                    arg.Contains("exp"));
+
+                string suffix = isDebugInstance ? "_Debug" : "";
+                _userDataPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "ChatGPTExtension", $"WebView2{suffix}");
+
+                Directory.CreateDirectory(_userDataPath);
+
+                // Optional but helpful on some systems: point to the runtime explicitly if found
+                _browserPath = GetEdgeWebView2Path(); // your existing helper
+
+                // Create the WebView2 control if needed and set creation properties BEFORE init
                 if (webView == null)
                 {
                     webView = new Microsoft.Web.WebView2.Wpf.WebView2();
+                    webView.CreationProperties = new CoreWebView2CreationProperties
+                    {
+                        UserDataFolder = _userDataPath,
+                        BrowserExecutableFolder = _browserPath // can be null; that’s fine
+                    };
                     webViewContainer.Content = webView;
                 }
 
-                // Initialize the configuration
+                // Init your own config first
                 await InitializeConfigurationAsync();
 
+                // Init DTE events (guarded)
                 _dte = Package.GetGlobalService(typeof(DTE)) as DTE2;
                 if (_dte != null)
                 {
@@ -168,58 +180,112 @@ namespace ChatGPTExtension
                     _windowEvents = _events.WindowEvents;
                 }
 
-                // Set up user data path
-                bool isDebugInstance = Environment.GetCommandLineArgs().Any(arg =>
-                    arg.ToLowerInvariant().Contains("/rootsuffix") ||
-                    arg.ToLowerInvariant().Contains("exp"));
-
-                string folderSuffix = isDebugInstance ? "_Debug" : "";
-                string userDataPath = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "ChatGPTExtension",
-                    $"WebView2{folderSuffix}");
-
-                if (!Directory.Exists(userDataPath))
+                // Try to initialize once; on specific errors, clean folder and retry once
+                if (!await TryEnsureCoreWebView2Async())
                 {
-                    Directory.CreateDirectory(userDataPath);
+                    // Retry with a fresh user data folder and explicit runtime path
+                    SafeDeleteDirectory(_userDataPath);
+                    Directory.CreateDirectory(_userDataPath);
+
+                    webView.CreationProperties = new CoreWebView2CreationProperties
+                    {
+                        UserDataFolder = _userDataPath,
+                        BrowserExecutableFolder = _browserPath
+                    };
+
+                    bool secondTry = await TryEnsureCoreWebView2Async();
+                    if (!secondTry)
+                        throw new InvalidOperationException("WebView2 failed to initialize after retry.");
                 }
 
-                Debug.WriteLine($"UserDataPath: {userDataPath}");
-
-                // Create environment
-                CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(
-                    browserExecutableFolder: null,
-                    userDataFolder: userDataPath);
-
-                // Initialize WebView2
-                await webView.EnsureCoreWebView2Async(environment);
-
-                // Navigate to AI service
+                // Navigate and wire up events
                 await NavigateToAIServiceAsync();
-
                 webView.WebMessageReceived += WebView_WebMessageReceived;
 
                 await StartTimerAsync();
                 _ = CheckTimerStatusAsync();
 
                 Unloaded += OnControlUnloaded;
+
+                _isWebViewInitialized = true;
             }
             catch (Exception ex)
             {
-                lock (_initializationLock)
-                {
-                    _isWebViewInitialized = false;
-                }
-
+                _isWebViewInitialized = false; // allow future retries
                 Debug.WriteLine($"Error in InitializeAsync(): {ex.Message}");
                 Debug.WriteLine($"Stack Trace: {ex.StackTrace}");
-
                 MessageBox.Show(
                     $"Error initializing WebView2.\n\nDetails: {ex.Message}\n\nPlease restart Visual Studio.",
-                    "Initialization Error",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error);
+                    "Initialization Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+            finally
+            {
+                _initGate.Release();
+            }
+        }
+
+        private async Task<bool> TryEnsureCoreWebView2Async()
+        {
+            try
+            {
+                // Prefer CreationProperties path; calling EnsureCoreWebView2Async() with null uses them
+                await webView.EnsureCoreWebView2Async();
+
+                // Optional: verify we actually have a CoreWebView2
+                if (webView.CoreWebView2 == null)
+                    throw new COMException("CoreWebView2 was null after EnsureCoreWebView2Async.", unchecked((int)0x8007139F));
+
+                return true;
+            }
+            catch (COMException comEx)
+            {
+                uint hr = unchecked((uint)comEx.HResult);
+                Debug.WriteLine($"WebView2 init COMException 0x{hr:X8}: {comEx.Message}");
+
+                // Common transient/“bad state” codes worth retrying after cleanup
+                if (hr == 0x8007139F // ERROR_INVALID_STATE
+                    || hr == 0x80070005 // E_ACCESSDENIED
+                    || hr == 0x80070020) // ERROR_SHARING_VIOLATION
+                {
+                    return false; // caller will clean UserData and retry
+                }
+
+                throw; // different error; let caller bubble it up
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"WebView2 init general exception: {ex.Message}");
+                return false;
+            }
+        }
+
+        private static void SafeDeleteDirectory(string path)
+        {
+            try
+            {
+                if (!Directory.Exists(path)) return;
+
+                // Kill any stray msedgewebview2 processes locking the folder (best-effort)
+                foreach (var p in System.Diagnostics.Process.GetProcessesByName("msedgewebview2"))
+                {
+                    try { if (!p.HasExited) p.Kill(); } catch { /* ignore */ }
+                }
+
+                // Retry loop in case a process was just killed and still releasing handles
+                for (int i = 0; i < 5; i++)
+                {
+                    try
+                    {
+                        Directory.Delete(path, true);
+                        return;
+                    }
+                    catch
+                    {
+                        System.Threading.Thread.Sleep(200);
+                    }
+                }
+            }
+            catch { /* swallow – we’ll try with the old folder if needed */ }
         }
 
 
@@ -290,23 +356,30 @@ namespace ChatGPTExtension
             return null;
         }
 
-
-
         private void OnControlUnloaded(object sender, RoutedEventArgs e)
         {
-            if (timer != null)
+            try
             {
-                timer.Stop();
-            }
+                timer?.Stop();
 
-            if (_windowEvents != null)
-            {
-                // Unsubscribe from events to prevent memory leaks.
-                // Unfortunately, the EnvDTE API doesn't provide direct unsubscription methods.
-                // We'll set our references to null to let the GC do the cleanup.
                 _windowEvents = null;
                 _events = null;
                 _dte = null;
+
+                if (webView != null)
+                {
+                    // Remove handlers first
+                    webView.WebMessageReceived -= WebView_WebMessageReceived;
+
+                    // Disposing helps release the user-data lock cleanly
+                    webView.Dispose();
+                    webView = null;
+                }
+            }
+            catch { /* ignore */ }
+            finally
+            {
+                _isWebViewInitialized = false;
             }
         }
 

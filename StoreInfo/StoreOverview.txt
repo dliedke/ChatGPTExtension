@@ -82,6 +82,8 @@ Also integrates with **Hangzhou Deepseek**.
 
 ## What's New
 
+- 7.9 - Mininum VS.NET 2022 version 17.14 required for this extension. New attempt to fix random initialization issues.
+
 - 7.8 - Fix random error initializing extension after first VS.NET initialization after boot
 
 - 7.7 - Fix Claude copy code
