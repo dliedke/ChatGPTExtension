@@ -1,6 +1,6 @@
 # Chat GPT Extension
 
-The Chat GPT extension loads the **OpenAI Chat GPT web and integrates it with Visual Studio 2022.**
+The Chat GPT extension loads the **OpenAI Chat GPT web and integrates it with Visual Studio 2022 17.14 or higher.** 
 
 It works with Free/Plus/Pro versions of OpenAI Chat GPT web. **No OpenAI tokens are required.**
 
