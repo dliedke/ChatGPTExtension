@@ -293,7 +293,7 @@ namespace ChatGPTExtension
             {
                 try
                 {
-                    using (var client = new HttpClient())
+                    using (var client = CreateHttpClientWithProxy())
                     {
                         client.DefaultRequestHeaders.Add("User-Agent", "ChatGPTExtension");
                         var response = await client.GetStringAsync(GITHUB_CONFIG_URL);
@@ -307,6 +307,54 @@ namespace ChatGPTExtension
                     System.Diagnostics.Debug.WriteLine($"Error fetching from GitHub: {ex.Message}");
                     return null;
                 }
+            }
+
+            private HttpClient CreateHttpClientWithProxy()
+            {
+                var handler = new HttpClientHandler();
+                var config = ChatGPTExtensionPackage.Instance?.Configuration;
+
+                if (config != null)
+                {
+                    if (config.UseSystemProxy)
+                    {
+                        handler.UseProxy = true;
+                        handler.Proxy = System.Net.WebRequest.GetSystemWebProxy();
+                    }
+                    else if (config.UseProxy && !string.IsNullOrEmpty(config.ProxyServer))
+                    {
+                        var proxy = new System.Net.WebProxy($"http://{config.ProxyServer}:{config.ProxyPort}");
+                        
+                        if (config.ProxyRequiresAuth && !string.IsNullOrEmpty(config.ProxyUsername))
+                        {
+                            proxy.Credentials = new System.Net.NetworkCredential(config.ProxyUsername, config.ProxyPassword);
+                        }
+
+                        if (!string.IsNullOrEmpty(config.ProxyBypassList))
+                        {
+                            var bypassList = config.ProxyBypassList.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                            for (int i = 0; i < bypassList.Length; i++)
+                            {
+                                bypassList[i] = bypassList[i].Trim();
+                            }
+                            proxy.BypassList = bypassList;
+                        }
+
+                        handler.UseProxy = true;
+                        handler.Proxy = proxy;
+                    }
+                    else
+                    {
+                        handler.UseProxy = false;
+                    }
+                }
+                else
+                {
+                    // Default behavior when no configuration is available
+                    handler.UseProxy = false;
+                }
+                
+                return new HttpClient(handler);
             }
 
             private AIConfiguration GetDefaultConfiguration()

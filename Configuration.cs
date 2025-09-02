@@ -16,5 +16,15 @@ namespace ChatGPTExtension
     {
         public int GptConfigured { get; set; } = 1; // Default to GPT
         public bool ButtonsAtTop { get; set; } = false; // Default to bottom
+        
+        // Proxy Configuration
+        public bool UseProxy { get; set; } = false;
+        public string ProxyServer { get; set; } = "";
+        public int ProxyPort { get; set; } = 8080;
+        public bool ProxyRequiresAuth { get; set; } = false;
+        public string ProxyUsername { get; set; } = "";
+        public string ProxyPassword { get; set; } = "";
+        public bool UseSystemProxy { get; set; } = false;
+        public string ProxyBypassList { get; set; } = "";
     }
 }

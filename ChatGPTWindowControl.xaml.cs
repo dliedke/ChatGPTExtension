@@ -161,11 +161,20 @@ namespace ChatGPTExtension
                 if (webView == null)
                 {
                     webView = new Microsoft.Web.WebView2.Wpf.WebView2();
-                    webView.CreationProperties = new CoreWebView2CreationProperties
+                    var creationProperties = new CoreWebView2CreationProperties
                     {
                         UserDataFolder = _userDataPath,
-                        BrowserExecutableFolder = _browserPath // can be null; that’s fine
+                        BrowserExecutableFolder = _browserPath // can be null; that's fine
                     };
+
+                    // Configure proxy settings if needed
+                    var proxySettings = GetProxyConfiguration();
+                    if (!string.IsNullOrEmpty(proxySettings))
+                    {
+                        creationProperties.AdditionalBrowserArguments = proxySettings;
+                    }
+
+                    webView.CreationProperties = creationProperties;
                     webViewContainer.Content = webView;
                 }
 
@@ -187,11 +196,20 @@ namespace ChatGPTExtension
                     SafeDeleteDirectory(_userDataPath);
                     Directory.CreateDirectory(_userDataPath);
 
-                    webView.CreationProperties = new CoreWebView2CreationProperties
+                    var retryCreationProperties = new CoreWebView2CreationProperties
                     {
                         UserDataFolder = _userDataPath,
                         BrowserExecutableFolder = _browserPath
                     };
+
+                    // Configure proxy settings for retry as well
+                    var retryProxySettings = GetProxyConfiguration();
+                    if (!string.IsNullOrEmpty(retryProxySettings))
+                    {
+                        retryCreationProperties.AdditionalBrowserArguments = retryProxySettings;
+                    }
+
+                    webView.CreationProperties = retryCreationProperties;
 
                     bool secondTry = await TryEnsureCoreWebView2Async();
                     if (!secondTry)
@@ -354,6 +372,50 @@ namespace ChatGPTExtension
 
             Debug.WriteLine("WebView2/Edge path not found, returning null");
             return null;
+        }
+
+        private string GetProxyConfiguration()
+        {
+            try
+            {
+                var config = ChatGPTExtensionPackage.Instance?.Configuration;
+                if (config == null) return string.Empty;
+
+                var proxyArgs = new List<string>();
+
+                if (config.UseSystemProxy)
+                {
+                    // Use system proxy settings
+                    proxyArgs.Add("--proxy-auto-detect");
+                }
+                else if (config.UseProxy && !string.IsNullOrEmpty(config.ProxyServer))
+                {
+                    // Custom proxy configuration
+                    string proxyUrl = $"http://{config.ProxyServer}:{config.ProxyPort}";
+                    proxyArgs.Add($"--proxy-server={proxyUrl}");
+
+                    // Add bypass list if specified
+                    if (!string.IsNullOrEmpty(config.ProxyBypassList))
+                    {
+                        var bypassList = config.ProxyBypassList.Replace(" ", "").Replace(",", ";");
+                        proxyArgs.Add($"--proxy-bypass-list={bypassList}");
+                    }
+
+                    // Note: WebView2 doesn't support proxy authentication through command line arguments
+                    // For authenticated proxies, the browser will prompt for credentials when needed
+                    if (config.ProxyRequiresAuth && !string.IsNullOrEmpty(config.ProxyUsername))
+                    {
+                        Debug.WriteLine("Note: Proxy authentication will be prompted by the browser when required.");
+                    }
+                }
+
+                return proxyArgs.Count > 0 ? string.Join(" ", proxyArgs) : string.Empty;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error configuring proxy for WebView2: {ex.Message}");
+                return string.Empty;
+            }
         }
 
         private void OnControlUnloaded(object sender, RoutedEventArgs e)
