@@ -34,7 +34,7 @@ namespace ChatGPTExtension
             try
             {
                 _configuration = ChatGPTExtensionPackage.Instance?.Configuration ?? new Configuration();
-                
+
                 UseSystemProxyCheckBox.IsChecked = _configuration.UseSystemProxy;
                 UseCustomProxyCheckBox.IsChecked = _configuration.UseProxy;
                 ProxyServerTextBox.Text = _configuration.ProxyServer;
@@ -62,11 +62,11 @@ namespace ChatGPTExtension
             // Enable/disable proxy server settings based on custom proxy checkbox
             ProxyServerGrid.IsEnabled = useCustomProxy && !useSystemProxy;
             ProxyRequiresAuthCheckBox.IsEnabled = useCustomProxy && !useSystemProxy;
-            
+
             // Enable/disable auth settings based on auth checkbox
             bool requiresAuth = ProxyRequiresAuthCheckBox.IsChecked == true;
             ProxyAuthGrid.IsEnabled = useCustomProxy && !useSystemProxy && requiresAuth;
-            
+
             ProxyBypassTextBox.IsEnabled = (useCustomProxy || useSystemProxy);
         }
 
@@ -112,12 +112,12 @@ namespace ChatGPTExtension
         {
             TestConnectionButton.IsEnabled = false;
             TestStatusLabel.Content = "Testing...";
-            
+
             try
             {
                 var testConfig = GetConfigurationFromUI();
                 var httpClient = CreateHttpClientWithProxy(testConfig);
-                
+
                 using (httpClient)
                 {
                     var response = await httpClient.GetAsync("https://www.google.com", System.Threading.CancellationToken.None);
@@ -162,7 +162,7 @@ namespace ChatGPTExtension
         private HttpClient CreateHttpClientWithProxy(Configuration config)
         {
             var handler = new HttpClientHandler();
-            
+
             if (config.UseSystemProxy)
             {
                 handler.UseProxy = true;
@@ -171,7 +171,7 @@ namespace ChatGPTExtension
             else if (config.UseProxy && !string.IsNullOrEmpty(config.ProxyServer))
             {
                 var proxy = new System.Net.WebProxy($"http://{config.ProxyServer}:{config.ProxyPort}");
-                
+
                 if (config.ProxyRequiresAuth && !string.IsNullOrEmpty(config.ProxyUsername))
                 {
                     proxy.Credentials = new System.Net.NetworkCredential(config.ProxyUsername, config.ProxyPassword);
@@ -194,7 +194,7 @@ namespace ChatGPTExtension
             {
                 handler.UseProxy = false;
             }
-            
+
             return new HttpClient(handler);
         }
 
@@ -240,7 +240,8 @@ namespace ChatGPTExtension
                 MessageBox.Show($"Error saving configuration: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-
+        
+ 
         private void CancelButton_Click(object sender, RoutedEventArgs e)
         {
             DialogResult = false;

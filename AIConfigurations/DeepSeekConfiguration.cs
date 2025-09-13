@@ -48,10 +48,10 @@ namespace ChatGPTExtension
         // Constants
         public const string DEEPSEEK_URL = "https://chat.deepseek.com/";
         public const string DEEPSEEK_PROMPT_ID = "chat-input";
-        public const string DEEPSEEK_PROMPT_CLASS = "_27c9245";
-        public const string DEEPSEEK_COPY_CODE_BUTTON_CLASS = "ds-markdown-code-copy-button";
-        public const string DEEPSEEK_SEND_BUTTON_SELECTOR = "div[role=\"button\"]:not([aria-disabled=\"true\"]) .ds-icon svg[viewBox=\"0 0 14 16\"]";
-        public const string DEEPSEEK_ATTACH_FILE_SELECTOR = "div.ds-icon svg[viewBox=\"0 0 14 20\"]";
+        public const string DEEPSEEK_PROMPT_CLASS = "_27c9245 ds-scroll-area";
+        public const string DEEPSEEK_COPY_CODE_BUTTON_SELECTOR = "span.code-info-button-text";
+        public const string DEEPSEEK_SEND_BUTTON_SELECTOR = "div[role=\"button\"] svg[viewBox=\"0 0 16 16\"] path[d^=\"M8.3125 0.981648C8.66767\"]";
+        public const string DEEPSEEK_ATTACH_FILE_SELECTOR = "div._17e543b.f02f0e25";
 
         public string GetSetPromptScript(string promptText)
         {
@@ -62,7 +62,7 @@ namespace ChatGPTExtension
 
             return $@"
         (function() {{
-            var textarea = document.getElementById('{AIConfiguration.DeepSeekPromptId}');
+            var textarea = document.getElementById('{AIConfiguration.DeepSeekPromptId}') || document.querySelector('textarea._27c9245.ds-scroll-area');
             if (textarea) {{
                 // Set the value
                 var existingText = textarea.value;
@@ -108,22 +108,7 @@ namespace ChatGPTExtension
                 textarea.selectionStart = textarea.value.length;
                 textarea.selectionEnd = textarea.value.length;
                 
-                // 5. Directly check and modify the button state
-                setTimeout(function() {{
-                    var sendButton = document.querySelector('{AIConfiguration.DeepSeekSendButtonSelector}');
-                    if (sendButton) {{
-                        var buttonContainer = sendButton.closest('div[role=""button""]');
-                        if (buttonContainer) {{
-                            // Remove disabled attributes if present
-                            if (buttonContainer.getAttribute('aria-disabled') === 'true') {{
-                                buttonContainer.setAttribute('aria-disabled', 'false');
-                                buttonContainer.classList.remove('_disabled');
-                                buttonContainer.style.opacity = '1';
-                                buttonContainer.style.cursor = 'pointer';
-                            }}
-                        }}
-                    }}
-                }}, 100);
+                // 5. No need to modify button state since we use Enter key to send
             }} else {{
                 console.error('DeepSeek prompt area not found');
             }}
@@ -133,49 +118,53 @@ namespace ChatGPTExtension
         public string GetSubmitPromptScript()
         {
             return @"
-        // This tries to find a button that is NOT disabled, which won't work for short prompts
-        var sendButton = document.querySelector('div[role=""button""] .ds-icon svg[viewBox=""0 0 14 16""]');
-        if (sendButton) {
-            var buttonContainer = sendButton.closest('div[role=""button""]');
-            if (buttonContainer) {
-                // Force enable the button regardless of its current state
-                buttonContainer.setAttribute('aria-disabled', 'false');
-                
-                // Remove any disabled classes that may be present
-                buttonContainer.classList.remove('_disabled');
-                buttonContainer.style.opacity = '1';
-                buttonContainer.style.cursor = 'pointer';
-                
-                // Now click the button
-                buttonContainer.click();
-                
-                // As a fallback, try to trigger an Enter key press on the textarea
-                var textarea = document.getElementById('chat-input');
-                if (textarea) {
-                    var enterEvent = new KeyboardEvent('keydown', {
-                        bubbles: true,
-                        cancelable: true,
-                        key: 'Enter',
-                        code: 'Enter',
-                        keyCode: 13,
-                        which: 13
-                    });
-                    textarea.dispatchEvent(enterEvent);
-                }
-            }
+        // Simple approach: use Enter key on textarea to send prompt
+        var textarea = document.getElementById('chat-input') || document.querySelector('textarea._27c9245.ds-scroll-area');
+        if (textarea) {
+            // Focus the textarea first
+            textarea.focus();
+            
+            // Send Enter key press
+            var enterEvent = new KeyboardEvent('keydown', {
+                bubbles: true,
+                cancelable: true,
+                key: 'Enter',
+                code: 'Enter',
+                keyCode: 13,
+                which: 13
+            });
+            textarea.dispatchEvent(enterEvent);
+            
+            // Also try keyup event
+            var enterUpEvent = new KeyboardEvent('keyup', {
+                bubbles: true,
+                cancelable: true,
+                key: 'Enter',
+                code: 'Enter',
+                keyCode: 13,
+                which: 13
+            });
+            textarea.dispatchEvent(enterUpEvent);
         } else {
-            console.error('Send button not found');
+            console.error('DeepSeek textarea not found');
         }";
         }
 
         public string GetAttachFileScript()
         {
             return $@"
+                // Direct approach using working selector
                 var attachButton = document.querySelector('{AIConfiguration.DeepSeekAttachFileSelector}');
                 if (attachButton) {{
-                    attachButton.closest('div.ds-icon').click();
+                    attachButton.click();
                 }} else {{
-                    console.error('Attach file button not found');
+                    // Fallback: directly click hidden file input
+                    var fileInput = document.querySelector('input[type=""file""]');
+                    if (fileInput) {{
+                        fileInput.click();
+                    }} else {{
+                        console.error('Attach file functionality not found');
+                    }}
                 }}";
         }
 
@@ -193,30 +182,57 @@ namespace ChatGPTExtension
         public string GetAddEventListenersScript()
         {
             return $@"
-                function addClickListener(button, message) {{
-                    if (!button.hasAttribute('data-listener-added')) {{
-                        button.addEventListener('click', function() {{
+                function addClickListener(element, message) {{
+                    if (!element.hasAttribute('data-listener-added')) {{
+                        element.addEventListener('click', function() {{
                             window.chrome.webview.postMessage(message);
                         }});
-                        button.setAttribute('data-listener-added', 'true');
+                        element.setAttribute('data-listener-added', 'true');
                     }}
                 }}
 
-                // Find all copy buttons
-                var copyButtons = document.querySelectorAll('.{AIConfiguration.DeepSeekCopyCodeButtonClass}');
-                copyButtons.forEach(function(button) {{
-                    addClickListener(button, 'CopyCodeButtonClicked');
+                // Find ALL buttons with Copy text and add listeners
+                var allButtons = document.querySelectorAll('button');
+                allButtons.forEach(function(button) {{
+                    if (button.textContent && button.textContent.trim() === 'Copy') {{
+                        addClickListener(button, 'CopyCodeButtonClicked');
+                    }}
+                }});
+                
+                // Also check span-based approach for additional coverage
+                var copySpans = document.querySelectorAll('{AIConfiguration.DeepSeekCopyCodeButtonSelector}');
+                copySpans.forEach(function(span) {{
+                    if (span.textContent.trim() === 'Copy') {{
+                        var button = span.closest('button');
+                        if (button) {{
+                            addClickListener(button, 'CopyCodeButtonClicked');
+                        }}
+                    }}
                 }});
 
-                // Set up an observer to handle dynamically created buttons
+                // Set up an observer to handle dynamically created copy buttons
                 var observer = new MutationObserver(function(mutations) {{
                     mutations.forEach(function(mutation) {{
                         if (mutation.type === 'childList') {{
                             mutation.addedNodes.forEach(function(node) {{
                                 if (node.nodeType === Node.ELEMENT_NODE) {{
-                                    var newButtons = node.querySelectorAll('.{AIConfiguration.DeepSeekCopyCodeButtonClass}');
+                                    // Handle ALL new buttons with Copy text
+                                    var newButtons = node.querySelectorAll('button');
                                     newButtons.forEach(function(button) {{
-                                        addClickListener(button, 'CopyCodeButtonClicked');
+                                        if (button.textContent && button.textContent.trim() === 'Copy') {{
+                                            addClickListener(button, 'CopyCodeButtonClicked');
+                                        }}
+                                    }});
+                                    
+                                    // Also handle span-based copy buttons
+                                    var newSpans = node.querySelectorAll('{AIConfiguration.DeepSeekCopyCodeButtonSelector}');
+                                    newSpans.forEach(function(span) {{
+                                        if (span.textContent.trim() === 'Copy') {{
+                                            var button = span.closest('button');
+                                            if (button) {{
+                                                addClickListener(button, 'CopyCodeButtonClicked');
+                                            }}
+                                        }}
                                     }});
                                 }}
                             }});
