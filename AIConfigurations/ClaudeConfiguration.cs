@@ -3,7 +3,7 @@
  * 
  * Autor:  Daniel Liedke
  * 
- * Copyright © Daniel Liedke 2025
+ * Copyright ï¿½ Daniel Liedke 2025
  * Usage and reproduction in any manner whatsoever without the written permission of Daniel Liedke is strictly forbidden.
  *  
  * Purpose: All integration code for Claude AI
@@ -140,10 +140,10 @@ projectCopyButtons.forEach(function(button) {
 });
 
 // New format border copy buttons
-var borderCopyButtons = document.querySelectorAll('button.py-1.px-2.border-r.border-border-300.hover\\:bg-bg-200');
+var borderCopyButtons = document.querySelectorAll('button.font-base-bold.\\!text-xs.rounded-l-lg.bg-bg-000.h-full.flex.items-center.justify-center.px-2.border-y.border-l.border-border-300.hover\\:bg-bg-200');
 borderCopyButtons.forEach(function(button) {
-    var divWithText = button.querySelector('div div');
-    if (divWithText) {
+    var divWithRelative = button.querySelector('div.relative');
+    if (divWithRelative) {
         addClickListener(button, 'CopyCodeButtonClicked');
     }
 });";

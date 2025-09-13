@@ -20,6 +20,7 @@ using Microsoft.VisualStudio.Shell.Interop;
 using Task = System.Threading.Tasks.Task;
 using System.Diagnostics;
 using System.IO;
+using Newtonsoft.Json;
 
 namespace ChatGPTExtension
 {
@@ -52,6 +53,39 @@ namespace ChatGPTExtension
         /// </summary>
         public const string PackageGuidString = "4a77af14-c2b0-479a-a35a-056175d22b9c";
 
+        private static ChatGPTExtensionPackage _instance;
+        private Configuration _configuration;
+        private static readonly object _lock = new object();
+
+        /// <summary>
+        /// Singleton instance of the package
+        /// </summary>
+        public static ChatGPTExtensionPackage Instance
+        {
+            get
+            {
+                lock (_lock)
+                {
+                    return _instance;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets the current configuration
+        /// </summary>
+        public Configuration Configuration
+        {
+            get
+            {
+                if (_configuration == null)
+                {
+                    _configuration = LoadConfiguration();
+                }
+                return _configuration;
+            }
+        }
+
         #region Package Members
 
         /// <summary>
@@ -66,6 +100,16 @@ namespace ChatGPTExtension
             // When initialized asynchronously, the current thread may be a background thread at this point.
             // Do any initialization that requires the UI thread after switching to the UI thread.
             await this.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+            
+            // Set singleton instance
+            lock (_lock)
+            {
+                _instance = this;
+            }
+            
+            // Load configuration
+            _configuration = LoadConfiguration();
+            
             await ChatGPTWindowCommand.InitializeAsync(this);
         }
 
@@ -95,6 +139,59 @@ namespace ChatGPTExtension
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error in CleanupUserFiles(): {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region Configuration Management
+
+        private const string ConfigurationFileName = "extensionconfig.json";
+        private static readonly string ConfigurationPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "ChatGPTExtension",
+            ConfigurationFileName);
+
+        /// <summary>
+        /// Loads configuration from file or creates default
+        /// </summary>
+        private Configuration LoadConfiguration()
+        {
+            try
+            {
+                if (File.Exists(ConfigurationPath))
+                {
+                    var json = File.ReadAllText(ConfigurationPath);
+                    return JsonConvert.DeserializeObject<Configuration>(json) ?? new Configuration();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error loading configuration: {ex.Message}");
+            }
+            
+            return new Configuration();
+        }
+
+        /// <summary>
+        /// Saves the current configuration to file
+        /// </summary>
+        public void SaveConfiguration()
+        {
+            try
+            {
+                var directory = Path.GetDirectoryName(ConfigurationPath);
+                if (!Directory.Exists(directory))
+                {
+                    Directory.CreateDirectory(directory);
+                }
+
+                var json = JsonConvert.SerializeObject(_configuration, Formatting.Indented);
+                File.WriteAllText(ConfigurationPath, json);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error saving configuration: {ex.Message}");
             }
         }
 

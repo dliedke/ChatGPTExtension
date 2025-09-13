@@ -328,5 +328,19 @@ namespace ChatGPTExtension
         }
 
         #endregion
+
+        #region Proxy Configuration Button
+
+        private void ProxyConfigButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Show proxy configuration screen
+            var proxyConfigWindow = new ProxyConfigurationWindow
+            {
+                Owner = this
+            };
+            proxyConfigWindow.ShowDialog();
+        }
+
+        #endregion
     }
 }

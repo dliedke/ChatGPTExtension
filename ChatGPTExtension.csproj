@@ -94,6 +94,9 @@
       <DependentUpon>InputDialog.xaml</DependentUpon>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ProxyConfigurationWindow.xaml.cs">
+      <DependentUpon>ProxyConfigurationWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="ChatGPTExtensionPackage.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -153,6 +156,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="InputDialog.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="ProxyConfigurationWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

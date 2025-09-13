@@ -34,7 +34,7 @@ namespace ChatGPTExtension
         private static string _deepSeekUrl = DeepSeekConfiguration.DEEPSEEK_URL;
         private static string _deepSeekPromptId = DeepSeekConfiguration.DEEPSEEK_PROMPT_ID;
         private static string _deepSeekPromptClass = DeepSeekConfiguration.DEEPSEEK_PROMPT_CLASS;
-        private static string _deepSeekCopyCodeButtonClass = DeepSeekConfiguration.DEEPSEEK_COPY_CODE_BUTTON_CLASS;
+        private static string _deepSeekCopyCodeButtonSelector = DeepSeekConfiguration.DEEPSEEK_COPY_CODE_BUTTON_SELECTOR;
         private static string _deepSeekSendButtonSelector = DeepSeekConfiguration.DEEPSEEK_SEND_BUTTON_SELECTOR;
         private static string _deepSeekAttachFileSelector = DeepSeekConfiguration.DEEPSEEK_ATTACH_FILE_SELECTOR;
 
@@ -59,7 +59,7 @@ namespace ChatGPTExtension
         public static string DeepSeekUrl => _deepSeekUrl;
         public static string DeepSeekPromptId => _deepSeekPromptId;
         public static string DeepSeekPromptClass => _deepSeekPromptClass;
-        public static string DeepSeekCopyCodeButtonClass => _deepSeekCopyCodeButtonClass;
+        public static string DeepSeekCopyCodeButtonSelector => _deepSeekCopyCodeButtonSelector;
         public static string DeepSeekSendButtonSelector => _deepSeekSendButtonSelector;
         public static string DeepSeekAttachFileSelector => _deepSeekAttachFileSelector;
 
@@ -96,7 +96,7 @@ namespace ChatGPTExtension
                 _deepSeekUrl = DeepSeek.Url ?? _deepSeekUrl;
                 _deepSeekPromptId = DeepSeek.PromptId ?? _deepSeekPromptId;
                 _deepSeekPromptClass = DeepSeek.PromptClass ?? _deepSeekPromptClass;
-                _deepSeekCopyCodeButtonClass = DeepSeek.CopyCodeButtonClass ?? _deepSeekCopyCodeButtonClass;
+                _deepSeekCopyCodeButtonSelector = DeepSeek.CopyCodeButtonSelector ?? _deepSeekCopyCodeButtonSelector;
                 _deepSeekSendButtonSelector = DeepSeek.SendButtonSelector ?? _deepSeekSendButtonSelector;
                 _deepSeekAttachFileSelector = DeepSeek.AttachFileSelector ?? _deepSeekAttachFileSelector;
             }
@@ -131,7 +131,7 @@ namespace ChatGPTExtension
             public string Url { get; set; }
             public string PromptId { get; set; }
             public string PromptClass { get; set; }
-            public string CopyCodeButtonClass { get; set; }
+            public string CopyCodeButtonSelector { get; set; }
             public string SendButtonSelector { get; set; }
             public string AttachFileSelector { get; set; }
         }
@@ -293,7 +293,7 @@ namespace ChatGPTExtension
             {
                 try
                 {
-                    using (var client = new HttpClient())
+                    using (var client = CreateHttpClientWithProxy())
                     {
                         client.DefaultRequestHeaders.Add("User-Agent", "ChatGPTExtension");
                         var response = await client.GetStringAsync(GITHUB_CONFIG_URL);
@@ -307,6 +307,54 @@ namespace ChatGPTExtension
                     System.Diagnostics.Debug.WriteLine($"Error fetching from GitHub: {ex.Message}");
                     return null;
                 }
+            }
+
+            private HttpClient CreateHttpClientWithProxy()
+            {
+                var handler = new HttpClientHandler();
+                var config = ChatGPTExtensionPackage.Instance?.Configuration;
+
+                if (config != null)
+                {
+                    if (config.UseSystemProxy)
+                    {
+                        handler.UseProxy = true;
+                        handler.Proxy = System.Net.WebRequest.GetSystemWebProxy();
+                    }
+                    else if (config.UseProxy && !string.IsNullOrEmpty(config.ProxyServer))
+                    {
+                        var proxy = new System.Net.WebProxy($"http://{config.ProxyServer}:{config.ProxyPort}");
+                        
+                        if (config.ProxyRequiresAuth && !string.IsNullOrEmpty(config.ProxyUsername))
+                        {
+                            proxy.Credentials = new System.Net.NetworkCredential(config.ProxyUsername, config.ProxyPassword);
+                        }
+
+                        if (!string.IsNullOrEmpty(config.ProxyBypassList))
+                        {
+                            var bypassList = config.ProxyBypassList.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                            for (int i = 0; i < bypassList.Length; i++)
+                            {
+                                bypassList[i] = bypassList[i].Trim();
+                            }
+                            proxy.BypassList = bypassList;
+                        }
+
+                        handler.UseProxy = true;
+                        handler.Proxy = proxy;
+                    }
+                    else
+                    {
+                        handler.UseProxy = false;
+                    }
+                }
+                else
+                {
+                    // Default behavior when no configuration is available
+                    handler.UseProxy = false;
+                }
+                
+                return new HttpClient(handler);
             }
 
             private AIConfiguration GetDefaultConfiguration()
@@ -340,7 +388,7 @@ namespace ChatGPTExtension
                         Url = DeepSeekConfiguration.DEEPSEEK_URL,
                         PromptId = DeepSeekConfiguration.DEEPSEEK_PROMPT_ID,
                         PromptClass = DeepSeekConfiguration.DEEPSEEK_PROMPT_CLASS,
-                        CopyCodeButtonClass = DeepSeekConfiguration.DEEPSEEK_COPY_CODE_BUTTON_CLASS,
+                        CopyCodeButtonSelector = DeepSeekConfiguration.DEEPSEEK_COPY_CODE_BUTTON_SELECTOR,
                         SendButtonSelector = DeepSeekConfiguration.DEEPSEEK_SEND_BUTTON_SELECTOR,
                         AttachFileSelector = DeepSeekConfiguration.DEEPSEEK_ATTACH_FILE_SELECTOR
                     }

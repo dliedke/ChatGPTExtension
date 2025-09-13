@@ -149,6 +149,7 @@
             <Button x:Name="ResetButton" Content="Reset" Click="OnResetClick" Width="100" Padding="10,5" Margin="5" ToolTip="Reset" />
             <Button x:Name="CancelButton" Content="Cancel" Click="OnCancelClick" Width="100" Padding="10,5" Margin="5" ToolTip="Cancel changes" />
             <Button x:Name="ConfigureGPTWideButton" Content="GPT Wide" Click="ConfigureGPTWideButton_Click"  Width="100" Padding="10,5" Margin="25,5,5,5" ToolTip="Configure GPT Wide" />
+            <Button x:Name="ProxyConfigButton" Content="Proxy" Click="ProxyConfigButton_Click"  Width="100" Padding="10,5" Margin="5,5,5,5" ToolTip="Configure Proxy Settings" />
         </StackPanel>
     </Grid>
 </Window>
