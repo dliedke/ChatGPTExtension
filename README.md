@@ -82,8 +82,10 @@ Also integrates with **Hangzhou Deepseek**.
 
 ## What's New
 
+- 8.4 - Fixed home/end keys in Deepseek prompt area. Implemented hybrid approach for Gemini attach file functionality due to automation preventions
+
 - 8.3 - Fixed tab switching issues
-- 
+ 
 - 8.2 - Fixed Deepseek integration issues
 
 - 8.1 - Proxy support. Fixed Deepseek and Claude integrations after hard work

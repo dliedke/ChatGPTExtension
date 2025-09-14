@@ -1025,7 +1025,16 @@ namespace ChatGPTExtension
                     script = DeepSeekConfiguration.Instance.GetIsFileAttachedScript();
                     break;
                 case AIModelType.Gemini:
-                    return false; // Gemini doesn't support file attachments
+                    // Gemini now supports file attachments - check for uploaded files
+                    script = @"
+                        var result = 'notfound';
+                        // Look for file indicators in Gemini
+                        var fileIndicators = document.querySelectorAll('[class*=""file""], [class*=""attachment""], [class*=""upload""]');
+                        if (fileIndicators.length > 0) {
+                            result = 'found';
+                        }
+                        result;";
+                    break;
             }
 
             try
@@ -1465,21 +1474,22 @@ namespace ChatGPTExtension
                 ++index;
             }
 
+            // Set button visibility based on current AI model type
             try
             {
                 switch (_aiModelType)
                 {
                     case AIModelType.Claude:
-
+                        btnAttachFile.Visibility = Visibility.Visible;
                         break;
                     case AIModelType.Gemini:
-
+                        btnAttachFile.Visibility = Visibility.Visible;
                         break;
                     case AIModelType.GPT:
-
+                        btnAttachFile.Visibility = Visibility.Visible;
                         break;
                     case AIModelType.DeepSeek:
-
+                        btnAttachFile.Visibility = Visibility.Visible;
                         break;
                     default:
                         throw new InvalidOperationException(string.Format("The aiModelType {0} was not implemented", _aiModelType));
@@ -1520,7 +1530,7 @@ namespace ChatGPTExtension
                     isSwitch = true;
                     break;
                 case AIModelType.Gemini:
-                    btnAttachFile.Visibility = Visibility.Hidden;
+                    btnAttachFile.Visibility = Visibility.Visible;
                     isSwitch = true;
                     break;
                 case AIModelType.GPT:
@@ -1715,11 +1725,6 @@ namespace ChatGPTExtension
             {
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-                if (_aiModelType == AIModelType.Gemini)
-                {
-                    MessageBox.Show("Attaching code files is currently not supported in Gemini.", "Unsupported Operation", MessageBoxButton.OK, MessageBoxImage.Information);
-                    return;
-                }
 
                 // Get the active document in VS.NET
                 DTE2 dte = (DTE2)Package.GetGlobalService(typeof(DTE));
@@ -1756,16 +1761,21 @@ namespace ChatGPTExtension
                                     string clickButtonScript = GPTConfiguration.Instance.GetFileInputClickScript();
                                     await webView.ExecuteScriptAsync(clickButtonScript);
                                 }
+                                else if (_aiModelType == AIModelType.Gemini)
+                                {
+                                    string clickAttachScript = GeminiConfiguration.Instance.GetAttachFileScript();
+                                    await webView.ExecuteScriptAsync(clickAttachScript);
+                                }
                                 else if (_aiModelType == AIModelType.DeepSeek)
                                 {
                                     string clickAttachScript = DeepSeekConfiguration.Instance.GetAttachFileScript();
                                     await webView.ExecuteScriptAsync(clickAttachScript);
                                 }
 
-                                // Wait for the file dialog to open
-                                await Task.Delay(2500); // Adjust the delay as necessary
+                                // Wait for the file dialog to open (not for Gemini)
+                                await Task.Delay(3500); // Adjust the delay as necessary
 
-                                // Simulate pasting the file path and pressing enter
+                                // Simulate pasting the file path and pressing enter (not for Gemini)
                                 System.Windows.Forms.SendKeys.SendWait("^v");  // Paste the file path
                             }
                         }
@@ -1781,6 +1791,7 @@ namespace ChatGPTExtension
                 Debug.WriteLine($"Error in OnAttachFileButtonClick(): {ex.Message}");
             }
         }
+
 
         #endregion
 

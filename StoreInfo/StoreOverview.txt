@@ -1,12 +1,12 @@
 # Chat GPT Extension
 
-The Chat GPT extension loads the **OpenAI Chat GPT web and integrates it with Visual Studio 2022 17.14 or higher.** 
+The Chat GPT extension loads the **OpenAI Chat GPT web and integrates it with Visual Studio 2022.** 17.14 or higher
 
 It works with Free/Plus/Pro versions of OpenAI Chat GPT web. **No OpenAI tokens are required.**
 
-Also integrates with **Google Gemini** Free and Advanced.
+Also integrates with **Google Gemini** Flash and Pro.
 
-Also integrates with **Anthropic Claude AI** Haiku and Sonnet.
+Also integrates with **Anthropic Claude AI** Sonnet and Opus.
 
 Also integrates with **Hangzhou Deepseek**.
 
@@ -82,6 +82,8 @@ Also integrates with **Hangzhou Deepseek**.
 
 ## What's New
 
+- 8.4 - Fixed home/end keys in Deepseek prompt area. Implemented hybrid approach for Gemini attach file functionality due to automation preventions
+
 - 8.3 - Fixed tab switching issues
 
 - 8.2 - Fixed Deepseek integration issues
@@ -110,7 +112,7 @@ Prompt in Settings Button can be set line by line Prompt in Settings Extensions 
 - 7.0 - With the help of m1001111, Codex and Claude: Dark/light theme support according to VS.NET. Buttons now in the bottom closer to mouse. Fixed GPT attach file menu. Configurable button texts.
 
 - 6.3 - Fix by m1001111: If DeepSeek was enabled and then switched to GPT, Gemini, or Claude, the DeepSeek checkbox would still be selected.
- 
+
 - 6.2 - Fix user reported issue "BUG: Gemini, You paused this reply". Fixed enter key and auto send prompt not working with Claude
 
 - 6.1 - Added Hangzhou Deepseek AI integration

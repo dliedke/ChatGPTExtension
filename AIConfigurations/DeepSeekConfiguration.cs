@@ -247,7 +247,7 @@ namespace ChatGPTExtension
         {
             return $@"
                 (function() {{
-                    var textarea = document.getElementById('{AIConfiguration.DeepSeekPromptId}');
+                    var textarea = document.getElementById('{AIConfiguration.DeepSeekPromptId}') || document.querySelector('textarea._27c9245.ds-scroll-area');
                     if (textarea) {{
                         var textBeforeCursor = textarea.value.substring(0, textarea.selectionStart);
                         var textAfterCursor = textarea.value.substring(textarea.selectionEnd);

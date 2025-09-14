@@ -23,7 +23,7 @@ namespace ChatGPTExtension
 
         public string NewFile { get; set; } = "📄 New File";
 
-        public string AttachFile { get; set; } = "Attach File";
+        public string AttachFile { get; set; } = "📎Attach File";
 
         public string EnableCopyCode { get; set; } = "Copy Code";
 
