@@ -119,6 +119,9 @@ namespace ChatGPTExtension
             {
                 // Clean up temporary files when the extension is being disposed
                 CleanupUserFiles();
+
+                // Dispose static WebView when VS is closing
+                GptToolWindowControl.DisposeStaticWebView();
             }
 
             base.Dispose(disposing);

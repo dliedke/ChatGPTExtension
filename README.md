@@ -82,6 +82,8 @@ Also integrates with **Hangzhou Deepseek**.
 
 ## What's New
 
+- 8.3 - Fixed tab switching issues
+- 
 - 8.2 - Fixed Deepseek integration issues
 
 - 8.1 - Proxy support. Fixed Deepseek and Claude integrations after hard work

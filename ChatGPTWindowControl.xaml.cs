@@ -96,9 +96,13 @@ namespace ChatGPTExtension
 
         private void ChatGPTWindowControl_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
+            // Only initialize each control instance once
             if (_initialized)
+            {
                 return;
+            }
 
+            // Only initialize if becoming visible, not when becoming invisible
             if (this.IsVisible)
             {
                 // Initialize the JoinableTaskFactory
@@ -109,12 +113,13 @@ namespace ChatGPTExtension
                 {
                     try
                     {
+                        // Initialize WebView (may reuse static instance)
                         await InitializeAsync();
 
                         // Add a 2-second delay after initialization as mentioned in comment
                         await Task.Delay(2000);
 
-                        // Run the remaining initialization on the UI thread
+                        // Run the UI initialization on the UI thread - ALWAYS needed for each control instance
                         await _joinableTaskFactory.SwitchToMainThreadAsync();
 
                         _aiModelType = LoadConfiguration();
@@ -134,7 +139,8 @@ namespace ChatGPTExtension
                     }
                     catch (Exception ex)
                     {
-                       System.Diagnostics.Debug.WriteLine($"Initialization failed: {ex.Message}");
+                       System.Diagnostics.Debug.WriteLine($"ChatGPTExtension - Initialization failed: {ex.Message}");
+                       System.Diagnostics.Debug.WriteLine($"ChatGPTExtension - Stack trace: {ex.StackTrace}");
                     }
                 });
             }
@@ -152,16 +158,64 @@ namespace ChatGPTExtension
             }
         }
 
-        private bool _isWebViewInitialized = false;
+        // Instance initialization flag (keeping for potential future use)
+        // private bool _isWebViewInitialized = false;
         private readonly object _initializationLock = new object();
         private Microsoft.Web.WebView2.Wpf.WebView2 webView;
 
+        // Static WebView instance that persists across control recreations
+        private static Microsoft.Web.WebView2.Wpf.WebView2 _staticWebView;
+        private static bool _staticWebViewInitialized = false;
+        private static readonly object _staticWebViewLock = new object();
+        private static bool _initializationInProgress = false;
+
         private async Task InitializeAsync()
         {
+            // Check if already initialized or initialization in progress - avoid semaphore deadlock
+            lock (_staticWebViewLock)
+            {
+                if (_staticWebViewInitialized)
+                {
+                    // Just reuse existing WebView
+                    webView = _staticWebView;
+                    webViewContainer.Content = webView;
+                    webView.WebMessageReceived -= WebView_WebMessageReceived;
+                    webView.WebMessageReceived += WebView_WebMessageReceived;
+                    _aiModelType = LoadConfiguration();
+                    Unloaded += OnControlUnloaded;
+                    return;
+                }
+
+                if (_initializationInProgress)
+                {
+                    System.Diagnostics.Debug.WriteLine("ChatGPTExtension - InitializeAsync: Initialization already in progress, waiting for completion");
+                    // Don't return - wait for the first initialization to complete
+                }
+                else
+                {
+                    _initializationInProgress = true;
+                    System.Diagnostics.Debug.WriteLine("ChatGPTExtension - InitializeAsync: Started initialization process");
+                }
+            }
+
             await _initGate.WaitAsync();
+
             try
             {
-                if (_isWebViewInitialized) return;
+                // Check again after acquiring semaphore - first initialization might have completed
+                if (_staticWebViewInitialized)
+                {
+                    // Just reuse existing WebView
+                    webView = _staticWebView;
+                    webViewContainer.Content = webView;
+                    webView.WebMessageReceived -= WebView_WebMessageReceived;
+                    webView.WebMessageReceived += WebView_WebMessageReceived;
+                    _aiModelType = LoadConfiguration();
+                    Unloaded += OnControlUnloaded;
+                    return;
+                }
+
+                // Ensure we're on UI thread before any further initialization
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
                 // Build a single, consistent user-data path per hive
@@ -179,31 +233,34 @@ namespace ChatGPTExtension
                 // Optional but helpful on some systems: point to the runtime explicitly if found
                 _browserPath = GetEdgeWebView2Path(); // your existing helper
 
-                // Create the WebView2 control if needed and set creation properties BEFORE init
-                if (webView == null)
+                // Use static WebView instance that persists across control recreations
+                lock (_staticWebViewLock)
                 {
-                    webView = new Microsoft.Web.WebView2.Wpf.WebView2();
-                    var creationProperties = new CoreWebView2CreationProperties
+                    if (_staticWebView == null)
                     {
-                        UserDataFolder = _userDataPath,
-                        BrowserExecutableFolder = _browserPath // can be null; that's fine
-                    };
+                        _staticWebView = new Microsoft.Web.WebView2.Wpf.WebView2();
+                        var creationProperties = new CoreWebView2CreationProperties
+                        {
+                            UserDataFolder = _userDataPath,
+                            BrowserExecutableFolder = _browserPath // can be null; that's fine
+                        };
 
-                    // Configure proxy settings if needed
-                    var proxySettings = GetProxyConfiguration();
-                    if (!string.IsNullOrEmpty(proxySettings))
-                    {
-                        creationProperties.AdditionalBrowserArguments = proxySettings;
+                        // Configure proxy settings if needed
+                        var proxySettings = GetProxyConfiguration();
+                        if (!string.IsNullOrEmpty(proxySettings))
+                        {
+                            creationProperties.AdditionalBrowserArguments = proxySettings;
+                        }
+
+                        _staticWebView.CreationProperties = creationProperties;
                     }
 
-                    webView.CreationProperties = creationProperties;
+                    // Always use the static WebView instance
+                    webView = _staticWebView;
                     webViewContainer.Content = webView;
                 }
 
-                // Init your own config first
-                await InitializeConfigurationAsync();
-
-                // Init DTE events (guarded)
+                // Init DTE events (guarded) - only for new WebView instances
                 _dte = Package.GetGlobalService(typeof(DTE)) as DTE2;
                 if (_dte != null)
                 {
@@ -211,6 +268,10 @@ namespace ChatGPTExtension
                     _windowEvents = _events.WindowEvents;
                 }
 
+                // Init your own config first (always needed)
+                await InitializeConfigurationAsync();
+
+                // Try to initialize WebView core
                 // Try to initialize once; on specific errors, clean folder and retry once
                 if (!await TryEnsureCoreWebView2Async())
                 {
@@ -238,20 +299,20 @@ namespace ChatGPTExtension
                         throw new InvalidOperationException("WebView2 failed to initialize after retry.");
                 }
 
-                // Navigate and wire up events
+                // Navigate and wire up events (only for new WebView)
                 await NavigateToAIServiceAsync();
                 webView.WebMessageReceived += WebView_WebMessageReceived;
+                _staticWebViewInitialized = true;
 
+                // Always set up timers and unload handler for each control instance
                 await StartTimerAsync();
                 _ = CheckTimerStatusAsync();
-
                 Unloaded += OnControlUnloaded;
-
-                _isWebViewInitialized = true;
             }
             catch (Exception ex)
             {
-                _isWebViewInitialized = false; // allow future retries
+                // Reset static initialization flag on error to allow retry
+                _staticWebViewInitialized = false;
                 Debug.WriteLine($"Error in InitializeAsync(): {ex.Message}");
                 Debug.WriteLine($"Stack Trace: {ex.StackTrace}");
                 MessageBox.Show(
@@ -260,6 +321,12 @@ namespace ChatGPTExtension
             }
             finally
             {
+                // Reset initialization progress flag
+                lock (_staticWebViewLock)
+                {
+                    _initializationInProgress = false;
+                }
+
                 _initGate.Release();
             }
         }
@@ -268,12 +335,25 @@ namespace ChatGPTExtension
         {
             try
             {
-                // Prefer CreationProperties path; calling EnsureCoreWebView2Async() with null uses them
-                await webView.EnsureCoreWebView2Async();
+                // Add timeout to prevent hanging
+                var initTask = webView.EnsureCoreWebView2Async();
+                var timeoutTask = Task.Delay(30000); // 30 seconds timeout
+
+                var completedTask = await Task.WhenAny(initTask, timeoutTask);
+
+                if (completedTask == timeoutTask)
+                {
+                    throw new TimeoutException("WebView2 initialization timed out");
+                }
+
+                // Await the actual result to get any exceptions
+                await initTask;
 
                 // Optional: verify we actually have a CoreWebView2
                 if (webView.CoreWebView2 == null)
+                {
                     throw new COMException("CoreWebView2 was null after EnsureCoreWebView2Async.", unchecked((int)0x8007139F));
+                }
 
                 return true;
             }
@@ -332,25 +412,72 @@ namespace ChatGPTExtension
         // New helper method to handle navigation
         private async Task NavigateToAIServiceAsync()
         {
+            // Load the saved AI model type for initial navigation
+            _aiModelType = LoadConfiguration();
+
             switch (_aiModelType)
             {
                 case AIModelType.GPT:
                     webView.Source = new Uri(AIConfiguration.GPTUrl);
-                    await WaitForElementByIdAsync(AIConfiguration.GPTPromptTextAreaId);
+                    // Start element waiting in background - don't await it!
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await WaitForElementByIdAsync(AIConfiguration.GPTPromptTextAreaId);
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"ChatGPTExtension - GPT element waiting failed: {ex.Message}");
+                        }
+                    });
                     break;
                 case AIModelType.Gemini:
                     webView.Source = new Uri(AIConfiguration.GeminiUrl);
-                    await WaitForElementByClassAsync(AIConfiguration.GeminiPromptClass);
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await WaitForElementByClassAsync(AIConfiguration.GeminiPromptClass);
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"ChatGPTExtension - Gemini element waiting failed: {ex.Message}");
+                        }
+                    });
                     break;
                 case AIModelType.Claude:
                     webView.Source = new Uri(AIConfiguration.ClaudeUrl);
-                    await WaitForElementByClassAsync(AIConfiguration.ClaudePromptClass);
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await WaitForElementByClassAsync(AIConfiguration.ClaudePromptClass);
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"ChatGPTExtension - Claude element waiting failed: {ex.Message}");
+                        }
+                    });
                     break;
                 case AIModelType.DeepSeek:
                     webView.Source = new Uri(AIConfiguration.DeepSeekUrl);
-                    await WaitForElementByIdAsync(AIConfiguration.DeepSeekPromptId);
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await WaitForElementByClassAsync(AIConfiguration.DeepSeekPromptClass);
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"ChatGPTExtension - DeepSeek element waiting failed: {ex.Message}");
+                        }
+                    });
                     break;
             }
+
+            System.Diagnostics.Debug.WriteLine("ChatGPTExtension - NavigateToAIServiceAsync: Navigation started, returning immediately");
+            // Return immediately - don't wait for elements to be found
         }
 
         public string GetEdgeWebView2Path()
@@ -452,65 +579,108 @@ namespace ChatGPTExtension
 
                 if (webView != null)
                 {
-                    // Remove handlers first
+                    // Only remove event handlers, don't dispose the static WebView
                     webView.WebMessageReceived -= WebView_WebMessageReceived;
 
-                    // Disposing helps release the user-data lock cleanly
-                    webView.Dispose();
-                    webView = null;
+                    // Don't dispose the static WebView - it should persist across tab switches
+                    // webView.Dispose(); // Commented out to prevent disposal
+                    webView = null; // Just clear the reference
                 }
             }
             catch { /* ignore */ }
             finally
             {
-                _isWebViewInitialized = false;
+                // Don't reset the static initialization flag to keep WebView persistent
+                // _staticWebViewInitialized remains true
             }
         }
 
         private async Task WaitForElementByIdAsync(string elementId)
         {
             bool elementFound = false;
-            while (!elementFound)
-            {
-                string script = $"document.getElementById('{elementId}') ? 'found' : 'notfound';";
-                var result = await webView.ExecuteScriptAsync(script);
-                if (result == "\"found\"") // Note the extra quotes, ExecuteScriptAsync returns JSON serialized strings.
-                {
-                    elementFound = true;
+            int attempts = 0;
+            const int maxAttempts = 60; // 30 seconds timeout (60 * 500ms)
 
-                    // Run GPT wide script is available
-                    string gptWideScript = GPTWideWindow.GetGPTWideScript();
-                    if (!string.IsNullOrEmpty(gptWideScript))
+            while (!elementFound && attempts < maxAttempts)
+            {
+                try
+                {
+                    string script = $"document.getElementById('{elementId}') ? 'found' : 'notfound';";
+                    var result = await webView.ExecuteScriptAsync(script);
+                    if (result == "\"found\"") // Note the extra quotes, ExecuteScriptAsync returns JSON serialized strings.
                     {
-                        await webView.ExecuteScriptAsync(gptWideScript);
+                        elementFound = true;
+
+                        // Run GPT wide script is available
+                        string gptWideScript = GPTWideWindow.GetGPTWideScript();
+                        if (!string.IsNullOrEmpty(gptWideScript))
+                        {
+                            await webView.ExecuteScriptAsync(gptWideScript);
+                        }
+                    }
+                    else
+                    {
+                        attempts++;
+                        await Task.Delay(500); // Wait for half a second before checking again.
                     }
                 }
-                else
+                catch (Exception ex)
                 {
-                    await Task.Delay(500); // Wait for half a second before checking again.
+                    System.Diagnostics.Debug.WriteLine($"ChatGPTExtension - WaitForElementByIdAsync: Error checking for {elementId}: {ex.Message}");
+                    attempts++;
+                    await Task.Delay(500);
                 }
             }
-            await AddHandlerCopyCodeAsync();
+
+            if (elementFound)
+            {
+                await AddHandlerCopyCodeAsync();
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"ChatGPTExtension - WaitForElementByIdAsync: Timeout waiting for {elementId} after {attempts} attempts");
+            }
         }
 
         private async Task WaitForElementByClassAsync(string className)
         {
             bool elementFound = false;
-            while (!elementFound)
+            int attempts = 0;
+            const int maxAttempts = 60; // 30 seconds timeout (60 * 500ms)
+
+            while (!elementFound && attempts < maxAttempts)
             {
-                // Use querySelector with an attribute selector to find the element by its data-placeholder value.
-                string script = $"document.querySelector('.{className}') ? 'found' : 'notfound';";
-                var result = await webView.ExecuteScriptAsync(script);
-                if (result == "\"found\"") // Note the extra quotes, ExecuteScriptAsync returns JSON serialized strings.
+                try
                 {
-                    elementFound = true;
+                    // Use querySelector with class selector
+                    string script = $"document.querySelector('.{className}') ? 'found' : 'notfound';";
+                    var result = await webView.ExecuteScriptAsync(script);
+                    if (result == "\"found\"") // Note the extra quotes, ExecuteScriptAsync returns JSON serialized strings.
+                    {
+                        elementFound = true;
+                    }
+                    else
+                    {
+                        attempts++;
+                        await Task.Delay(500); // Wait for half a second before checking again.
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    await Task.Delay(500); // Wait for half a second before checking again.
+                    System.Diagnostics.Debug.WriteLine($"ChatGPTExtension - WaitForElementByClassAsync: Error checking for class {className}: {ex.Message}");
+                    attempts++;
+                    await Task.Delay(500);
                 }
             }
-            await AddHandlerCopyCodeAsync(); // Ensure this method is implemented to add the required handler.
+
+            if (elementFound)
+            {
+                await AddHandlerCopyCodeAsync(); // Ensure this method is implemented to add the required handler.
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"ChatGPTExtension - WaitForElementByClassAsync: Timeout waiting for class {className} after {attempts} attempts");
+            }
         }
 
         #endregion
@@ -1060,6 +1230,7 @@ namespace ChatGPTExtension
             catch (Exception ex)
             {
                 Debug.WriteLine("Error in StartTimerAsync(): " + ex.Message);
+                System.Diagnostics.Debug.WriteLine($"ChatGPTExtension - StartTimerAsync Exception: {ex.Message}");
             }
         }
 
@@ -1094,6 +1265,23 @@ namespace ChatGPTExtension
         public void Dispose()
         {
             StopTimer();
+
+            // Only dispose static WebView when the entire package is being disposed
+            // This should only happen when Visual Studio is closing
+        }
+
+        // Method to dispose static WebView when VS is closing
+        public static void DisposeStaticWebView()
+        {
+            lock (_staticWebViewLock)
+            {
+                if (_staticWebView != null)
+                {
+                    _staticWebView.Dispose();
+                    _staticWebView = null;
+                    _staticWebViewInitialized = false;
+                }
+            }
         }
 
         private void StopTimer()
