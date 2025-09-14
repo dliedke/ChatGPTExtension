@@ -82,6 +82,8 @@ Also integrates with **Hangzhou Deepseek**.
 
 ## What's New
 
+- 8.2 - Fixed Deepseek integration issues
+
 - 8.1 - Proxy support. Fixed Deepseek and Claude integrations after hard work
 
 - 7.9 - Mininum VS.NET 2022 version 17.14 required for this extension. New attempt to fix random initialization issues.

@@ -75,9 +75,22 @@ namespace ChatGPTExtension
             _windowHelper = new WindowHelper(dte);
 
             // Initialize when the visual tree is ready
-            this.Loaded += async (_, __) => await InitializeAsync();
+            Loaded += GptToolWindowControl_Loaded;
         }
 
+#pragma warning disable VSTHRD100 // Avoid async void methods
+        private async void GptToolWindowControl_Loaded(object sender, RoutedEventArgs e)
+#pragma warning restore VSTHRD100 // Avoid async void methods
+        {
+            try
+            {
+                await InitializeAsync();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error in GptToolWindowControl_Loaded: {ex.Message}");
+            }
+        }
 
         bool _initialized = false;
 
@@ -91,30 +104,39 @@ namespace ChatGPTExtension
                 // Initialize the JoinableTaskFactory
                 _joinableTaskFactory = ThreadHelper.JoinableTaskFactory;
 
-                // Add a small delay on first initialization to avoid conflicts
-                _joinableTaskFactory.RunAsync(async () =>
+                // Start async initialization
+                _ = _joinableTaskFactory.RunAsync(async () =>
                 {
-                    // Small delay to let VS.NET fully initialize
-                    //await Task.Delay(500);
-                    await InitializeAsync();
-                }).FileAndForget("InitializeAsync");
+                    try
+                    {
+                        await InitializeAsync();
 
-                _aiModelType = LoadConfiguration();
+                        // Add a 2-second delay after initialization as mentioned in comment
+                        await Task.Delay(2000);
 
-                LoadContextMenuActions();
-                LoadComboBoxItemsKi();
+                        // Run the remaining initialization on the UI thread
+                        await _joinableTaskFactory.SwitchToMainThreadAsync();
 
-                AddMinimizeRestoreMenuItem();
+                        _aiModelType = LoadConfiguration();
+                        LoadContextMenuActions();
+                        LoadComboBoxItemsKi();
+                        AddMinimizeRestoreMenuItem();
 
-                // Set up a timer to periodically check the window state
-                _updateTimer = new DispatcherTimer
-                {
-                    Interval = TimeSpan.FromMilliseconds(500)
-                };
-                _updateTimer.Tick += UpdateTimer_Tick;
-                _updateTimer.Start();
+                        // Set up a timer to periodically check the window state
+                        _updateTimer = new DispatcherTimer
+                        {
+                            Interval = TimeSpan.FromMilliseconds(500)
+                        };
+                        _updateTimer.Tick += UpdateTimer_Tick;
+                        _updateTimer.Start();
 
-                _initialized = true;
+                        _initialized = true;
+                    }
+                    catch (Exception ex)
+                    {
+                       System.Diagnostics.Debug.WriteLine($"Initialization failed: {ex.Message}");
+                    }
+                });
             }
         }
 
@@ -589,7 +611,7 @@ namespace ChatGPTExtension
                     break;
             }
 
-            await webView.CoreWebView2.ExecuteScriptAsync(script);
+            await webView.ExecuteScriptAsync(script);
 
             if (!string.IsNullOrEmpty(extraCommand))
             {
@@ -601,7 +623,7 @@ namespace ChatGPTExtension
         {
             // Retrieve selected text in GPT/Gemini
             string script = @"window.getSelection().toString()";
-            string selectedText = await webView.CoreWebView2.ExecuteScriptAsync(script);
+            string selectedText = await webView.ExecuteScriptAsync(script);
 
             // Convert returned JSON string to a regular string.
             return JsonConvert.DeserializeObject<string>(selectedText);
@@ -759,16 +781,7 @@ namespace ChatGPTExtension
         {
             try
             {
-                string script = @"if (!document.body.hasAttribute('data-keydown-listener-added')) {
-                            document.addEventListener('keydown', function(event) {
-                                if (event.keyCode == 13 && !event.shiftKey) {
-                                    window.chrome.webview.postMessage('EnterPressed');
-                                }
-                            });
-                            document.body.setAttribute('data-keydown-listener-added', 'true');
-                        }";
-
-                await webView.ExecuteScriptAsync(script);
+                Debug.WriteLine($"AddHandlerCopyCodeAsync called for AI Model: {_aiModelType}");
 
                 string addEventListenersScript = string.Empty;
 
@@ -847,7 +860,7 @@ namespace ChatGPTExtension
 
             try
             {
-                string result = await webView.CoreWebView2.ExecuteScriptAsync(script);
+                string result = await webView.ExecuteScriptAsync(script);
                 return result == "\"found\"";
             }
             catch (Exception)
@@ -865,21 +878,24 @@ namespace ChatGPTExtension
             {
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
+                var webMessage = e.TryGetWebMessageAsString();
+                Debug.WriteLine($"WebView_WebMessageReceived: {webMessage}, AI Model: {_aiModelType}, EnableCopyCode: {_enableCopyCode}, IsCreatingNewFile: {_isCreatingNewFile}");
+
                 // When Copy code button was clicked in AI app, automatically insert the code in VS.NET
-                if (e.TryGetWebMessageAsString() == "CopyCodeButtonClicked" && _enableCopyCode && !_isCreatingNewFile)
+                if (webMessage == "CopyCodeButtonClicked" && _enableCopyCode && !_isCreatingNewFile)
                 {
+                    Debug.WriteLine("Processing CopyCodeButtonClicked message");
 
                     // Using async delay instead of freezing the thread
                     await Task.Delay(1000);
 
                     // Handle the button click event here
                     string textFromClipboard = Clipboard.GetText();
+                    Debug.WriteLine($"Clipboard text length: {textFromClipboard?.Length ?? 0}");
 
                     InsertTextIntoVS(textFromClipboard);
                     FormatCodeInVS();
                 }
-
-                var webMessage = e.TryGetWebMessageAsString();
 
                 switch (webMessage)
                 {
@@ -1115,7 +1131,7 @@ namespace ChatGPTExtension
                         break;
                 }
 
-                await webView.CoreWebView2.ExecuteScriptAsync(script);
+                await webView.ExecuteScriptAsync(script);
                 await SubmitPromptAIAsync();
             }
             catch (Exception ex)
@@ -1167,7 +1183,7 @@ namespace ChatGPTExtension
                 if (_aiModelType == AIModelType.DeepSeek)
                 {
                     webView.Source = new Uri(AIConfiguration.DeepSeekUrl);
-                    await WaitForElementByClassAsync(AIConfiguration.DeepSeekPromptClass);
+                    await WaitForElementByIdAsync(AIConfiguration.DeepSeekPromptId);
                 }
 
                 await StartTimerAsync();
@@ -1361,7 +1377,6 @@ namespace ChatGPTExtension
                     }
                 }
             }
-            StopTimer();
         }
 
 
@@ -1419,8 +1434,6 @@ namespace ChatGPTExtension
                 MessageBox.Show($"ChatGPT Extension Version: {version}", "About ChatGPT Extension", MessageBoxButton.OK, MessageBoxImage.Information);
             };
             CodeActionsContextMenu.Items.Add(aboutMenuItem);
-
-            StopTimer();
         }
 
         private void UpdateButtonContentAndTooltip()
@@ -1548,17 +1561,17 @@ namespace ChatGPTExtension
                                 if (_aiModelType == AIModelType.Claude)
                                 {
                                     string clickFileInputScript = ClaudeConfiguration.Instance.GetAttachFileScript();
-                                    await webView.CoreWebView2.ExecuteScriptAsync(clickFileInputScript);
+                                    await webView.ExecuteScriptAsync(clickFileInputScript);
                                 }
                                 else if (_aiModelType == AIModelType.GPT)
                                 {
                                     string clickButtonScript = GPTConfiguration.Instance.GetFileInputClickScript();
-                                    await webView.CoreWebView2.ExecuteScriptAsync(clickButtonScript);
+                                    await webView.ExecuteScriptAsync(clickButtonScript);
                                 }
                                 else if (_aiModelType == AIModelType.DeepSeek)
                                 {
                                     string clickAttachScript = DeepSeekConfiguration.Instance.GetAttachFileScript();
-                                    await webView.CoreWebView2.ExecuteScriptAsync(clickAttachScript);
+                                    await webView.ExecuteScriptAsync(clickAttachScript);
                                 }
 
                                 // Wait for the file dialog to open
@@ -1632,7 +1645,7 @@ namespace ChatGPTExtension
                         break;
                 }
 
-                await webView.CoreWebView2.ExecuteScriptAsync(script);
+                await webView.ExecuteScriptAsync(script);
                 await SubmitPromptAIAsync();
             }
             catch (Exception ex)
@@ -1804,6 +1817,7 @@ namespace ChatGPTExtension
 
 
         #endregion
+
 
 
     }

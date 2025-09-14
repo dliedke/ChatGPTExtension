@@ -178,7 +178,7 @@ namespace ChatGPTExtension
                 }
                 result;";
         }
-
+      
         public string GetAddEventListenersScript()
         {
             return $@"

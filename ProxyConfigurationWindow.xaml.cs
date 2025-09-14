@@ -108,7 +108,9 @@ namespace ChatGPTExtension
             UpdateUIState();
         }
 
+#pragma warning disable VSTHRD100 // Avoid async void methods
         private async void TestConnectionButton_Click(object sender, RoutedEventArgs e)
+#pragma warning restore VSTHRD100 // Avoid async void methods
         {
             TestConnectionButton.IsEnabled = false;
             TestStatusLabel.Content = "Testing...";
