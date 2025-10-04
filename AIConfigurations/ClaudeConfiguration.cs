@@ -1,5 +1,5 @@
 /* *******************************************************************************************************************
- * Application: ChatGPTExtension
+ * Application: Chat GPT Extension
  * 
  * Autor:  Daniel Liedke
  * 
