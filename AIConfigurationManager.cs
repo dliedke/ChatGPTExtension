@@ -21,6 +21,7 @@ namespace ChatGPTExtension
         private static string _gptCopyCodeButtonSelector = GPTConfiguration.GPT_COPY_CODE_BUTTON_SELECTOR;
         private static string _gptCopyCodeButtonIconSelector = GPTConfiguration.GPT_COPY_CODE_BUTTON_ICON_SELECTOR;
         private static string _gptCanvasCopyButtonSelector = GPTConfiguration.GPT_CANVAS_COPY_BUTTON_SELECTOR;
+        private static string _gptBlackboardCopyButtonSelector = GPTConfiguration.GPT_BLACKBOARD_COPY_BUTTON_SELECTOR;
 
         private static string _geminiUrl = GeminiConfiguration.GEMINI_URL;
         private static string _geminiPromptClass = GeminiConfiguration.GEMINI_PROMPT_CLASS;
@@ -30,6 +31,7 @@ namespace ChatGPTExtension
         private static string _claudePromptClass = ClaudeConfiguration.CLAUDE_PROMPT_CLASS;
         private static string _claudeCopyCodeButtonText = ClaudeConfiguration.CLAUDE_COPY_CODE_BUTTON_TEXT;
         private static string _claudeProjectCopyCodeButtonSelector = ClaudeConfiguration.CLAUDE_PROJECT_COPY_CODE_BUTTON_SELECTOR;
+        private static string _claudeArtifactCopyButtonSelector = ClaudeConfiguration.CLAUDE_ARTIFACT_COPY_BUTTON_SELECTOR;
 
         private static string _deepSeekUrl = DeepSeekConfiguration.DEEPSEEK_URL;
         private static string _deepSeekPromptId = DeepSeekConfiguration.DEEPSEEK_PROMPT_ID;
@@ -45,6 +47,7 @@ namespace ChatGPTExtension
         public static string GPTCopyCodeButtonSelector => _gptCopyCodeButtonSelector;
         public static string GPTCopyCodeButtonIconSelector => _gptCopyCodeButtonIconSelector;
         public static string GPTCanvasCopyButtonSelector => _gptCanvasCopyButtonSelector;
+        public static string GPTBlackboardCopyButtonSelector => _gptBlackboardCopyButtonSelector;
 
         public static string GeminiUrl => _geminiUrl;
         public static string GeminiPromptClass => _geminiPromptClass;
@@ -54,6 +57,7 @@ namespace ChatGPTExtension
         public static string ClaudePromptClass => _claudePromptClass;
         public static string ClaudeCopyCodeButtonText => _claudeCopyCodeButtonText;
         public static string ClaudeProjectCopyCodeButtonSelector => _claudeProjectCopyCodeButtonSelector;
+        public static string ClaudeArtifactCopyButtonSelector => _claudeArtifactCopyButtonSelector;
 
         // Public static getters
         public static string DeepSeekUrl => _deepSeekUrl;
@@ -74,6 +78,7 @@ namespace ChatGPTExtension
                 _gptCopyCodeButtonSelector = GPT.CopyCodeButtonSelector ?? _gptCopyCodeButtonSelector;
                 _gptCopyCodeButtonIconSelector = GPT.CopyCodeButtonIconSelector ?? _gptCopyCodeButtonIconSelector;
                 _gptCanvasCopyButtonSelector = GPT.CanvasCopyButtonSelector ?? _gptCanvasCopyButtonSelector;
+                _gptBlackboardCopyButtonSelector = GPT.BlackboardCopyButtonSelector ?? _gptBlackboardCopyButtonSelector;
             }
 
             if (Gemini != null)
@@ -89,6 +94,7 @@ namespace ChatGPTExtension
                 _claudePromptClass = Claude.PromptClass ?? _claudePromptClass;
                 _claudeCopyCodeButtonText = Claude.CopyCodeButtonText ?? _claudeCopyCodeButtonText;
                 _claudeProjectCopyCodeButtonSelector = Claude.ProjectCopyCodeButtonSelector ?? _claudeProjectCopyCodeButtonSelector;
+                _claudeArtifactCopyButtonSelector = Claude.ArtifactCopyButtonSelector ?? _claudeArtifactCopyButtonSelector;
             }
 
             if (DeepSeek != null)
@@ -109,6 +115,7 @@ namespace ChatGPTExtension
             public string CopyCodeButtonSelector { get; set; }
             public string CopyCodeButtonIconSelector { get; set; }
             public string CanvasCopyButtonSelector { get; set; }
+            public string BlackboardCopyButtonSelector { get; set; }
         }
 
         public class GeminiSettings
@@ -124,6 +131,7 @@ namespace ChatGPTExtension
             public string PromptClass { get; set; }
             public string CopyCodeButtonText { get; set; }
             public string ProjectCopyCodeButtonSelector { get; set; }
+            public string ArtifactCopyButtonSelector { get; set; }
         }
 
         public class DeepSeekSettings
@@ -368,7 +376,8 @@ namespace ChatGPTExtension
                         PromptTextAreaId = GPTConfiguration.GPT_PROMPT_TEXT_AREA_ID,
                         CopyCodeButtonSelector = GPTConfiguration.GPT_COPY_CODE_BUTTON_SELECTOR,
                         CopyCodeButtonIconSelector = GPTConfiguration.GPT_COPY_CODE_BUTTON_ICON_SELECTOR,
-                        CanvasCopyButtonSelector = GPTConfiguration.GPT_CANVAS_COPY_BUTTON_SELECTOR
+                        CanvasCopyButtonSelector = GPTConfiguration.GPT_CANVAS_COPY_BUTTON_SELECTOR,
+                        BlackboardCopyButtonSelector = GPTConfiguration.GPT_BLACKBOARD_COPY_BUTTON_SELECTOR
                     },
                     Gemini = new GeminiSettings
                     {
@@ -381,7 +390,8 @@ namespace ChatGPTExtension
                         Url = ClaudeConfiguration.CLAUDE_URL,
                         PromptClass = ClaudeConfiguration.CLAUDE_PROMPT_CLASS,
                         CopyCodeButtonText = ClaudeConfiguration.CLAUDE_COPY_CODE_BUTTON_TEXT,
-                        ProjectCopyCodeButtonSelector = ClaudeConfiguration.CLAUDE_PROJECT_COPY_CODE_BUTTON_SELECTOR
+                        ProjectCopyCodeButtonSelector = ClaudeConfiguration.CLAUDE_PROJECT_COPY_CODE_BUTTON_SELECTOR,
+                        ArtifactCopyButtonSelector = ClaudeConfiguration.CLAUDE_ARTIFACT_COPY_BUTTON_SELECTOR
                     },
                     DeepSeek = new DeepSeekSettings
                     {

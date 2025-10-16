@@ -82,6 +82,8 @@ Also integrates with **Hangzhou Deepseek**.
 
 ## What's New
 
+- 8.6 - Fixed GPT Blackboard copy button and Claude artifact copy button
+
 - 8.5 - Renamed to Chat GPT Extension
 
 - 8.4 - Fixed home/end keys in Deepseek prompt area. Implemented hybrid approach for Gemini attach file functionality due to automation preventions

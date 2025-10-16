@@ -52,6 +52,7 @@ namespace ChatGPTExtension
         public const string CLAUDE_PROMPT_CLASS = "ProseMirror";
         public const string CLAUDE_COPY_CODE_BUTTON_TEXT = "Copy";
         public const string CLAUDE_PROJECT_COPY_CODE_BUTTON_SELECTOR = "button.inline-flex[data-state=\"closed\"] svg path[d=\"M200,32H163.74a47.92,47.92,0,0,0-71.48,0H56A16,16,0,0,0,40,48V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V48A16,16,0,0,0,200,32Zm-72,0a32,32,0,0,1,32,32H96A32,32,0,0,1,128,32Zm72,184H56V48H82.75A47.93,47.93,0,0,0,80,64v8a8,8,0,0,0,8,8h80a8,8,0,0,0,8-8V64a47.93,47.93,0,0,0-2.75-16H200Z\"]";
+        public const string CLAUDE_ARTIFACT_COPY_BUTTON_SELECTOR = "div[role=\"menuitem\"][data-orientation=\"vertical\"].font-base.py-1\\.5.px-2.rounded-lg.cursor-pointer";
 
         public string GetSetPromptScript(string promptText)
         {
@@ -146,7 +147,56 @@ borderCopyButtons.forEach(function(button) {
     if (divWithRelative) {
         addClickListener(button, 'CopyCodeButtonClicked');
     }
-});";
+});
+
+// Artifact copy buttons (menuitem divs with specific attributes)
+var artifactCopyButtons = document.querySelectorAll('div[role=""menuitem""][data-orientation=""vertical""].font-base.py-1\\.5.px-2.rounded-lg.cursor-pointer');
+artifactCopyButtons.forEach(function(menuItem) {
+    addClickListener(menuItem, 'CopyCodeButtonClicked');
+});
+
+// Observer for dynamically added buttons
+var observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+        if (mutation.type === 'childList') {
+            mutation.addedNodes.forEach(function(node) {
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                    // Check for all button types
+                    var newUpdatedButtons = node.querySelectorAll ? node.querySelectorAll('button[data-state=""closed""] svg[viewBox=""0 0 20 20""] path[d^=""M10 1.5C11.1097""]') : [];
+                    newUpdatedButtons.forEach(function(path) {
+                        var button = path.closest('button[data-state=""closed""]');
+                        if (button) {
+                            addClickListener(button, 'CopyCodeButtonClicked');
+                        }
+                    });
+
+                    var newProjectCopyButtons = node.querySelectorAll ? node.querySelectorAll('button.flex.flex-row.items-center.gap-1\\.5.rounded-md[data-state=""closed""]') : [];
+                    newProjectCopyButtons.forEach(function(button) {
+                        var path = button.querySelector('svg path[d=""M200,32H163.74a47.92,47.92,0,0,0-71.48,0H56A16,16,0,0,0,40,48V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V48A16,16,0,0,0,200,32Zm-72,0a32,32,0,0,1,32,32H96A32,32,0,0,1,128,32Zm72,184H56V48H82.75A47.93,47.93,0,0,0,80,64v8a8,8,0,0,0,8,8h80a8,8,0,0,0,8-8V64a47.93,47.93,0,0,0-2.75-16H200Z""]');
+                        if (path) {
+                            addClickListener(button, 'CopyCodeButtonClicked');
+                        }
+                    });
+
+                    var newBorderCopyButtons = node.querySelectorAll ? node.querySelectorAll('button.font-base-bold.\\!text-xs.rounded-l-lg.bg-bg-000.h-full.flex.items-center.justify-center.px-2.border-y.border-l.border-border-300.hover\\:bg-bg-200') : [];
+                    newBorderCopyButtons.forEach(function(button) {
+                        var divWithRelative = button.querySelector('div.relative');
+                        if (divWithRelative) {
+                            addClickListener(button, 'CopyCodeButtonClicked');
+                        }
+                    });
+
+                    var newArtifactCopyButtons = node.querySelectorAll ? node.querySelectorAll('div[role=""menuitem""][data-orientation=""vertical""].font-base.py-1\\.5.px-2.rounded-lg.cursor-pointer') : [];
+                    newArtifactCopyButtons.forEach(function(menuItem) {
+                        addClickListener(menuItem, 'CopyCodeButtonClicked');
+                    });
+                }
+            });
+        }
+    });
+});
+
+observer.observe(document.body, { childList: true, subtree: true });";
         }
 
 
