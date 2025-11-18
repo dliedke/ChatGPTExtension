@@ -127,6 +127,9 @@ namespace ChatGPTExtension
                         LoadComboBoxItemsKi();
                         AddMinimizeRestoreMenuItem();
 
+                        // Update the checkbox state from loaded configuration
+                        EnableCopyCodeCheckBox.IsChecked = _enableCopyCode;
+
                         // Set up a timer to periodically check the window state
                         _updateTimer = new DispatcherTimer
                         {
@@ -902,6 +905,9 @@ namespace ChatGPTExtension
         {
             // Save if enable copy code is checked
             _enableCopyCode = EnableCopyCodeCheckBox.IsChecked.Value;
+
+            // Persist the setting
+            SaveConfiguration();
         }
 
         /// <summary>
@@ -1682,7 +1688,11 @@ namespace ChatGPTExtension
 
         public void SaveConfiguration()
         {
-            var configuration = new Configuration { GptConfigured = (int)_aiModelType };
+            var configuration = new Configuration
+            {
+                GptConfigured = (int)_aiModelType,
+                EnableCopyCode = _enableCopyCode
+            };
 
             // Ensure the directory exists
             Directory.CreateDirectory(_appDataPath);
@@ -1703,6 +1713,9 @@ namespace ChatGPTExtension
                     var json = File.ReadAllText(_fullConfigPath);
                     var configuration = JsonConvert.DeserializeObject<Configuration>(json);
 
+                    // Load the EnableCopyCode state
+                    _enableCopyCode = configuration?.EnableCopyCode ?? true;
+
                     return (AIModelType)configuration?.GptConfigured;
                 }
             }
@@ -1710,7 +1723,9 @@ namespace ChatGPTExtension
             {
             }
 
-            return AIModelType.GPT; // Default to GPT if the file does not exist or any error
+            // Default values if the file does not exist or any error
+            _enableCopyCode = true;
+            return AIModelType.GPT;
         }
 
         #endregion

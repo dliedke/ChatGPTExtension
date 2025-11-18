@@ -16,7 +16,8 @@ namespace ChatGPTExtension
     {
         public int GptConfigured { get; set; } = 1; // Default to GPT
         public bool ButtonsAtTop { get; set; } = false; // Default to bottom
-        
+        public bool EnableCopyCode { get; set; } = true; // Default to enabled
+
         // Proxy Configuration
         public bool UseProxy { get; set; } = false;
         public string ProxyServer { get; set; } = "";
