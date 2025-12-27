@@ -82,6 +82,8 @@ Also integrates with **Hangzhou Deepseek**.
 
 ## What's New
 
+- 8.9 - Fixed Claude delete chat button being incorrectly detected as copy code button.
+
 - 8.8 - Fixed Claude and Deepseek copy button detection to support any language set in the AI model.
 
 - 8.7 - Enable Copy Code toggle now remembers its state between sessions. Support for VS.NET 2026.
