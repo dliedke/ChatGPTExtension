@@ -122,8 +122,8 @@ function addClickListener(button, message)
     }
 }
 
-// Updated selector using SVG path starting with 'M10 1.5C11.1097'
-var updatedButtons = document.querySelectorAll('button[data-state=""closed""] svg[viewBox=""0 0 20 20""] path[d^=""M10 1.5C11.1097""]');
+// Updated selector using SVG path starting with 'M12.5 3C13.3284' (language-independent copy icon)
+var updatedButtons = document.querySelectorAll('button[data-state=""closed""] svg[viewBox=""0 0 20 20""] path[d^=""M12.5 3C13.3284""]');
 updatedButtons.forEach(function(path) {
     var button = path.closest('button[data-state=""closed""]');
     if (button) {
@@ -140,13 +140,10 @@ projectCopyButtons.forEach(function(button) {
     }
 });
 
-// New format border copy buttons
-var borderCopyButtons = document.querySelectorAll('button.font-base-bold.\\!text-xs.rounded-l-lg.bg-bg-000.h-full.flex.items-center.justify-center.px-2.border-y.border-l.border-border-300.hover\\:bg-bg-200');
+// Artifact copy buttons (rounded-l-lg style)
+var borderCopyButtons = document.querySelectorAll('button.font-base-bold.\\!text-xs.rounded-l-lg.bg-bg-000');
 borderCopyButtons.forEach(function(button) {
-    var divWithRelative = button.querySelector('div.relative');
-    if (divWithRelative) {
-        addClickListener(button, 'CopyCodeButtonClicked');
-    }
+    addClickListener(button, 'CopyCodeButtonClicked');
 });
 
 // Artifact copy buttons (menuitem divs with specific attributes)
@@ -162,7 +159,7 @@ var observer = new MutationObserver(function(mutations) {
             mutation.addedNodes.forEach(function(node) {
                 if (node.nodeType === Node.ELEMENT_NODE) {
                     // Check for all button types
-                    var newUpdatedButtons = node.querySelectorAll ? node.querySelectorAll('button[data-state=""closed""] svg[viewBox=""0 0 20 20""] path[d^=""M10 1.5C11.1097""]') : [];
+                    var newUpdatedButtons = node.querySelectorAll ? node.querySelectorAll('button[data-state=""closed""] svg[viewBox=""0 0 20 20""] path[d^=""M12.5 3C13.3284""]') : [];
                     newUpdatedButtons.forEach(function(path) {
                         var button = path.closest('button[data-state=""closed""]');
                         if (button) {
@@ -178,12 +175,9 @@ var observer = new MutationObserver(function(mutations) {
                         }
                     });
 
-                    var newBorderCopyButtons = node.querySelectorAll ? node.querySelectorAll('button.font-base-bold.\\!text-xs.rounded-l-lg.bg-bg-000.h-full.flex.items-center.justify-center.px-2.border-y.border-l.border-border-300.hover\\:bg-bg-200') : [];
+                    var newBorderCopyButtons = node.querySelectorAll ? node.querySelectorAll('button.font-base-bold.\\!text-xs.rounded-l-lg.bg-bg-000') : [];
                     newBorderCopyButtons.forEach(function(button) {
-                        var divWithRelative = button.querySelector('div.relative');
-                        if (divWithRelative) {
-                            addClickListener(button, 'CopyCodeButtonClicked');
-                        }
+                        addClickListener(button, 'CopyCodeButtonClicked');
                     });
 
                     var newArtifactCopyButtons = node.querySelectorAll ? node.querySelectorAll('div[role=""menuitem""][data-orientation=""vertical""].font-base.py-1\\.5.px-2.rounded-lg.cursor-pointer') : [];

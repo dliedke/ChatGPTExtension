@@ -191,22 +191,12 @@ namespace ChatGPTExtension
                     }}
                 }}
 
-                // Find ALL buttons with Copy text and add listeners
-                var allButtons = document.querySelectorAll('button');
-                allButtons.forEach(function(button) {{
-                    if (button.textContent && button.textContent.trim() === 'Copy') {{
-                        addClickListener(button, 'CopyCodeButtonClicked');
-                    }}
-                }});
-                
-                // Also check span-based approach for additional coverage
+                // Find copy buttons by detecting buttons with span.code-info-button-text (language-independent)
                 var copySpans = document.querySelectorAll('{AIConfiguration.DeepSeekCopyCodeButtonSelector}');
                 copySpans.forEach(function(span) {{
-                    if (span.textContent.trim() === 'Copy') {{
-                        var button = span.closest('button');
-                        if (button) {{
-                            addClickListener(button, 'CopyCodeButtonClicked');
-                        }}
+                    var button = span.closest('button');
+                    if (button) {{
+                        addClickListener(button, 'CopyCodeButtonClicked');
                     }}
                 }});
 
@@ -216,22 +206,12 @@ namespace ChatGPTExtension
                         if (mutation.type === 'childList') {{
                             mutation.addedNodes.forEach(function(node) {{
                                 if (node.nodeType === Node.ELEMENT_NODE) {{
-                                    // Handle ALL new buttons with Copy text
-                                    var newButtons = node.querySelectorAll('button');
-                                    newButtons.forEach(function(button) {{
-                                        if (button.textContent && button.textContent.trim() === 'Copy') {{
-                                            addClickListener(button, 'CopyCodeButtonClicked');
-                                        }}
-                                    }});
-                                    
-                                    // Also handle span-based copy buttons
+                                    // Handle copy buttons by span.code-info-button-text (language-independent)
                                     var newSpans = node.querySelectorAll('{AIConfiguration.DeepSeekCopyCodeButtonSelector}');
                                     newSpans.forEach(function(span) {{
-                                        if (span.textContent.trim() === 'Copy') {{
-                                            var button = span.closest('button');
-                                            if (button) {{
-                                                addClickListener(button, 'CopyCodeButtonClicked');
-                                            }}
+                                        var button = span.closest('button');
+                                        if (button) {{
+                                            addClickListener(button, 'CopyCodeButtonClicked');
                                         }}
                                     }});
                                 }}
