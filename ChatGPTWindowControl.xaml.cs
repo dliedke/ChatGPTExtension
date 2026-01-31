@@ -1613,7 +1613,7 @@ namespace ChatGPTExtension
             CodeActionsContextMenu.Items.Add(new Separator());
 
             // Add Reload Chat GPT menu item
-            var reloadMenuItem = new MenuItem { Header = "Reload GPT" };
+            var reloadMenuItem = new MenuItem { Header = $"Reload {_aiModelType}" };
             reloadMenuItem.Click += OnReloadAIItemClick;
             CodeActionsContextMenu.Items.Add(reloadMenuItem);
 
@@ -1635,7 +1635,7 @@ namespace ChatGPTExtension
             aboutMenuItem.Click += (s, e) =>
             {
                 string version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString(2);
-                MessageBox.Show($"ChatGPT Extension Version: {version}", "About ChatGPT Extension", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show($"Chat GPT Extension Version: {version}", "About Chat GPT Extension", MessageBoxButton.OK, MessageBoxImage.Information);
             };
             CodeActionsContextMenu.Items.Add(aboutMenuItem);
         }

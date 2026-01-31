@@ -85,7 +85,7 @@ namespace ChatGPTExtension
 
 				// Save file and show message
                 File.WriteAllText(_fullScriptPath, content);
-                MessageBox.Show("Script saved successfully.\r\nReload GPT to apply changes.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show("Script saved successfully.\r\nReload AI to apply changes.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {

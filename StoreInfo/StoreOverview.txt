@@ -82,6 +82,8 @@ Also integrates with **Hangzhou Deepseek**.
 
 ## What's New
 
+- 9.0 - Fixed "Reload GPT" menu to dynamically show "Reload XXX" based on the selected AI model (GPT/Gemini/Claude/Deepseek).
+
 - 8.9 - Fixed Claude delete chat button being incorrectly detected as copy code button.
 
 - 8.8 - Fixed Claude and Deepseek copy button detection to support any language set in the AI model.
