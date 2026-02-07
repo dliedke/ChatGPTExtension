@@ -31,7 +31,7 @@ Also integrates with **Hangzhou Deepseek**.
 1. Close VS.NET
 2. Download and install the extension
 3. Open VS.NET
-4. **Go to the menu View -> Other Windows and select Chat GPT Extension**
+4. **Go to the menu View -> Other Windows and select GPT Extension**
 5. Log into Chat GPT
 
 ## Uninstall
