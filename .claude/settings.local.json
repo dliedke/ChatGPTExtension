@@ -8,7 +8,8 @@
       "Bash(csc:*)",
       "Bash(\"C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\MSBuild\\Current\\Bin\\amd64\\MSBuild.exe\" \"C:\\GitLab\\ChatGPTExtension\\ChatGPTExtension.sln\" /p:Configuration=Release)",
       "Bash(\"C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\MSBuild\\Current\\Bin\\amd64\\MSBuild.exe\" \"C:\\GitLab\\ChatGPTExtension\\ChatGPTExtension.sln\" -p:Configuration=Release)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(git -C \"C:\\\\GitLab\\\\ChatGPTExtension\" log --oneline -20)"
     ],
     "deny": [],
     "ask": []
