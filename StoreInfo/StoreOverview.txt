@@ -10,6 +10,10 @@ Also integrates with **Anthropic Claude AI** Sonnet and Opus.
 
 Also integrates with **Hangzhou Deepseek**.
 
+In case you enjoy this work and want to support it, you can buy me a coffee here: [https://buymeacoffee.com/dliedke](https://www.buymeacoffee.com/dliedke) - every cup helps fuel development and keep the extension free for everyone!
+
+Any feedback, suggestions, or contributions are also very welcome - feel free to post review here, open issues or submit pull requests in the GitHub repository.
+
 ## Features
 
 1. Send selected code from VS.NET to GPT/Gemini/Claude/Deepseek
@@ -81,6 +85,8 @@ Also integrates with **Hangzhou Deepseek**.
 
 
 ## What's New
+
+- 9.1 - Updated documentation
 
 - 9.0 - Fixed "Reload GPT" menu to dynamically show "Reload XXX" based on the selected AI model (GPT/Gemini/Claude/Deepseek).
 
