@@ -100,6 +100,7 @@
     <Compile Include="ChatGPTExtensionPackage.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="CLAUDE.md" />
     <None Include="README.md" />
     <None Include="source.extension.vsixmanifest">
       <SubType>Designer</SubType>
