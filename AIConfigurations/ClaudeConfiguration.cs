@@ -123,7 +123,7 @@ function addClickListener(button, message)
 }
 
 // Updated selector using SVG path starting with 'M12.5 3C13.3284' (language-independent copy icon)
-var updatedButtons = document.querySelectorAll('button[data-state=""closed""] svg[viewBox=""0 0 20 20""] path[d^=""M12.5 3C13.3284""]');
+var updatedButtons = document.querySelectorAll('button[data-state=""closed""] svg[viewBox=""0 0 20 20""] path[d^=""M12.5 3""]');
 updatedButtons.forEach(function(path) {
     var button = path.closest('button[data-state=""closed""]');
     if (button) {
@@ -159,7 +159,7 @@ var observer = new MutationObserver(function(mutations) {
             mutation.addedNodes.forEach(function(node) {
                 if (node.nodeType === Node.ELEMENT_NODE) {
                     // Check for all button types
-                    var newUpdatedButtons = node.querySelectorAll ? node.querySelectorAll('button[data-state=""closed""] svg[viewBox=""0 0 20 20""] path[d^=""M12.5 3C13.3284""]') : [];
+                    var newUpdatedButtons = node.querySelectorAll ? node.querySelectorAll('button[data-state=""closed""] svg[viewBox=""0 0 20 20""] path[d^=""M12.5 3""]') : [];
                     newUpdatedButtons.forEach(function(path) {
                         var button = path.closest('button[data-state=""closed""]');
                         if (button) {

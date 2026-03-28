@@ -48,10 +48,10 @@ namespace ChatGPTExtension
         // Constants
         public const string CHAT_GPT_URL = "https://chatgpt.com/";
         public const string GPT_PROMPT_TEXT_AREA_ID = "prompt-textarea";
-        public const string GPT_COPY_CODE_BUTTON_SELECTOR = "button.flex.gap-1.items-center.select-none.py-1";
-        public const string GPT_COPY_CODE_BUTTON_ICON_SELECTOR = "button.flex.gap-1.items-center svg.icon-sm";
-        public const string GPT_CANVAS_COPY_BUTTON_SELECTOR = "div.flex.select-none.items-center.leading-\\[0\\].gap-2 > span[data-state=\"closed\"] > button:has(svg.icon-xl-heavy path[d=\"M7 5C7 3.34315 8.34315 2 10 2H19C20.6569 2 22 3.34315 22 5V14C22 15.6569 20.6569 17 19 17H17V19C17 20.6569 15.6569 22 14 22H5C3.34315 22 2 20.6569 2 19V10C2 8.34315 3.34315 7 5 7H7V5ZM9 7H14C15.6569 7 17 8.34315 17 10V15H19C19.5523 15 20 14.5523 20 14V5C20 4.44772 19.5523 4 19 4H10C9.44772 4 9 4.44772 9 5V7ZM5 9C4.44772 9 4 9.44772 4 10V19C4 19.5523 4.44772 20 5 20H14C14.5523 20 15 19.5523 15 19V10C15 9.44772 14.5523 9 14 9H5Z\"])";
-        public const string GPT_BLACKBOARD_COPY_BUTTON_SELECTOR = "button:has(svg[viewBox=\"0 0 20 20\"] path[d^=\"M12.668 10.667C12.668\"])";
+        public const string GPT_COPY_CODE_BUTTON_SELECTOR = "button.flex.gap-1.items-center.select-none[data-state=\"closed\"]";
+        public const string GPT_COPY_CODE_BUTTON_ICON_SELECTOR = "button.flex.gap-1.items-center.select-none[data-state=\"closed\"] svg";
+        public const string GPT_CANVAS_COPY_BUTTON_SELECTOR = "button.no-draggable.text-token-text-primary";
+        public const string GPT_BLACKBOARD_COPY_BUTTON_SELECTOR = "button.no-draggable.text-token-text-primary";
 
         public string GetSetPromptScript(string promptText)
         {
@@ -142,6 +142,9 @@ setTimeout(() => {
         var iconSelector = '{AIConfiguration.GPTCopyCodeButtonIconSelector}';
         var canvasCopyButtonSelector = '{AIConfiguration.GPTCanvasCopyButtonSelector.Replace("\\", "\\\\").Replace("'", "\\'")}';
         var blackboardCopyButtonSelector = '{AIConfiguration.GPTBlackboardCopyButtonSelector.Replace("\\", "\\\\").Replace("'", "\\'")}';
+        var newDesignSelector = 'button.flex.gap-1.items-center.select-none[data-state=""closed""]';
+        var newCanvasSelector = 'button.no-draggable.text-token-text-primary';
+        var combinedSelector = buttonSelector + ', ' + newDesignSelector + ', ' + canvasCopyButtonSelector + ', ' + blackboardCopyButtonSelector + ', ' + newCanvasSelector;
 
         function handleButtonClick(event) {{
             var button = event.target.closest('button');
@@ -164,27 +167,24 @@ setTimeout(() => {
             }}
         }}
 
-        var allButtons = Array.from(document.querySelectorAll(buttonSelector));
+        var allButtons = Array.from(document.querySelectorAll(combinedSelector));
         var allIcons = Array.from(document.querySelectorAll(iconSelector));
-        var canvasCopyButtons = Array.from(document.querySelectorAll(canvasCopyButtonSelector));
-        var blackboardCopyButtons = Array.from(document.querySelectorAll(blackboardCopyButtonSelector));
 
         allButtons.forEach(addListenerToButton);
         allIcons.forEach(function(icon) {{
             icon.addEventListener('click', handleButtonClick, true);
         }});
-        canvasCopyButtons.forEach(addListenerToButton);
-        blackboardCopyButtons.forEach(addListenerToButton);
 
         var observer = new MutationObserver(function(mutations) {{
             mutations.forEach(function(mutation) {{
                 if (mutation.type === 'childList') {{
                     mutation.addedNodes.forEach(function(node) {{
                         if (node.nodeType === Node.ELEMENT_NODE) {{
-                            if (node.matches(buttonSelector) || node.matches(canvasCopyButtonSelector) || node.matches(blackboardCopyButtonSelector)) {{
+                            if (node.matches && node.matches(combinedSelector)) {{
                                 addListenerToButton(node);
-                            }} else {{
-                                var newButtons = node.querySelectorAll(buttonSelector + ', ' + canvasCopyButtonSelector + ', ' + blackboardCopyButtonSelector);
+                            }}
+                            if (node.querySelectorAll) {{
+                                var newButtons = node.querySelectorAll(combinedSelector);
                                 newButtons.forEach(addListenerToButton);
                             }}
                         }}
