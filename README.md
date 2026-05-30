@@ -82,6 +82,8 @@ Also integrates with **Hangzhou Deepseek**.
 
 ## What's New
 
+- 9.3 - Fixed Gemini send button detection to support the new Material icon-button UI (arrow_upward icon).
+
 - 9.2 - Fixed copy code button detection for GPT (including canvas/artifact) and Claude to support new SVG sprite-based UI design.
 
 - 9.0 - Fixed "Reload GPT" menu to dynamically show "Reload XXX" based on the selected AI model (GPT/Gemini/Claude/Deepseek).

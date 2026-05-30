@@ -91,7 +91,18 @@ namespace ChatGPTExtension
         public string GetSubmitPromptScript()
         {
             return @"
+        // Legacy selector first, then fall back to the new Material icon-button
+        // identified by its 'arrow_upward' icon (aria-label is localized, e.g. 'Enviar mensagem').
         var sendButton = document.querySelector('button.send-button[mat-icon-button]');
+        if (!sendButton) {
+            var icon = document.querySelector('mat-icon[fonticon=""arrow_upward""], mat-icon[data-mat-icon-name=""arrow_upward""]');
+            if (icon) {
+                sendButton = icon.closest('button');
+            }
+        }
+        if (!sendButton) {
+            sendButton = document.querySelector('button[aria-label=""Enviar mensagem""], button[aria-label=""Send message""]');
+        }
         if (sendButton) {
             sendButton.click();
         } else {
