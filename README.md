@@ -82,6 +82,8 @@ Also integrates with **Hangzhou Deepseek**.
 
 ## What's New
 
+- 9.4 - Upgraded MessagePack to 3.1.7 to fix security vulnerability CVE-2026-48109 (LZ4 decompression denial of service).
+
 - 9.3 - Fixed Gemini send button detection to support the new Material icon-button UI (arrow_upward icon).
 
 - 9.2 - Fixed copy code button detection for GPT (including canvas/artifact) and Claude to support new SVG sprite-based UI design.
