@@ -6,7 +6,7 @@
 
 - **Author:** Daniel Carvalho Liedke
 - **License:** Proprietary (free to use, no cloning/modification/selling)
-- **Current Version:** 9.2
+- **Current Version:** 9.7
 
 ## Tech Stack
 
@@ -19,15 +19,51 @@
 
 ## Build Instructions
 
-Build the solution using MSBuild (Release configuration):
+Build the solution using MSBuild (Release configuration).
+
+**Visual Studio 2026 (VS 18 — current build environment):**
+
+```bash
+"C:\Program Files\Microsoft Visual Studio\18\Enterprise\MSBuild\Current\Bin\amd64\MSBuild.exe" "C:\GitLab\ChatGPTExtension\ChatGPTExtension.sln" /p:Configuration=Release
+```
+
+**Visual Studio 2022 (legacy):**
 
 ```bash
 "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\amd64\MSBuild.exe" "C:\GitLab\ChatGPTExtension\ChatGPTExtension.sln" /p:Configuration=Release
 ```
 
-Output: `bin/Release/ChatGPTExtension.vsix`
+If the exact path/edition is unknown, locate MSBuild via `vswhere`:
+
+```powershell
+& "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -prerelease -find MSBuild\**\Bin\amd64\MSBuild.exe
+```
+
+Output: `bin/x64/Release/ChatGPTExtension.vsix`
 
 There are no unit tests in this project.
+
+## Testing in the Experimental Instance (IMPORTANT)
+
+Local testing runs in the VS **experimental instance** (`devenv.exe /rootSuffix Exp`), launched
+by F5 from VS.
+
+- `DeployExtension` is forced to `true` for **both** `Debug|x64` and `Release|x64` in
+  `ChatGPTExtension.csproj`. VSSDK BuildTools 18.5+ defaults it to `false`, which previously
+  meant Release builds launched the Exp instance **without deploying the new build** — the old
+  version kept loading. Do not remove these `<DeployExtension>true</DeployExtension>` lines.
+- **Only ever deploy via F5 / build (MSBuild `DeployExtension`).** Do NOT also install the VSIX
+  into the Exp hive with `VSIXInstaller.exe /rootSuffix:Exp` — that registers a second copy of
+  the same extension GUID, and the duplicate makes VS fail to load it ("Extension '…' could not
+  be found. Please make sure the extension has been installed.").
+- If F5 fails with that duplicate/"could not be found" error, or a build won't update, **reset
+  the experimental instance** (close all VS windows first):
+  ```
+  "C:\Program Files\Microsoft Visual Studio\18\Enterprise\VSSDK\VisualStudioIntegration\Tools\Bin\CreateExpInstance.exe" /Reset /VSInstance=18.0 /RootSuffix=Exp
+  ```
+  Then F5 again to redeploy a single clean copy.
+- Publish builds must NOT deploy locally: `publish.cmd` passes `-p:DeployExtension=false`.
+  Use that flag for any Marketplace/CI build.
 
 ## Version Management (IMPORTANT)
 

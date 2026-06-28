@@ -191,10 +191,11 @@ namespace ChatGPTExtension
                     }}
                 }}
 
-                // Find copy buttons by detecting buttons with span.code-info-button-text (language-independent)
+                // Find copy buttons by detecting elements with span.code-info-button-text (language-independent).
+                // The clickable ancestor may be a <button> or a div[role=""button""] (ds-button) in newer UI.
                 var copySpans = document.querySelectorAll('{AIConfiguration.DeepSeekCopyCodeButtonSelector}');
                 copySpans.forEach(function(span) {{
-                    var button = span.closest('button');
+                    var button = span.closest('[role=""button""], button');
                     if (button) {{
                         addClickListener(button, 'CopyCodeButtonClicked');
                     }}
@@ -209,7 +210,7 @@ namespace ChatGPTExtension
                                     // Handle copy buttons by span.code-info-button-text (language-independent)
                                     var newSpans = node.querySelectorAll('{AIConfiguration.DeepSeekCopyCodeButtonSelector}');
                                     newSpans.forEach(function(span) {{
-                                        var button = span.closest('button');
+                                        var button = span.closest('[role=""button""], button');
                                         if (button) {{
                                             addClickListener(button, 'CopyCodeButtonClicked');
                                         }}

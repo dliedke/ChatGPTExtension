@@ -56,11 +56,11 @@ namespace ChatGPTExtension
 
         public string GetSetPromptScript(string promptText)
         {
-            // First encode the HTML characters
-            var htmlEncoded = System.Net.WebUtility.HtmlEncode(promptText);
+            // JS-safe, double-quoted string literal of the raw prompt text (newlines escaped as \n).
+            var jsText = JsonConvert.SerializeObject(promptText);
 
-            // Then do the JSON serialization and other processing
-            var escapedCode = JsonConvert.SerializeObject(htmlEncoded)
+            // HTML-encoded, <p>-wrapped variant used only by the legacy innerHTML fallback below.
+            var escapedHtml = JsonConvert.SerializeObject(System.Net.WebUtility.HtmlEncode(promptText))
                 .Trim('"')
                 .Replace("'", "\\'")
                 .Replace("<", "&lt;")
@@ -69,24 +69,138 @@ namespace ChatGPTExtension
                 .Select(line => $"<p>{line}</p>")
                 .Aggregate((current, next) => current + next);
 
+            // The editor is ProseMirror (React-controlled). Writing innerHTML directly makes the text
+            // appear visually but leaves the editor 'empty' from the framework's point of view, so the
+            // Send button never actually submits. We must insert through real editing events so
+            // ProseMirror records the text in its internal document state. We try, in order:
+            //   1. execCommand('insertText') - generates genuine beforeinput/input events (most reliable).
+            //   2. A simulated paste (ClipboardEvent + DataTransfer).
+            //   3. Legacy innerHTML injection (last resort; may not enable Send).
             return $@"
-                var element = document.querySelector('.{AIConfiguration.ClaudePromptClass}');
-                var existingHtml = element.innerHTML;
-                var newContent = existingHtml + (existingHtml && existingHtml.trim() ? '<p><br></p>' : '') + '{escapedCode}';
-                element.innerHTML = newContent;
-                var inputEvent = new Event('input', {{
-                    'bubbles': true,
-                    'cancelable': true
-                }});
-                element.dispatchEvent(inputEvent);";
+                (function() {{
+                    var element = document.querySelector('.{AIConfiguration.ClaudePromptClass}');
+                    if (!element) return;
+                    element.focus();
+
+                    var hasContent = element.textContent && element.textContent.trim().length > 0;
+                    var textToInsert = (hasContent ? '\n\n' : '') + {jsText};
+
+                    // Move the caret to the end of the editor before inserting.
+                    try {{
+                        var sel = window.getSelection();
+                        sel.selectAllChildren(element);
+                        sel.collapseToEnd();
+                    }} catch (e) {{}}
+
+                    function grew(before) {{
+                        return (element.textContent ? element.textContent.length : 0) > before;
+                    }}
+
+                    var beforeLen = element.textContent ? element.textContent.length : 0;
+
+                    // 1. execCommand insertText - real input events that ProseMirror observes.
+                    try {{ document.execCommand('insertText', false, textToInsert); }} catch (e) {{}}
+
+                    // 2. Simulated paste.
+                    if (!grew(beforeLen)) {{
+                        try {{
+                            var dt = new DataTransfer();
+                            dt.setData('text/plain', textToInsert);
+                            element.dispatchEvent(new ClipboardEvent('paste', {{
+                                clipboardData: dt,
+                                bubbles: true,
+                                cancelable: true
+                            }}));
+                        }} catch (e) {{}}
+                    }}
+
+                    // 3. Legacy innerHTML injection (only if nothing above worked).
+                    if (!grew(beforeLen)) {{
+                        var existingHtml = element.innerHTML;
+                        element.innerHTML = existingHtml + (existingHtml && existingHtml.trim() ? '<p><br></p>' : '') + '{escapedHtml}';
+                        element.dispatchEvent(new Event('input', {{ 'bubbles': true, 'cancelable': true }}));
+                    }}
+                }})();";
         }
 
         public string GetSubmitPromptScript()
         {
-            return @"var svg = document.querySelector('svg[viewBox=""0 0 256 256""] path[d=""M208.49,120.49a12,12,0,0,1-17,0L140,69V216a12,12,0,0,1-24,0V69L64.49,120.49a12,12,0,0,1-17-17l72-72a12,12,0,0,1,17,0l72,72A12,12,0,0,1,208.49,120.49Z""]');
-                    if (svg) {
-                        svg.closest('button').click();
-                    }";
+            // The send button is now an icon-font button (a <span data-cds=""Icon""> instead of an SVG).
+            //
+            // TIMING: the prompt text is inserted by a separate ExecuteScriptAsync call immediately
+            // before this one. ProseMirror/React enables the Send button asynchronously (a tick or two
+            // later), so clicking right away hits a still-disabled button and nothing is sent. Instead
+            // of a fixed delay we POLL for an enabled send button for up to ~3s, then dispatch a full
+            // pointer/mouse event sequence (a plain .click() does not always trigger Claude's handler).
+            //
+            // Button detection order, most to least specific:
+            //   1. aria-label (covers the English UI directly).
+            //   2. The primary colored ""fill/claude"" styled icon button that contains the CDS icon
+            //      span. Language independent; scanned from the end of the document so we hit the
+            //      composer send button rather than other styled buttons (dialogs, upgrade, etc.).
+            //   3. The legacy SVG up-arrow selector, kept for older UI versions.
+            // If no enabled button appears in time, fall back to pressing Enter inside the editor.
+            return @"
+                (function() {
+                    function fire(btn) {
+                        if (!btn) { return false; }
+                        var opts = { bubbles: true, cancelable: true, view: window };
+                        var types = ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'];
+                        for (var k = 0; k < types.length; k++) {
+                            var t = types[k];
+                            var ev;
+                            try {
+                                ev = (t.indexOf('pointer') === 0) ? new PointerEvent(t, opts) : new MouseEvent(t, opts);
+                            } catch (e) {
+                                try { ev = new MouseEvent(t === 'pointerdown' ? 'mousedown' : (t === 'pointerup' ? 'mouseup' : t), opts); } catch (e2) { ev = null; }
+                            }
+                            if (ev) { btn.dispatchEvent(ev); }
+                        }
+                        if (typeof btn.click === 'function') { btn.click(); }
+                        return true;
+                    }
+
+                    function findButton() {
+                        var b = document.querySelector('button[aria-label=""Send message""]');
+                        if (b) { return b; }
+                        var candidates = document.querySelectorAll('button[class*=""_fill_""][class*=""_claude_""]');
+                        for (var i = candidates.length - 1; i >= 0; i--) {
+                            if (candidates[i].querySelector('span[data-cds=""Icon""]')) { return candidates[i]; }
+                        }
+                        if (candidates.length) { return candidates[candidates.length - 1]; }
+                        var svg = document.querySelector('svg[viewBox=""0 0 256 256""] path[d=""M208.49,120.49a12,12,0,0,1-17,0L140,69V216a12,12,0,0,1-24,0V69L64.49,120.49a12,12,0,0,1-17-17l72-72a12,12,0,0,1,17,0l72,72A12,12,0,0,1,208.49,120.49Z""]');
+                        if (svg) { return svg.closest('button'); }
+                        return null;
+                    }
+
+                    function enabled(btn) {
+                        return btn && !btn.disabled && btn.getAttribute('aria-disabled') !== 'true';
+                    }
+
+                    var attempts = 0;
+                    var maxAttempts = 40; // 40 * 75ms = 3s
+                    var timer = setInterval(function() {
+                        attempts++;
+                        var btn = findButton();
+                        if (enabled(btn)) {
+                            fire(btn);
+                            clearInterval(timer);
+                            return;
+                        }
+                        if (attempts >= maxAttempts) {
+                            clearInterval(timer);
+                            // Fallback: press Enter inside the editor.
+                            var editor = document.querySelector('.ProseMirror');
+                            if (editor) {
+                                editor.focus();
+                                var keyOpts = { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true };
+                                ['keydown', 'keypress', 'keyup'].forEach(function(t) {
+                                    editor.dispatchEvent(new KeyboardEvent(t, keyOpts));
+                                });
+                            }
+                        }
+                    }, 75);
+                })();";
         }
 
         public string GetAttachFileScript()

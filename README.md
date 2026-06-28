@@ -82,6 +82,12 @@ Also integrates with **Hangzhou Deepseek**.
 
 ## What's New
 
+- 9.7 - Fixed Claude prompt sending timing: the Send button is enabled asynchronously after the text is inserted, so the submit script now polls for the enabled button (up to ~3s) before clicking, instead of clicking immediately while it is still disabled.
+
+- 9.6 - Further hardened Claude prompt sending: insert text via execCommand/paste so the ProseMirror editor truly registers it, and dispatch a full pointer/mouse event sequence (plus an Enter-key fallback) on the new icon-font Send button so the click actually submits.
+
+- 9.5 - Fixed Claude prompt sending: insert text via a simulated paste so the new ProseMirror editor registers it and enables the Send button (the previous innerHTML method left the editor "empty" and the button disabled). Also updated Claude send button detection for the new icon-font button UI, and DeepSeek copy code button detection (now a div[role="button"] instead of a <button>).
+
 - 9.4 - Upgraded MessagePack to 3.1.7 to fix security vulnerability CVE-2026-48109 (LZ4 decompression denial of service).
 
 - 9.3 - Fixed Gemini send button detection to support the new Material icon-button UI (arrow_upward icon).

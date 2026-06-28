@@ -12,6 +12,9 @@
     <PlatformTarget>x64</PlatformTarget>
     <LangVersion>7.3</LangVersion>
     <ErrorReport>prompt</ErrorReport>
+    <!-- VSSDK.BuildTools 18.5+ defaults DeployExtension to false, so F5 would launch
+         the Exp instance without deploying the extension. Force deploy for Debug builds. -->
+    <DeployExtension>true</DeployExtension>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
     <OutputPath>bin\x64\Release\</OutputPath>
@@ -21,6 +24,11 @@
     <PlatformTarget>x64</PlatformTarget>
     <LangVersion>7.3</LangVersion>
     <ErrorReport>prompt</ErrorReport>
+    <!-- VSSDK.BuildTools 18.5+ defaults DeployExtension to false. Without this, building/F5
+         in Release launches the Exp instance WITHOUT deploying the new build, so the old
+         version keeps loading. Force deploy so every Release build refreshes the Exp instance.
+         (Set DeployExtension=false on the command line for Marketplace/CI publish builds.) -->
+    <DeployExtension Condition="'$(DeployExtension)' == ''">true</DeployExtension>
   </PropertyGroup>
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
