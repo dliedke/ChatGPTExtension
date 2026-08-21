@@ -1,4 +1,4 @@
-/* *******************************************************************************************************************
+﻿/* *******************************************************************************************************************
  * Application: Chat GPT Extension
  * 
  * Autor:  Daniel Liedke
@@ -125,7 +125,9 @@ namespace ChatGPTExtension
 
         public string GetSubmitPromptScript()
         {
-            // The send button is now an icon-font button (a <span data-cds=""Icon""> instead of an SVG).
+            // Claude's CDS redesign turned the send button into an icon-font button
+            // (<button data-cds='Button'><span data-cds='Icon'>) with a localized aria-label,
+            // so the button is now located by its stable data-testid='chat-input-send'.
             //
             // TIMING: the prompt text is inserted by a separate ExecuteScriptAsync call immediately
             // before this one. ProseMirror/React enables the Send button asynchronously (a tick or two
@@ -134,11 +136,12 @@ namespace ChatGPTExtension
             // pointer/mouse event sequence (a plain .click() does not always trigger Claude's handler).
             //
             // Button detection order, most to least specific:
-            //   1. aria-label (covers the English UI directly).
-            //   2. The primary colored ""fill/claude"" styled icon button that contains the CDS icon
-            //      span. Language independent; scanned from the end of the document so we hit the
-            //      composer send button rather than other styled buttons (dialogs, upgrade, etc.).
-            //   3. The legacy SVG up-arrow selector, kept for older UI versions.
+            //   1. data-testid='chat-input-send' (current UI, language independent).
+            //   2. aria-label (English UI, older builds).
+            //   3. The brand-colored composer button: a CDS button whose inner background span uses
+            //      'bg-fill-brand'. Language independent; scanned from the end of the document so we
+            //      hit the composer send button rather than other brand buttons (dialogs, upgrade...).
+            //   4. The legacy '_fill_'/'_claude_' styled button and the legacy SVG up-arrow.
             // If no enabled button appears in time, fall back to pressing Enter inside the editor.
             return @"
                 (function() {
@@ -161,20 +164,35 @@ namespace ChatGPTExtension
                     }
 
                     function findButton() {
-                        var b = document.querySelector('button[aria-label=""Send message""]');
+                        var b = document.querySelector('button[data-testid=""chat-input-send""]');
                         if (b) { return b; }
+                        b = document.querySelector('button[aria-label=""Send message""]');
+                        if (b) { return b; }
+
+                        var cds = document.querySelectorAll('button[data-cds=""Button""]');
+                        for (var i = cds.length - 1; i >= 0; i--) {
+                            if (cds[i].querySelector('span[class*=""bg-fill-brand""]')) { return cds[i]; }
+                        }
+
                         var candidates = document.querySelectorAll('button[class*=""_fill_""][class*=""_claude_""]');
-                        for (var i = candidates.length - 1; i >= 0; i--) {
-                            if (candidates[i].querySelector('span[data-cds=""Icon""]')) { return candidates[i]; }
+                        for (var j = candidates.length - 1; j >= 0; j--) {
+                            if (candidates[j].querySelector('span[data-cds=""Icon""]')) { return candidates[j]; }
                         }
                         if (candidates.length) { return candidates[candidates.length - 1]; }
+
                         var svg = document.querySelector('svg[viewBox=""0 0 256 256""] path[d=""M208.49,120.49a12,12,0,0,1-17,0L140,69V216a12,12,0,0,1-24,0V69L64.49,120.49a12,12,0,0,1-17-17l72-72a12,12,0,0,1,17,0l72,72A12,12,0,0,1,208.49,120.49Z""]');
                         if (svg) { return svg.closest('button'); }
                         return null;
                     }
 
                     function enabled(btn) {
-                        return btn && !btn.disabled && btn.getAttribute('aria-disabled') !== 'true';
+                        // The CDS button reports its disabled state through aria-disabled / data-disabled
+                        // as well as the native disabled property. data-trigger-disabled is a tooltip
+                        // attribute and must NOT be treated as a disabled button.
+                        return btn
+                            && !btn.disabled
+                            && btn.getAttribute('aria-disabled') !== 'true'
+                            && !btn.hasAttribute('data-disabled');
                     }
 
                     var attempts = 0;
@@ -224,89 +242,128 @@ namespace ChatGPTExtension
 
         public string GetAddEventListenersScript()
         {
+            // Claude's CDS redesign renders every action as an icon-font button
+            // (<button data-cds='Button'><span data-cds='Icon'>). The old SVG paths and the
+            // data-state='closed' markup are gone and the icon glyph carries no text, so the
+            // only hint left on the element is the LOCALIZED aria-label. Detection therefore
+            // works in three layers:
+            //   1. Legacy selectors (older Claude UIs) - kept so old builds keep working.
+            //   2. New CDS buttons whose aria-label/title looks like 'copy' in the languages
+            //      Claude's UI is offered in (e.g. 'Copy to clipboard', 'Copiar para a area
+            //      de transferencia').
+            //   3. A clipboard hook: navigator.clipboard.writeText/write and
+            //      document.execCommand('copy') report a copy when they run right after the
+            //      user clicked a button. This is language- and markup-independent and covers
+            //      code block, artifact and project copy buttons in any future redesign. It is
+            //      gated on a recent button click so page-driven copies are ignored.
+            // postCopy() throttles the message so layers 2 and 3 cannot report the same click twice.
             return @"
-function addClickListener(button, message)
-{
-    if (!button.hasAttribute('data-listener-added'))
-    {
-        button.addEventListener('click', function() {
-            window.chrome.webview.postMessage(message);
+(function() {
+    var COPY_LABEL = /cop(y|ie|ia|iar|ier)|kopi|\u043a\u043e\u043f\u0438\u0440|\u0646\u0633\u062e|\u30b3\u30d4\u30fc|\u590d\u5236|\u8907\u88fd|\ubcf5\uc0ac/i;
+
+    function postCopy() {
+        var now = Date.now();
+        if (window.__gptExtLastCopyPost && (now - window.__gptExtLastCopyPost) < 700) { return; }
+        window.__gptExtLastCopyPost = now;
+        window.chrome.webview.postMessage('CopyCodeButtonClicked');
+    }
+
+    function addClickListener(element) {
+        if (!element || element.hasAttribute('data-listener-added')) { return; }
+        element.addEventListener('click', function() { postCopy(); }, true);
+        element.setAttribute('data-listener-added', 'true');
+    }
+
+    function isCopyLabel(element) {
+        var label = element.getAttribute('aria-label') || element.getAttribute('title') || '';
+        return COPY_LABEL.test(label);
+    }
+
+    function scan(root) {
+        if (!root || !root.querySelectorAll) { return; }
+
+        // Legacy: code block copy button (language-independent copy icon path).
+        root.querySelectorAll('button[data-state=""closed""] svg[viewBox=""0 0 20 20""] path[d^=""M12.5 3""]').forEach(function(path) {
+            addClickListener(path.closest('button[data-state=""closed""]'));
         });
-        button.setAttribute('data-listener-added', 'true');
+
+        // Legacy: project copy code button.
+        root.querySelectorAll('button.flex.flex-row.items-center.gap-1\\.5.rounded-md[data-state=""closed""]').forEach(function(button) {
+            if (button.querySelector('svg path[d=""M200,32H163.74a47.92,47.92,0,0,0-71.48,0H56A16,16,0,0,0,40,48V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V48A16,16,0,0,0,200,32Zm-72,0a32,32,0,0,1,32,32H96A32,32,0,0,1,128,32Zm72,184H56V48H82.75A47.93,47.93,0,0,0,80,64v8a8,8,0,0,0,8,8h80a8,8,0,0,0,8-8V64a47.93,47.93,0,0,0-2.75-16H200Z""]')) {
+                addClickListener(button);
+            }
+        });
+
+        // Legacy: artifact copy buttons (rounded-l-lg style).
+        root.querySelectorAll('button.font-base-bold.\\!text-xs.rounded-l-lg.bg-bg-000').forEach(addClickListener);
+
+        // Legacy: artifact copy buttons (menuitem divs, excluding the delete entry).
+        root.querySelectorAll('div[role=""menuitem""][data-orientation=""vertical""].font-base.py-1\\.5.px-2.rounded-lg.cursor-pointer:not([data-testid=""delete-chat-trigger""])').forEach(addClickListener);
+
+        // Current UI: CDS icon buttons identified by their localized copy label.
+        root.querySelectorAll('button[data-cds=""Button""]').forEach(function(button) {
+            if (isCopyLabel(button)) { addClickListener(button); }
+        });
     }
-}
 
-// Updated selector using SVG path starting with 'M12.5 3C13.3284' (language-independent copy icon)
-var updatedButtons = document.querySelectorAll('button[data-state=""closed""] svg[viewBox=""0 0 20 20""] path[d^=""M12.5 3""]');
-updatedButtons.forEach(function(path) {
-    var button = path.closest('button[data-state=""closed""]');
-    if (button) {
-        addClickListener(button, 'CopyCodeButtonClicked');
-    }
-});
+    scan(document);
 
-// Additional selector for the project copy code button (legacy)
-var projectCopyButtons = document.querySelectorAll('button.flex.flex-row.items-center.gap-1\\.5.rounded-md[data-state=""closed""]');
-projectCopyButtons.forEach(function(button) {
-    var path = button.querySelector('svg path[d=""M200,32H163.74a47.92,47.92,0,0,0-71.48,0H56A16,16,0,0,0,40,48V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V48A16,16,0,0,0,200,32Zm-72,0a32,32,0,0,1,32,32H96A32,32,0,0,1,128,32Zm72,184H56V48H82.75A47.93,47.93,0,0,0,80,64v8a8,8,0,0,0,8,8h80a8,8,0,0,0,8-8V64a47.93,47.93,0,0,0-2.75-16H200Z""]');
-    if (path) {
-        addClickListener(button, 'CopyCodeButtonClicked');
-    }
-});
-
-// Artifact copy buttons (rounded-l-lg style)
-var borderCopyButtons = document.querySelectorAll('button.font-base-bold.\\!text-xs.rounded-l-lg.bg-bg-000');
-borderCopyButtons.forEach(function(button) {
-    addClickListener(button, 'CopyCodeButtonClicked');
-});
-
-// Artifact copy buttons (menuitem divs with specific attributes, excluding delete button)
-var artifactCopyButtons = document.querySelectorAll('div[role=""menuitem""][data-orientation=""vertical""].font-base.py-1\\.5.px-2.rounded-lg.cursor-pointer:not([data-testid=""delete-chat-trigger""])');
-artifactCopyButtons.forEach(function(menuItem) {
-    addClickListener(menuItem, 'CopyCodeButtonClicked');
-});
-
-// Observer for dynamically added buttons
-var observer = new MutationObserver(function(mutations) {
-    mutations.forEach(function(mutation) {
-        if (mutation.type === 'childList') {
-            mutation.addedNodes.forEach(function(node) {
-                if (node.nodeType === Node.ELEMENT_NODE) {
-                    // Check for all button types
-                    var newUpdatedButtons = node.querySelectorAll ? node.querySelectorAll('button[data-state=""closed""] svg[viewBox=""0 0 20 20""] path[d^=""M12.5 3""]') : [];
-                    newUpdatedButtons.forEach(function(path) {
-                        var button = path.closest('button[data-state=""closed""]');
-                        if (button) {
-                            addClickListener(button, 'CopyCodeButtonClicked');
-                        }
-                    });
-
-                    var newProjectCopyButtons = node.querySelectorAll ? node.querySelectorAll('button.flex.flex-row.items-center.gap-1\\.5.rounded-md[data-state=""closed""]') : [];
-                    newProjectCopyButtons.forEach(function(button) {
-                        var path = button.querySelector('svg path[d=""M200,32H163.74a47.92,47.92,0,0,0-71.48,0H56A16,16,0,0,0,40,48V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V48A16,16,0,0,0,200,32Zm-72,0a32,32,0,0,1,32,32H96A32,32,0,0,1,128,32Zm72,184H56V48H82.75A47.93,47.93,0,0,0,80,64v8a8,8,0,0,0,8,8h80a8,8,0,0,0,8-8V64a47.93,47.93,0,0,0-2.75-16H200Z""]');
-                        if (path) {
-                            addClickListener(button, 'CopyCodeButtonClicked');
-                        }
-                    });
-
-                    var newBorderCopyButtons = node.querySelectorAll ? node.querySelectorAll('button.font-base-bold.\\!text-xs.rounded-l-lg.bg-bg-000') : [];
-                    newBorderCopyButtons.forEach(function(button) {
-                        addClickListener(button, 'CopyCodeButtonClicked');
-                    });
-
-                    var newArtifactCopyButtons = node.querySelectorAll ? node.querySelectorAll('div[role=""menuitem""][data-orientation=""vertical""].font-base.py-1\\.5.px-2.rounded-lg.cursor-pointer:not([data-testid=""delete-chat-trigger""])') : [];
-                    newArtifactCopyButtons.forEach(function(menuItem) {
-                        addClickListener(menuItem, 'CopyCodeButtonClicked');
-                    });
-                }
+    // This script is re-executed periodically, so the observer and the clipboard hook are
+    // installed only once per page to avoid stacking duplicates.
+    if (!window.__gptExtCopyObserver && document.body) {
+        window.__gptExtCopyObserver = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type !== 'childList') { return; }
+                mutation.addedNodes.forEach(function(node) {
+                    if (node.nodeType !== Node.ELEMENT_NODE) { return; }
+                    if (node.matches && node.matches('button[data-cds=""Button""]') && isCopyLabel(node)) {
+                        addClickListener(node);
+                    }
+                    scan(node);
+                });
             });
-        }
-    });
-});
+        });
+        window.__gptExtCopyObserver.observe(document.body, { childList: true, subtree: true });
+    }
 
-observer.observe(document.body, { childList: true, subtree: true });";
+    if (!window.__gptExtClipboardHooked) {
+        window.__gptExtClipboardHooked = true;
+
+        document.addEventListener('click', function(e) {
+            var target = e.target;
+            var trigger = (target && target.closest) ? target.closest('button, [role=""button""], [role=""menuitem""]') : null;
+            window.__gptExtLastButtonClick = trigger ? Date.now() : 0;
+        }, true);
+
+        var clickedRecently = function() {
+            return window.__gptExtLastButtonClick && (Date.now() - window.__gptExtLastButtonClick) < 1500;
+        };
+
+        if (navigator.clipboard) {
+            var originalWriteText = navigator.clipboard.writeText;
+            if (typeof originalWriteText === 'function') {
+                navigator.clipboard.writeText = function() {
+                    if (clickedRecently()) { postCopy(); }
+                    return originalWriteText.apply(navigator.clipboard, arguments);
+                };
+            }
+            var originalWrite = navigator.clipboard.write;
+            if (typeof originalWrite === 'function') {
+                navigator.clipboard.write = function() {
+                    if (clickedRecently()) { postCopy(); }
+                    return originalWrite.apply(navigator.clipboard, arguments);
+                };
+            }
         }
 
+        var originalExecCommand = document.execCommand;
+        document.execCommand = function(command) {
+            if (command && String(command).toLowerCase() === 'copy' && clickedRecently()) { postCopy(); }
+            return originalExecCommand.apply(document, arguments);
+        };
+    }
+})();";
+        }
 
         public string GetHomeEndKeyScript(string key, bool shiftPressed)
         {

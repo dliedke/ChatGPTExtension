@@ -82,6 +82,8 @@ Also integrates with **Hangzhou Deepseek**.
 
 ## What's New
 
+- 9.8 - Fixed Claude copy code and prompt sending for the new CDS button UI: copy buttons are now detected by their localized aria-label plus a clipboard-write hook (language independent, also covers artifact/project copy), and the Send button is located by its data-testid="chat-input-send".
+
 - 9.7 - Fixed Claude prompt sending timing: the Send button is enabled asynchronously after the text is inserted, so the submit script now polls for the enabled button (up to ~3s) before clicking, instead of clicking immediately while it is still disabled.
 
 - 9.6 - Further hardened Claude prompt sending: insert text via execCommand/paste so the ProseMirror editor truly registers it, and dispatch a full pointer/mouse event sequence (plus an Enter-key fallback) on the new icon-font Send button so the click actually submits.

@@ -110,6 +110,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="CLAUDE.md" />
+    <None Include="deploy-exp.cmd" />
     <None Include="publish.cmd" />
     <None Include="README.md" />
     <None Include="source.extension.vsixmanifest">
