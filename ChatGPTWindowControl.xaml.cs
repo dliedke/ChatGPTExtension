@@ -427,7 +427,7 @@ namespace ChatGPTExtension
                     {
                         try
                         {
-                            await WaitForElementByIdAsync(AIConfiguration.GPTPromptTextAreaId);
+                            await WaitForElementByIdAsync(AIConfiguration.GPTPromptTextAreaId, GPTConfiguration.PromptAreaExpression);
                         }
                         catch (Exception ex)
                         {
@@ -598,17 +598,20 @@ namespace ChatGPTExtension
             }
         }
 
-        private async Task WaitForElementByIdAsync(string elementId)
+        // elementExpression optionally replaces document.getElementById(elementId) with a custom JS lookup.
+        private async Task WaitForElementByIdAsync(string elementId, string elementExpression = null)
         {
             bool elementFound = false;
             int attempts = 0;
             const int maxAttempts = 60; // 30 seconds timeout (60 * 500ms)
 
+            string lookup = elementExpression ?? $"document.getElementById('{elementId}')";
+
             while (!elementFound && attempts < maxAttempts)
             {
                 try
                 {
-                    string script = $"document.getElementById('{elementId}') ? 'found' : 'notfound';";
+                    string script = $"{lookup} ? 'found' : 'notfound';";
                     var result = await webView.ExecuteScriptAsync(script);
                     if (result == "\"found\"") // Note the extra quotes, ExecuteScriptAsync returns JSON serialized strings.
                     {
@@ -1371,7 +1374,7 @@ namespace ChatGPTExtension
                 if (_aiModelType == AIModelType.GPT)
                 {
                     webView.Source = new Uri(AIConfiguration.GPTUrl);
-                    await WaitForElementByIdAsync(AIConfiguration.GPTPromptTextAreaId);
+                    await WaitForElementByIdAsync(AIConfiguration.GPTPromptTextAreaId, GPTConfiguration.PromptAreaExpression);
                 }
                 if (_aiModelType == AIModelType.Gemini)
                 {

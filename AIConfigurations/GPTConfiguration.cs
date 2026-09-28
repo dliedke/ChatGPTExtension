@@ -48,43 +48,144 @@ namespace ChatGPTExtension
         // Constants
         public const string CHAT_GPT_URL = "https://chatgpt.com/";
         public const string GPT_PROMPT_TEXT_AREA_ID = "prompt-textarea";
-        public const string GPT_COPY_CODE_BUTTON_SELECTOR = "button.flex.gap-1.items-center.select-none[data-state=\"closed\"]";
-        public const string GPT_COPY_CODE_BUTTON_ICON_SELECTOR = "button.flex.gap-1.items-center.select-none[data-state=\"closed\"] svg";
+        public const string GPT_COPY_CODE_BUTTON_SELECTOR = "button:has(svg path[d^=\"M15.1006 1.78516\"])";
+        public const string GPT_COPY_CODE_BUTTON_ICON_SELECTOR = "svg path[d^=\"M15.1006 1.78516\"]";
+        // The composer no longer carries id="prompt-textarea"; it is a plain ProseMirror editor.
+        public const string GPT_PROMPT_EDITOR_SELECTOR = "[data-composer-input-layout] div.ProseMirror[contenteditable=\"true\"]";
+        public const string GPT_PROMPT_EDITOR_FALLBACK_SELECTOR = "div.ProseMirror[contenteditable=\"true\"]";
+
+        // JS expression that returns the prompt editor: the legacy id first, then the new composer editor.
+        public static string PromptAreaExpression =>
+            $"(document.getElementById('{EscapeJs(AIConfiguration.GPTPromptTextAreaId)}')" +
+            $" || document.querySelector('{EscapeJs(GPT_PROMPT_EDITOR_SELECTOR)}')" +
+            $" || document.querySelector('{EscapeJs(GPT_PROMPT_EDITOR_FALLBACK_SELECTOR)}'))";
+
+        // Escapes a value for use inside a single-quoted JS string literal.
+        private static string EscapeJs(string value)
+        {
+            return (value ?? string.Empty).Replace("\\", "\\\\").Replace("'", "\\'");
+        }
         public const string GPT_CANVAS_COPY_BUTTON_SELECTOR = "button.no-draggable.text-token-text-primary";
         public const string GPT_BLACKBOARD_COPY_BUTTON_SELECTOR = "button.no-draggable.text-token-text-primary";
 
         public string GetSetPromptScript(string promptText)
         {
-            // First encode the HTML characters
-            var htmlEncoded = System.Net.WebUtility.HtmlEncode(promptText);
+            // JS-safe, double-quoted string literal of the raw prompt text (newlines escaped as \n).
+            var jsText = JsonConvert.SerializeObject(promptText);
 
-            // Then do the JSON serialization and other processing
-            var escapedPrompt = JsonConvert.SerializeObject(htmlEncoded)
+            // HTML-encoded, <p>-wrapped variant used only by the legacy innerHTML fallback below.
+            var escapedPrompt = JsonConvert.SerializeObject(System.Net.WebUtility.HtmlEncode(promptText))
                 .Trim('"')
                 .Replace("'", "\\'")
                 .Split(new[] { "\\r\\n", "\\n" }, StringSplitOptions.None)
                 .Select(line => $"<p>{line}</p>")
                 .Aggregate((current, next) => current + next);
 
+            // The composer is a ProseMirror editor. Text is inserted through real editing events so
+            // ProseMirror records it in its document state and swaps the voice button for Send:
+            //   1. execCommand('insertText') - genuine beforeinput/input events.
+            //   2. A simulated paste (ClipboardEvent + DataTransfer).
+            //   3. Legacy innerHTML injection (last resort).
             return $@"
-                var promptArea = document.querySelector('div[id=""{AIConfiguration.GPTPromptTextAreaId}""]');
-                if (promptArea) {{
-                    var existingText = promptArea.innerHTML;
-                    var newContent = existingText + (existingText && existingText.trim() ? '<p><br></p>' : '') + '{escapedPrompt}';
-                    promptArea.innerHTML = newContent;
-                    var inputEvent = new Event('input', {{
-                        'bubbles': true,
-                        'cancelable': true
-                    }});
-                    promptArea.dispatchEvent(inputEvent);
-                }} else {{
-                    console.error('GPT prompt area not found');
-                }}";
+                (function() {{
+                    var promptArea = {PromptAreaExpression};
+                    if (!promptArea) {{
+                        console.error('GPT prompt area not found');
+                        return;
+                    }}
+                    promptArea.focus();
+
+                    var hasContent = promptArea.textContent && promptArea.textContent.trim().length > 0;
+                    var textToInsert = (hasContent ? '\n\n' : '') + {jsText};
+
+                    // Move the caret to the end of the editor before inserting.
+                    try {{
+                        var sel = window.getSelection();
+                        sel.selectAllChildren(promptArea);
+                        sel.collapseToEnd();
+                    }} catch (e) {{}}
+
+                    function grew(before) {{
+                        return (promptArea.textContent ? promptArea.textContent.length : 0) > before;
+                    }}
+
+                    var beforeLen = promptArea.textContent ? promptArea.textContent.length : 0;
+
+                    try {{ document.execCommand('insertText', false, textToInsert); }} catch (e) {{}}
+
+                    if (!grew(beforeLen)) {{
+                        try {{
+                            var dt = new DataTransfer();
+                            dt.setData('text/plain', textToInsert);
+                            promptArea.dispatchEvent(new ClipboardEvent('paste', {{
+                                clipboardData: dt,
+                                bubbles: true,
+                                cancelable: true
+                            }}));
+                        }} catch (e) {{}}
+                    }}
+
+                    if (!grew(beforeLen)) {{
+                        var existingText = promptArea.innerHTML;
+                        promptArea.innerHTML = existingText + (existingText && existingText.trim() ? '<p><br></p>' : '') + '{escapedPrompt}';
+                        promptArea.dispatchEvent(new Event('input', {{ 'bubbles': true, 'cancelable': true }}));
+                    }}
+                }})();";
         }
 
         public string GetSubmitPromptScript()
         {
-            return @"document.querySelector('button[data-testid=""send-button""]').click();";
+            // The Send button only appears once the composer has text (until then the primary slot
+            // holds the 'Start Voice' button), and React renders it a tick or two after the text is
+            // inserted by the previous ExecuteScriptAsync call. So we POLL for up to ~3s.
+            //
+            // Button detection order:
+            //   1. data-testid='send-button' / id='composer-submit-button' (classic UI).
+            //   2. The composer primary action button (bg-composer-primary), skipping the voice
+            //      button, which is recognized by its waveform icon path (language independent).
+            // If no enabled button appears in time, fall back to pressing Enter inside the editor.
+            return $@"
+                (function() {{
+                    var VOICE_ICON = 'svg path[d^=""M8.22266 2.45825""]';
+
+                    function findButton() {{
+                        var b = document.querySelector('button[data-testid=""send-button""]') || document.getElementById('composer-submit-button');
+                        if (b) {{ return b; }}
+
+                        var primary = document.querySelectorAll('button[class*=""bg-composer-primary""]');
+                        for (var i = primary.length - 1; i >= 0; i--) {{
+                            if (!primary[i].querySelector(VOICE_ICON)) {{ return primary[i]; }}
+                        }}
+                        return null;
+                    }}
+
+                    function enabled(btn) {{
+                        return btn && !btn.disabled && btn.getAttribute('aria-disabled') !== 'true';
+                    }}
+
+                    var attempts = 0;
+                    var maxAttempts = 40; // 40 * 75ms = 3s
+                    var timer = setInterval(function() {{
+                        attempts++;
+                        var btn = findButton();
+                        if (enabled(btn)) {{
+                            clearInterval(timer);
+                            btn.click();
+                            return;
+                        }}
+                        if (attempts >= maxAttempts) {{
+                            clearInterval(timer);
+                            var editor = {PromptAreaExpression};
+                            if (editor) {{
+                                editor.focus();
+                                var keyOpts = {{ key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true }};
+                                ['keydown', 'keypress', 'keyup'].forEach(function(t) {{
+                                    editor.dispatchEvent(new KeyboardEvent(t, keyOpts));
+                                }});
+                            }}
+                        }}
+                    }}, 75);
+                }})();";
         }
 
         public string GetScrollToBottomScript()
@@ -137,70 +238,85 @@ setTimeout(() => {
 
         public string GetAddEventListenersScript()
         {
+            // The code block copy button is now an icon-only button (aria-label='Copy', no text,
+            // no data-state). It is matched by its copy icon path, which is language independent,
+            // with the English aria-label as a fallback.
+            //
+            // The old 'button.flex.gap-1.items-center.select-none[data-state=closed]' selector must
+            // not be used anymore: it now matches composer buttons ('Add files and more', the model
+            // picker), so clicking them pasted the clipboard into VS. Composer and whole-message
+            // copy buttons are excluded explicitly in case a cached remote config still carries it.
+            //
+            // This script is re-executed every 2s by a timer, so the MutationObserver is installed
+            // once per page. postCopy() throttles the message so one click is reported once.
             return $@"
-        var buttonSelector = '{AIConfiguration.GPTCopyCodeButtonSelector}';
-        var iconSelector = '{AIConfiguration.GPTCopyCodeButtonIconSelector}';
-        var canvasCopyButtonSelector = '{AIConfiguration.GPTCanvasCopyButtonSelector.Replace("\\", "\\\\").Replace("'", "\\'")}';
-        var blackboardCopyButtonSelector = '{AIConfiguration.GPTBlackboardCopyButtonSelector.Replace("\\", "\\\\").Replace("'", "\\'")}';
-        var newDesignSelector = 'button.flex.gap-1.items-center.select-none[data-state=""closed""]';
-        var newCanvasSelector = 'button.no-draggable.text-token-text-primary';
-        var combinedSelector = buttonSelector + ', ' + newDesignSelector + ', ' + canvasCopyButtonSelector + ', ' + blackboardCopyButtonSelector + ', ' + newCanvasSelector;
+(function() {{
+    var buttonSelector = '{EscapeJs(AIConfiguration.GPTCopyCodeButtonSelector)}';
+    var iconSelector = '{EscapeJs(AIConfiguration.GPTCopyCodeButtonIconSelector)}';
+    var canvasCopyButtonSelector = '{EscapeJs(AIConfiguration.GPTCanvasCopyButtonSelector)}';
+    var blackboardCopyButtonSelector = '{EscapeJs(AIConfiguration.GPTBlackboardCopyButtonSelector)}';
+    var newCanvasSelector = 'button.no-draggable.text-token-text-primary';
+    var copyIconButtonSelector = '{EscapeJs(GPT_COPY_CODE_BUTTON_SELECTOR)}';
+    var copyLabelSelector = 'button[aria-label=""Copy""], button[aria-label=""Copy code""]';
+    var buttonSelectors = [buttonSelector, canvasCopyButtonSelector, blackboardCopyButtonSelector, newCanvasSelector, copyIconButtonSelector, copyLabelSelector];
 
-        function handleButtonClick(event) {{
-            var button = event.target.closest('button');
-            if (button && !button.hasAttribute('data-custom-click-handled')) {{
-                window.chrome.webview.postMessage('CopyCodeButtonClicked');
-                button.setAttribute('data-custom-click-handled', 'true');
-            }}
-        }}
+    function isExcluded(button) {{
+        return button.matches('[data-testid=""copy-turn-action-button""], [data-composer-navigation-target]')
+            || !!button.closest('[data-composer-footer-responsive]');
+    }}
 
-        function addListenerToButton(button) {{
-            if (!button.hasAttribute('data-listener-added')) {{
-                button.addEventListener('click', handleButtonClick, true);
+    function postCopy() {{
+        var now = Date.now();
+        if (window.__gptExtLastCopyPost && (now - window.__gptExtLastCopyPost) < 700) {{ return; }}
+        window.__gptExtLastCopyPost = now;
+        window.chrome.webview.postMessage('CopyCodeButtonClicked');
+    }}
 
-                var buttonText = button.querySelector('svg + *');
-                if (buttonText) {{
-                    buttonText.addEventListener('click', handleButtonClick, true);
-                }}
+    function addListenerToButton(button) {{
+        if (!button || button.hasAttribute('data-listener-added') || isExcluded(button)) {{ return; }}
+        button.addEventListener('click', function() {{ postCopy(); }}, true);
+        button.setAttribute('data-listener-added', 'true');
+    }}
 
-                button.setAttribute('data-listener-added', 'true');
-            }}
-        }}
-
-        var allButtons = Array.from(document.querySelectorAll(combinedSelector));
-        var allIcons = Array.from(document.querySelectorAll(iconSelector));
-
-        allButtons.forEach(addListenerToButton);
-        allIcons.forEach(function(icon) {{
-            icon.addEventListener('click', handleButtonClick, true);
+    // Each selector is queried on its own so one invalid selector from the remote config
+    // cannot disable the others.
+    function scan(root) {{
+        if (!root || !root.querySelectorAll) {{ return; }}
+        buttonSelectors.forEach(function(selector) {{
+            if (!selector) {{ return; }}
+            try {{
+                if (root.matches && root.matches(selector)) {{ addListenerToButton(root); }}
+                root.querySelectorAll(selector).forEach(addListenerToButton);
+            }} catch (e) {{}}
         }});
+        try {{
+            root.querySelectorAll(iconSelector).forEach(function(icon) {{
+                addListenerToButton(icon.closest('button'));
+            }});
+        }} catch (e) {{}}
+    }}
 
-        var observer = new MutationObserver(function(mutations) {{
+    scan(document);
+
+    if (!window.__gptExtCopyObserver && document.body) {{
+        window.__gptExtCopyObserver = new MutationObserver(function(mutations) {{
             mutations.forEach(function(mutation) {{
-                if (mutation.type === 'childList') {{
-                    mutation.addedNodes.forEach(function(node) {{
-                        if (node.nodeType === Node.ELEMENT_NODE) {{
-                            if (node.matches && node.matches(combinedSelector)) {{
-                                addListenerToButton(node);
-                            }}
-                            if (node.querySelectorAll) {{
-                                var newButtons = node.querySelectorAll(combinedSelector);
-                                newButtons.forEach(addListenerToButton);
-                            }}
-                        }}
-                    }});
-                }}
+                if (mutation.type !== 'childList') {{ return; }}
+                mutation.addedNodes.forEach(function(node) {{
+                    if (node.nodeType === Node.ELEMENT_NODE) {{ scan(node); }}
+                }});
             }});
         }});
-
-        observer.observe(document.body, {{ childList: true, subtree: true }});";
+        window.__gptExtCopyObserver.observe(document.body, {{ childList: true, subtree: true }});
+    }}
+}})();";
         }
 
         public string GetHomeKeyScript(bool shiftPressed, int startOfLine)
         {
             return $@"
         (function() {{
-            var editor = document.querySelector('div[id=""{AIConfiguration.GPTPromptTextAreaId}""]');
+            var editor = {PromptAreaExpression};
             var selection = window.getSelection();
             var range = selection.getRangeAt(0);
             var node = range.startContainer;
@@ -222,7 +338,7 @@ setTimeout(() => {
         {
             return $@"
     (function() {{
-        var editor = document.querySelector('div[id=""{AIConfiguration.GPTPromptTextAreaId}""]');
+        var editor = {PromptAreaExpression};
         var selection = window.getSelection();
         var range = selection.getRangeAt(0);
         var node = range.startContainer;

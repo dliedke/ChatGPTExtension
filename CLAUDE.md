@@ -6,7 +6,7 @@
 
 - **Author:** Daniel Carvalho Liedke
 - **License:** Proprietary (free to use, no cloning/modification/selling)
-- **Current Version:** 9.7
+- **Current Version:** 10.0
 
 ## Tech Stack
 

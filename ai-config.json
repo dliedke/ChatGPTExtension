@@ -2,8 +2,8 @@
   "GPT": {
     "Url": "https://chatgpt.com/",
     "PromptTextAreaId": "prompt-textarea",
-    "CopyCodeButtonSelector": "button.flex.gap-1.items-center.select-none[data-state=\"closed\"]",
-    "CopyCodeButtonIconSelector": "button.flex.gap-1.items-center.select-none[data-state=\"closed\"] svg",
+    "CopyCodeButtonSelector": "button:has(svg path[d^=\"M15.1006 1.78516\"])",
+    "CopyCodeButtonIconSelector": "svg path[d^=\"M15.1006 1.78516\"]",
     "CanvasCopyButtonSelector": "button.no-draggable.text-token-text-primary"
   },
   "Gemini": {

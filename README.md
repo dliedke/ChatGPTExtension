@@ -82,6 +82,7 @@ Also integrates with **Hangzhou Deepseek**.
 
 ## What's New
 
+- 10.0 - Fixed ChatGPT integration for the new composer UI: the prompt editor is found without the removed id="prompt-textarea", text is inserted through ProseMirror editing events, the Send button is polled for once it replaces the voice button (with an Enter fallback), and copy code detects the new icon-only Copy button. Composer buttons ("Add files and more", model picker) no longer trigger copy code.
 - 9.8 - Fixed Claude copy code and prompt sending for the new CDS button UI: copy buttons are now detected by their localized aria-label plus a clipboard-write hook (language independent, also covers artifact/project copy), and the Send button is located by its data-testid="chat-input-send".
 
 - 9.7 - Fixed Claude prompt sending timing: the Send button is enabled asynchronously after the text is inserted, so the submit script now polls for the enabled button (up to ~3s) before clicking, instead of clicking immediately while it is still disabled.
